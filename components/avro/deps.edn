@@ -5,8 +5,8 @@
                         ;; (CVE-2023-43642 etc); upgrade both explicitly
                         :exclusions [org.apache.avro/avro
                                      org.xerial.snappy/snappy-java]}
-        org.apache.avro/avro {:mvn/version "1.11.5"
-                              ;; avro 1.11.5 brings jackson-databind 2.14.3
+        org.apache.avro/avro {:mvn/version "1.12.1"
+                              ;; avro 1.12.1 brings jackson-databind 2.14.3
                               ;; (CVE-2023-35116) and snappy-java <1.1.10
                               :exclusions [com.fasterxml.jackson.core/jackson-databind
                                            org.xerial.snappy/snappy-java]}
