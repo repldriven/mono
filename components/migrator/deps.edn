@@ -1,4 +1,4 @@
 {:aliases {:test {:extra-deps {}
                   :extra-paths ["test" "test-resources"]}}
- :deps {org.liquibase/liquibase-core {:mvn/version "5.0.1"}}
+ :deps {org.liquibase/liquibase-core {:mvn/version "5.0.2"}}
  :paths ["src"]}
