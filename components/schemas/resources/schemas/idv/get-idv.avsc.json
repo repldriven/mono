@@ -3,6 +3,7 @@
   "name": "GetIdv",
   "namespace": "com.repldriven.mono.idv",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "verification_id", "type": "string"}
   ]
 }

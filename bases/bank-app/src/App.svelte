@@ -1,47 +1,106 @@
 <script>
-  import { init } from "./lib/api.mjs";
+  import { set_org } from "./lib/api.mjs";
+  import Sidebar from "./lib/Sidebar.svelte";
+  import OrgSelector from "./lib/OrgSelector.svelte";
+  import OrganizationList from "./lib/OrganizationList.svelte";
   import CreateParty from "./lib/CreateParty.svelte";
   import PartyList from "./lib/PartyList.svelte";
   import AccountList from "./lib/AccountList.svelte";
-  import { onMount } from "svelte";
 
-  let ready = $state(false);
-  let error = $state(null);
+  let currentPage = $state("organizations");
+  let organizations = $state([]);
+  let selectedOrgId = $state(null);
   let partyListRef = $state();
   let accountListRef = $state();
 
-  onMount(async () => {
-    try {
-      await init();
-      ready = true;
-    } catch (err) {
-      error = err.message;
+  let hasApiKey = $derived(selectedOrgId != null);
+
+  function selectOrg(orgId) {
+    selectedOrgId = orgId;
+    set_org(orgId);
+    partyListRef?.load();
+    accountListRef?.load();
+  }
+
+  function handleOrgCreated(orgs) {
+    organizations = orgs;
+    if (!selectedOrgId && orgs.length > 0) {
+      selectOrg(orgs[0]["organization-id"]);
     }
-  });
+  }
+
+  function handleOrgsLoaded(orgs) {
+    organizations = orgs;
+    if (!selectedOrgId && orgs.length > 0) {
+      selectOrg(orgs[0]["organization-id"]);
+    }
+  }
 </script>
 
-{#if error}
-  <p>Failed to initialize: {error}</p>
-{:else if ready}
+<div class="layout">
+  <Sidebar {currentPage} onNavigate={(page) => currentPage = page} />
   <main>
-    <h1>Banking</h1>
-    <CreateParty onCreated={() => partyListRef?.load()} />
-    <PartyList bind:this={partyListRef}
-               onAccountOpened={() => accountListRef?.load()} />
-    <AccountList bind:this={accountListRef} />
+    {#if currentPage === "organizations"}
+      <OrganizationList
+        {selectedOrgId}
+        onSelectDefault={(id) => selectOrg(id)}
+        onCreated={handleOrgCreated}
+        onLoaded={handleOrgsLoaded}
+      />
+    {:else if !hasApiKey}
+      <div class="no-org">
+        <p>Create an organization first.</p>
+        <button onclick={() => currentPage = "organizations"}>
+          Go to Organizations
+        </button>
+      </div>
+    {:else if currentPage === "parties"}
+      <OrgSelector
+        {organizations}
+        {selectedOrgId}
+        onSelect={(id) => selectOrg(id)}
+      />
+      <CreateParty onCreated={() => partyListRef?.load()} />
+      <PartyList bind:this={partyListRef}
+                 onAccountOpened={() => accountListRef?.load()} />
+    {:else if currentPage === "accounts"}
+      <OrgSelector
+        {organizations}
+        {selectedOrgId}
+        onSelect={(id) => selectOrg(id)}
+      />
+      <AccountList bind:this={accountListRef} />
+    {/if}
   </main>
-{:else}
-  <p>Initializing...</p>
-{/if}
+</div>
 
 <style>
-  main {
-    max-width: 720px;
-    margin: 2rem auto;
+  .layout {
+    display: flex;
+    height: 100vh;
     font-family: system-ui, -apple-system, sans-serif;
   }
 
-  h1 {
-    margin-bottom: 1.5rem;
+  main {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    max-width: 900px;
+  }
+
+  .no-org {
+    padding: 2rem;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .no-org button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
   }
 </style>

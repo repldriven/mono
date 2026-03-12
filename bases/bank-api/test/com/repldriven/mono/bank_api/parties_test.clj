@@ -19,7 +19,8 @@
 (def ^:dynamic *base-url* "http://localhost:{PORT}")
 
 (def ^:private test-party
-  {:party-id "pty_01TEST123"
+  {:organization-id "org_test_api"
+   :party-id "pty_01TEST123"
    :type :person
    :display-name "Jane Doe"
    :status :pending

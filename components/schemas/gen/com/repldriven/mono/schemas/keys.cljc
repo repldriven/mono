@@ -33,12 +33,12 @@
 ;-----------------------------------------------------------------------------
 ; ApiKey
 ;-----------------------------------------------------------------------------
-(defrecord ApiKey-record [id org-id key-hash key-prefix name created-at
+(defrecord ApiKey-record [id organization-id key-hash key-prefix name created-at
                           revoked-at]
   pb/Writer
     (serialize [this os]
       (serdes.core/write-String 1 {:optimize true} (:id this) os)
-      (serdes.core/write-String 2 {:optimize true} (:org-id this) os)
+      (serdes.core/write-String 2 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 3 {:optimize true} (:key-hash this) os)
       (serdes.core/write-String 4 {:optimize true} (:key-prefix this) os)
       (serdes.core/write-String 5 {:optimize true} (:name this) os)
@@ -48,7 +48,7 @@
     (gettype [this] "com.repldriven.mono.schemas.keys.ApiKey"))
 
 (s/def :com.repldriven.mono.schemas.keys.ApiKey/id string?)
-(s/def :com.repldriven.mono.schemas.keys.ApiKey/org-id string?)
+(s/def :com.repldriven.mono.schemas.keys.ApiKey/organization-id string?)
 (s/def :com.repldriven.mono.schemas.keys.ApiKey/key-hash string?)
 (s/def :com.repldriven.mono.schemas.keys.ApiKey/key-prefix string?)
 (s/def :com.repldriven.mono.schemas.keys.ApiKey/name string?)
@@ -56,7 +56,7 @@
 (s/def :com.repldriven.mono.schemas.keys.ApiKey/revoked-at int?)
 (s/def ::ApiKey-spec
   (s/keys :opt-un [:com.repldriven.mono.schemas.keys.ApiKey/id
-                   :com.repldriven.mono.schemas.keys.ApiKey/org-id
+                   :com.repldriven.mono.schemas.keys.ApiKey/organization-id
                    :com.repldriven.mono.schemas.keys.ApiKey/key-hash
                    :com.repldriven.mono.schemas.keys.ApiKey/key-prefix
                    :com.repldriven.mono.schemas.keys.ApiKey/name
@@ -64,7 +64,7 @@
                    :com.repldriven.mono.schemas.keys.ApiKey/revoked-at]))
 (def ApiKey-defaults
   {:id ""
-   :org-id ""
+   :organization-id ""
    :key-hash ""
    :key-prefix ""
    :name ""
@@ -78,7 +78,7 @@
                 (fn [tag index]
                   (case index
                     1 [:id (serdes.core/cis->String is)]
-                    2 [:org-id (serdes.core/cis->String is)]
+                    2 [:organization-id (serdes.core/cis->String is)]
                     3 [:key-hash (serdes.core/cis->String is)]
                     4 [:key-prefix (serdes.core/cis->String is)]
                     5 [:name (serdes.core/cis->String is)]

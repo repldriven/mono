@@ -3,6 +3,7 @@
   "name": "CreateParty",
   "namespace": "com.repldriven.mono.party",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "type", "type": "string"},
     {"name": "display_name", "type": "string"},
     {"name": "given_name", "type": "string"},

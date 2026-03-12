@@ -14,7 +14,14 @@
    {:json-schema/example examples/Organization}
    [:organization-id string?]
    [:name string?]
-   [:status string?]])
+   [:status string?]
+   [:created-at {:optional true} [:maybe string?]]
+   [:updated-at {:optional true} [:maybe string?]]])
+
+(def OrganizationList
+  [:map
+   {:json-schema/example examples/OrganizationList}
+   [:organizations [:vector [:ref "Organization"]]]])
 
 (def CreateOrganizationResponse
   [:map
@@ -24,4 +31,4 @@
 
 (def registry
   (components-registry [#'CreateOrganizationRequest #'Organization
-                        #'CreateOrganizationResponse]))
+                        #'OrganizationList #'CreateOrganizationResponse]))

@@ -7,7 +7,13 @@
 (def registry (examples-registry []))
 
 (def Organization
-  {:organization-id "org_01JMABC123" :name "Acme Corp" :status "ACTIVE"})
+  {:organization-id "org_01JMABC123"
+   :name "Acme Corp"
+   :status "ACTIVE"
+   :created-at "2025-01-01T00:00:00Z"
+   :updated-at "2025-01-01T00:00:00Z"})
+
+(def OrganizationList {:organizations [Organization]})
 
 (def CreateOrganizationRequest (select-keys Organization [:name]))
 

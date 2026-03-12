@@ -3,6 +3,7 @@
   "name": "Account",
   "namespace": "com.repldriven.mono.accounts.account_lifecycle",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "account_id",  "type": "string"},
     {"name": "party_id", "type": "string"},
     {"name": "name",        "type": "string"},

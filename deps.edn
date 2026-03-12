@@ -3,6 +3,7 @@
   {:extra-deps
    {components/accounts {:local/root "components/accounts"}
     components/avro {:local/root "components/avro"}
+    components/cache {:local/root "components/cache"}
     components/cli {:local/root "components/cli"}
     components/command {:local/root "components/command"}
     components/db {:local/root "components/db"}
@@ -52,6 +53,7 @@
   :test {:extra-paths ["components/accounts/test"
                        "components/accounts/test-resources"
                        "components/avro/test"
+                       "components/cache/test"
                        "components/cli/test"
                        "components/db/test"
                        "components/db/test-resources"

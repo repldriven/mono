@@ -38,6 +38,8 @@
                                         :payload payload
                                         :reply-to nil}))))
 
+(def ^:private test-org-id "org_test_processor")
+
 (defn- seed-active-party
   [record-db store-fn party-id]
   (fdb/transact record-db
@@ -47,7 +49,8 @@
                   (fdb/save-record
                    store
                    (schema/Party->java
-                    {:party-id party-id
+                    {:organization-id test-org-id
+                     :party-id party-id
                      :type :person
                      :status :active
                      :display-name "Test Party"
@@ -66,11 +69,11 @@
         (let [schemas (system/instance sys [:avro :serde])]
           (nom-test> [result (send-command sys
                                            "open-account"
-                                           {:party-id "cust-api-test"
+                                           {:organization-id test-org-id
+                                            :party-id "cust-api-test"
                                             :name "API Test Account"
                                             :currency "GBP"})
                       _ (is (= "ACCEPTED" (:status result)))
-                      decoded (avro/deserialize-same
-                               (get schemas "account")
-                               (:payload result))
+                      decoded (avro/deserialize-same (get schemas "account")
+                                                     (:payload result))
                       _ (is (some? (:account-id decoded)))])))))))

@@ -47,6 +47,13 @@
      (testing "unauthenticated request returns 401"
        (nom-test> [res (post-organization base-url "No Auth Org" nil)
                    _ (is (= 401 (:status res)))]))
-     (testing "wrong key returns 403"
+     (testing "wrong key returns 401"
        (nom-test> [res (post-organization base-url "Bad Key Org" "wrong-key")
-                   _ (is (= 403 (:status res)))])))))
+                   _ (is (= 401 (:status res)))]))
+     (testing "org key returns 403 on admin endpoint"
+       (nom-test> [res (post-organization base-url "First Org" admin-api-key)
+                   _ (is (= 201 (:status res)))
+                   body (http/res->body res)
+                   org-key (get-in body ["api-key" "raw-key"])
+                   res2 (post-organization base-url "Second Org" org-key)
+                   _ (is (= 403 (:status res2)))])))))

@@ -36,10 +36,11 @@
                                 (account-pb->avro result))})))
 
 (defn- load
-  "Loads a raw record by id from the store. Returns the
-  protobuf record or a rejection anomaly if not found."
-  [store account-id]
-  (or (fdb/load-record store account-id)
+  "Loads a raw record by composite PK from the store.
+  Returns the protobuf record or a rejection anomaly if
+  not found."
+  [store organization-id account-id]
+  (or (fdb/load-record store organization-id account-id)
       (error/reject :account/not-found "Account not found")))
 
 (defn- load-party-accounts
@@ -54,10 +55,14 @@
   [store account changelog]
   (error/let-nom>
     [_ (fdb/save-record store (schema/Account->java account))
-     _ (fdb/write-changelog store
-                            "accounts"
-                            (:account-id account)
-                            (schema/AccountChangelog->pb changelog))]
+     _ (fdb/write-changelog
+        store
+        "accounts"
+        (:account-id account)
+        (schema/AccountChangelog->pb
+         (assoc changelog
+                :organization-id
+                (:organization-id account))))]
     (schema/Account->pb account)))
 
 (defn- party-status->rejection
@@ -76,13 +81,14 @@
   with opened status and payment addresses."
   [config data]
   (let [{:keys [record-db record-store]} config
-        {:keys [party-id]} data]
+        {:keys [organization-id party-id]} data]
     (fdb/transact-multi
      record-db
      record-store
      (fn [open-store]
        (let [party-store (open-store "parties")]
          (if-some [party-rec (fdb/load-record party-store
+                                              organization-id
                                               party-id)]
            (let [party (schema/pb->Party party-rec)]
              (or (party-status->rejection (:status party))
@@ -105,25 +111,29 @@
 
 (defn- read
   "Loads account by id. Returns protobuf record or anomaly."
-  [config account-id]
+  [config organization-id account-id]
   (let [{:keys [record-db record-store]} config]
     (fdb/transact record-db
                   record-store
                   "accounts"
-                  (fn [store] (load store account-id)))))
+                  (fn [store]
+                    (load store organization-id account-id)))))
 
 (defn- update
   "Loads account by id, applies f, saves back. Returns
   protobuf record or anomaly."
-  [config account-id f]
+  [config organization-id account-id f]
   (let [{:keys [record-db record-store]} config]
     (fdb/transact record-db
                   record-store
                   "accounts"
                   (fn [store]
                     (error/let-nom>
-                      [loaded (error/nom->> (load store account-id)
-                                            schema/pb->Account)
+                      [loaded (error/nom->>
+                               (load store
+                                     organization-id
+                                     account-id)
+                               schema/pb->Account)
                        updated (f loaded)]
                       (save store
                             updated
@@ -141,12 +151,17 @@
 (defn get
   "Returns the current account or rejection anomaly."
   [config data]
-  (let [{:keys [account-id]} data]
-    (->response config (read config account-id))))
+  (let [{:keys [organization-id account-id]} data]
+    (->response config
+                (read config organization-id account-id))))
 
 (defn close
   "Closes an account."
   [config data]
-  (let [{:keys [account-id]} data]
-    (->response config (update config account-id domain/close-account))))
+  (let [{:keys [organization-id account-id]} data]
+    (->response config
+                (update config
+                        organization-id
+                        account-id
+                        domain/close-account))))
 

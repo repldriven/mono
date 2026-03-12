@@ -13,6 +13,7 @@
     component/testcontainers {:local/root "../../components/testcontainers"}}}}
  :deps {component/accounts {:local/root "../../components/accounts"}
         component/avro {:local/root "../../components/avro"}
+        component/cache {:local/root "../../components/cache"}
         component/cli {:local/root "../../components/cli"}
         component/command {:local/root "../../components/command"}
         component/command-processor {:local/root "../../components/command-processor"}

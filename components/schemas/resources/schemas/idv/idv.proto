@@ -9,7 +9,8 @@ option java_outer_classname = "IdvProto";
 message Idv {
   option (com.apple.foundationdb.record.record).usage = RECORD;
 
-  required string verification_id = 1 [(com.apple.foundationdb.record.field).primary_key = true];
+  required string organization_id = 7;
+  required string verification_id = 1;
   required string party_id = 2;
   required IdvStatus status = 3;
 

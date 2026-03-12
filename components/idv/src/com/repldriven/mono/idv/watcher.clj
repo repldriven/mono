@@ -13,14 +13,17 @@
     (let [changelog (schema/pb->PartyChangelog changelog-bytes)]
       (when (= :pending (:status-after changelog))
         (let [store (record-store ctx "idvs")
-              idv (domain/new-idv {:party-id (:party-id changelog)})]
+              org-id (:organization-id changelog)
+              idv (domain/new-idv {:organization-id org-id
+                                   :party-id (:party-id changelog)})]
           (fdb/save-record store (schema/Idv->java idv))
           (fdb/write-changelog
            store
            "idvs"
            (:verification-id idv)
            (schema/IdvChangelog->pb
-            {:verification-id (:verification-id idv)
+            {:organization-id org-id
+             :verification-id (:verification-id idv)
              :status-after :pending})))))))
 
 (defn idv-changelog-handler
@@ -32,7 +35,9 @@
     (let [changelog (schema/pb->IdvChangelog changelog-bytes)]
       (when (= :pending (:status-after changelog))
         (let [store (record-store ctx "idvs")
+              org-id (:organization-id changelog)
               record (fdb/load-record store
+                                      org-id
                                       (:verification-id changelog))]
           (when record
             (let [idv (schema/pb->Idv record)
@@ -43,6 +48,7 @@
                "idvs"
                (:verification-id accepted)
                (schema/IdvChangelog->pb
-                {:verification-id (:verification-id accepted)
+                {:organization-id org-id
+                 :verification-id (:verification-id accepted)
                  :status-before :pending
                  :status-after :accepted})))))))))

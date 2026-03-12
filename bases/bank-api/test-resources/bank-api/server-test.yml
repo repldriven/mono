@@ -3,6 +3,9 @@ handler: !system/required-component
 interceptors: !system/component
   system/component-kind: server/interceptors
   admin-api-key: !env MONO_ADMIN_API_KEY
+  auth:
+    role: !keyword org
+    organization-id: org_test_api
   dispatchers:
     accounts: !system/ref accounts.dispatcher
     parties: !system/ref parties.dispatcher

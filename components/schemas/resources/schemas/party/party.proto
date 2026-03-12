@@ -9,7 +9,8 @@ option java_outer_classname = "PartyProto";
 message Party {
   option (com.apple.foundationdb.record.record).usage = RECORD;
 
-  required string party_id = 1 [(com.apple.foundationdb.record.field).primary_key = true];
+  required string organization_id = 7;
+  required string party_id = 1;
   required PartyType type = 2;
   required string display_name = 3;
   required PartyStatus status = 4;

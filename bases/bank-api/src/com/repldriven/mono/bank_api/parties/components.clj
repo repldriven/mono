@@ -9,6 +9,7 @@
 (def Party
   [:map
    {:json-schema/example examples/Party}
+   [:organization-id {:optional true} [:maybe string?]]
    [:party-id [:ref "PartyId"]]
    [:type [:enum :person :party-type-unknown]]
    [:display-name string?]

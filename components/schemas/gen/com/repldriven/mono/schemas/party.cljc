@@ -136,10 +136,11 @@
 ;-----------------------------------------------------------------------------
 ; Party
 ;-----------------------------------------------------------------------------
-(defrecord Party-record [party-id type display-name status created-at
-                         updated-at]
+(defrecord Party-record [organization-id party-id type display-name status
+                         created-at updated-at]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 7 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:party-id this) os)
       (write-Party-PartyType 2 {:optimize true} (:type this) os)
       (serdes.core/write-String 3 {:optimize true} (:display-name this) os)
@@ -149,6 +150,7 @@
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.party.Party"))
 
+(s/def :com.repldriven.mono.schemas.party.Party/organization-id string?)
 (s/def :com.repldriven.mono.schemas.party.Party/party-id string?)
 (s/def :com.repldriven.mono.schemas.party.Party/type
   (s/or :keyword keyword?
@@ -160,14 +162,16 @@
 (s/def :com.repldriven.mono.schemas.party.Party/created-at int?)
 (s/def :com.repldriven.mono.schemas.party.Party/updated-at int?)
 (s/def ::Party-spec
-  (s/keys :opt-un [:com.repldriven.mono.schemas.party.Party/party-id
+  (s/keys :opt-un [:com.repldriven.mono.schemas.party.Party/organization-id
+                   :com.repldriven.mono.schemas.party.Party/party-id
                    :com.repldriven.mono.schemas.party.Party/type
                    :com.repldriven.mono.schemas.party.Party/display-name
                    :com.repldriven.mono.schemas.party.Party/status
                    :com.repldriven.mono.schemas.party.Party/created-at
                    :com.repldriven.mono.schemas.party.Party/updated-at]))
 (def Party-defaults
-  {:party-id ""
+  {:organization-id ""
+   :party-id ""
    :type Party-PartyType-default
    :display-name ""
    :status Party-PartyStatus-default
@@ -180,6 +184,7 @@
   (->> (tag-map Party-defaults
                 (fn [tag index]
                   (case index
+                    7 [:organization-id (serdes.core/cis->String is)]
                     1 [:party-id (serdes.core/cis->String is)]
                     2 [:type (cis->Party-PartyType is)]
                     3 [:display-name (serdes.core/cis->String is)]
@@ -219,10 +224,11 @@
 ;-----------------------------------------------------------------------------
 ; PartyNationalIdentifier
 ;-----------------------------------------------------------------------------
-(defrecord PartyNationalIdentifier-record [party-id type value issuing-country
-                                           created-at]
+(defrecord PartyNationalIdentifier-record [organization-id party-id type value
+                                           issuing-country created-at]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 6 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:party-id this) os)
       (write-PartyNationalIdentifier-IdentifierType 2
                                                     {:optimize true}
@@ -235,6 +241,9 @@
     (gettype [this]
       "com.repldriven.mono.schemas.party.PartyNationalIdentifier"))
 
+(s/def
+  :com.repldriven.mono.schemas.party.PartyNationalIdentifier/organization-id
+  string?)
 (s/def :com.repldriven.mono.schemas.party.PartyNationalIdentifier/party-id
   string?)
 (s/def :com.repldriven.mono.schemas.party.PartyNationalIdentifier/type
@@ -249,13 +258,15 @@
 (s/def ::PartyNationalIdentifier-spec
   (s/keys
    :opt-un
-   [:com.repldriven.mono.schemas.party.PartyNationalIdentifier/party-id
+   [:com.repldriven.mono.schemas.party.PartyNationalIdentifier/organization-id
+    :com.repldriven.mono.schemas.party.PartyNationalIdentifier/party-id
     :com.repldriven.mono.schemas.party.PartyNationalIdentifier/type
     :com.repldriven.mono.schemas.party.PartyNationalIdentifier/value
     :com.repldriven.mono.schemas.party.PartyNationalIdentifier/issuing-country
     :com.repldriven.mono.schemas.party.PartyNationalIdentifier/created-at]))
 (def PartyNationalIdentifier-defaults
-  {:party-id ""
+  {:organization-id ""
+   :party-id ""
    :type PartyNationalIdentifier-IdentifierType-default
    :value ""
    :issuing-country ""
@@ -267,6 +278,7 @@
   (->> (tag-map PartyNationalIdentifier-defaults
                 (fn [tag index]
                   (case index
+                    6 [:organization-id (serdes.core/cis->String is)]
                     1 [:party-id (serdes.core/cis->String is)]
                     2 [:type (cis->PartyNationalIdentifier-IdentifierType is)]
                     3 [:value (serdes.core/cis->String is)]
@@ -307,15 +319,19 @@
 ;-----------------------------------------------------------------------------
 ; PartyChangelog
 ;-----------------------------------------------------------------------------
-(defrecord PartyChangelog-record [party-id status-before status-after]
+(defrecord PartyChangelog-record [organization-id party-id status-before
+                                  status-after]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 4 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:party-id this) os)
       (write-Party-PartyStatus 2 {:optimize true} (:status-before this) os)
       (write-Party-PartyStatus 3 {:optimize true} (:status-after this) os))
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.party.PartyChangelog"))
 
+(s/def :com.repldriven.mono.schemas.party.PartyChangelog/organization-id
+  string?)
 (s/def :com.repldriven.mono.schemas.party.PartyChangelog/party-id string?)
 (s/def :com.repldriven.mono.schemas.party.PartyChangelog/status-before
   (s/or :keyword keyword?
@@ -325,11 +341,13 @@
         :int int?))
 (s/def ::PartyChangelog-spec
   (s/keys :opt-un
-          [:com.repldriven.mono.schemas.party.PartyChangelog/party-id
+          [:com.repldriven.mono.schemas.party.PartyChangelog/organization-id
+           :com.repldriven.mono.schemas.party.PartyChangelog/party-id
            :com.repldriven.mono.schemas.party.PartyChangelog/status-before
            :com.repldriven.mono.schemas.party.PartyChangelog/status-after]))
 (def PartyChangelog-defaults
-  {:party-id ""
+  {:organization-id ""
+   :party-id ""
    :status-before Party-PartyStatus-default
    :status-after Party-PartyStatus-default})
 
@@ -339,6 +357,7 @@
   (->> (tag-map PartyChangelog-defaults
                 (fn [tag index]
                   (case index
+                    4 [:organization-id (serdes.core/cis->String is)]
                     1 [:party-id (serdes.core/cis->String is)]
                     2 [:status-before (cis->Party-PartyStatus is)]
                     3 [:status-after (cis->Party-PartyStatus is)]

@@ -221,17 +221,19 @@
 ;-----------------------------------------------------------------------------
 ; Account
 ;-----------------------------------------------------------------------------
-(defrecord Account-record [account-id party-id name currency account-status
-                           created-at updated-at payment-addresses]
+(defrecord Account-record [party-id organization-id account-id currency
+                           updated-at name account-status created-at
+                           payment-addresses]
   pb/Writer
     (serialize [this os]
-      (serdes.core/write-String 1 {:optimize true} (:account-id this) os)
       (serdes.core/write-String 2 {:optimize true} (:party-id this) os)
-      (serdes.core/write-String 3 {:optimize true} (:name this) os)
+      (serdes.core/write-String 8 {:optimize true} (:organization-id this) os)
+      (serdes.core/write-String 1 {:optimize true} (:account-id this) os)
       (serdes.core/write-String 4 {:optimize true} (:currency this) os)
+      (serdes.core/write-Int64 7 {:optimize true} (:updated-at this) os)
+      (serdes.core/write-String 3 {:optimize true} (:name this) os)
       (write-Account-AccountStatus 5 {:optimize true} (:account-status this) os)
       (serdes.core/write-Int64 6 {:optimize true} (:created-at this) os)
-      (serdes.core/write-Int64 7 {:optimize true} (:updated-at this) os)
       (serdes.complex/write-repeated serdes.core/write-embedded
                                      10
                                      (:payment-addresses this)
@@ -239,32 +241,35 @@
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.accounts.Account"))
 
-(s/def :com.repldriven.mono.schemas.accounts.Account/account-id string?)
 (s/def :com.repldriven.mono.schemas.accounts.Account/party-id string?)
-(s/def :com.repldriven.mono.schemas.accounts.Account/name string?)
+(s/def :com.repldriven.mono.schemas.accounts.Account/organization-id string?)
+(s/def :com.repldriven.mono.schemas.accounts.Account/account-id string?)
 (s/def :com.repldriven.mono.schemas.accounts.Account/currency string?)
+(s/def :com.repldriven.mono.schemas.accounts.Account/updated-at int?)
+(s/def :com.repldriven.mono.schemas.accounts.Account/name string?)
 (s/def :com.repldriven.mono.schemas.accounts.Account/account-status
   (s/or :keyword keyword?
         :int int?))
 (s/def :com.repldriven.mono.schemas.accounts.Account/created-at int?)
-(s/def :com.repldriven.mono.schemas.accounts.Account/updated-at int?)
 
 (s/def ::Account-spec
-  (s/keys :opt-un [:com.repldriven.mono.schemas.accounts.Account/account-id
-                   :com.repldriven.mono.schemas.accounts.Account/party-id
-                   :com.repldriven.mono.schemas.accounts.Account/name
+  (s/keys :opt-un [:com.repldriven.mono.schemas.accounts.Account/party-id
+                   :com.repldriven.mono.schemas.accounts.Account/organization-id
+                   :com.repldriven.mono.schemas.accounts.Account/account-id
                    :com.repldriven.mono.schemas.accounts.Account/currency
+                   :com.repldriven.mono.schemas.accounts.Account/updated-at
+                   :com.repldriven.mono.schemas.accounts.Account/name
                    :com.repldriven.mono.schemas.accounts.Account/account-status
-                   :com.repldriven.mono.schemas.accounts.Account/created-at
-                   :com.repldriven.mono.schemas.accounts.Account/updated-at]))
+                   :com.repldriven.mono.schemas.accounts.Account/created-at]))
 (def Account-defaults
-  {:account-id ""
-   :party-id ""
-   :name ""
+  {:party-id ""
+   :organization-id ""
+   :account-id ""
    :currency ""
+   :updated-at 0
+   :name ""
    :account-status Account-AccountStatus-default
    :created-at 0
-   :updated-at 0
    :payment-addresses []})
 
 (defn cis->Account
@@ -273,13 +278,14 @@
   (->> (tag-map Account-defaults
                 (fn [tag index]
                   (case index
-                    1 [:account-id (serdes.core/cis->String is)]
                     2 [:party-id (serdes.core/cis->String is)]
-                    3 [:name (serdes.core/cis->String is)]
+                    8 [:organization-id (serdes.core/cis->String is)]
+                    1 [:account-id (serdes.core/cis->String is)]
                     4 [:currency (serdes.core/cis->String is)]
+                    7 [:updated-at (serdes.core/cis->Int64 is)]
+                    3 [:name (serdes.core/cis->String is)]
                     5 [:account-status (cis->Account-AccountStatus is)]
                     6 [:created-at (serdes.core/cis->Int64 is)]
-                    7 [:updated-at (serdes.core/cis->Int64 is)]
                     10 [:payment-addresses
                         (serdes.complex/cis->repeated ecis->PaymentAddress is)]
 
@@ -317,15 +323,19 @@
 ;-----------------------------------------------------------------------------
 ; AccountChangelog
 ;-----------------------------------------------------------------------------
-(defrecord AccountChangelog-record [account-id status-before status-after]
+(defrecord AccountChangelog-record [organization-id account-id status-before
+                                    status-after]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 4 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:account-id this) os)
       (write-Account-AccountStatus 2 {:optimize true} (:status-before this) os)
       (write-Account-AccountStatus 3 {:optimize true} (:status-after this) os))
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.accounts.AccountChangelog"))
 
+(s/def :com.repldriven.mono.schemas.accounts.AccountChangelog/organization-id
+  string?)
 (s/def :com.repldriven.mono.schemas.accounts.AccountChangelog/account-id
   string?)
 (s/def :com.repldriven.mono.schemas.accounts.AccountChangelog/status-before
@@ -337,11 +347,13 @@
 (s/def ::AccountChangelog-spec
   (s/keys
    :opt-un
-   [:com.repldriven.mono.schemas.accounts.AccountChangelog/account-id
+   [:com.repldriven.mono.schemas.accounts.AccountChangelog/organization-id
+    :com.repldriven.mono.schemas.accounts.AccountChangelog/account-id
     :com.repldriven.mono.schemas.accounts.AccountChangelog/status-before
     :com.repldriven.mono.schemas.accounts.AccountChangelog/status-after]))
 (def AccountChangelog-defaults
-  {:account-id ""
+  {:organization-id ""
+   :account-id ""
    :status-before Account-AccountStatus-default
    :status-after Account-AccountStatus-default})
 
@@ -351,6 +363,7 @@
   (->> (tag-map AccountChangelog-defaults
                 (fn [tag index]
                   (case index
+                    4 [:organization-id (serdes.core/cis->String is)]
                     1 [:account-id (serdes.core/cis->String is)]
                     2 [:status-before (cis->Account-AccountStatus is)]
                     3 [:status-after (cis->Account-AccountStatus is)]

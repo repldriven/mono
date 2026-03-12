@@ -19,7 +19,8 @@
 (def ^:dynamic *base-url* "http://localhost:{PORT}")
 
 (def ^:private test-account-open
-  {:account-id "acc-test-id"
+  {:organization-id "org_test_api"
+   :account-id "acc-test-id"
    :party-id "acc-test"
    :name "Test Account"
    :currency "GBP"

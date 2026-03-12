@@ -7,6 +7,7 @@ import "schemas/idv/idv.proto";
 option java_outer_classname = "IdvChangelogProto";
 
 message IdvChangelog {
+  required string organization_id = 4;
   required string verification_id = 1;
   optional Idv.IdvStatus status_before = 2;
   required Idv.IdvStatus status_after = 3;

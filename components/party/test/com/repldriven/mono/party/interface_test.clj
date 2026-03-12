@@ -14,6 +14,8 @@
 
     [clojure.test :refer [deftest is testing]]))
 
+(def ^:private test-org-id "org_test_party")
+
 (defn- send-command
   [proc schemas command-name data]
   (let [payload (avro/serialize (get schemas command-name) data)]
@@ -37,7 +39,8 @@
                 "idvs"
                 (fn [store]
                   (let [verification-id (str "iv-test-" party-id)
-                        idv {:verification-id verification-id
+                        idv {:organization-id test-org-id
+                             :verification-id verification-id
                              :party-id party-id
                              :status :accepted
                              :created-at (System/currentTimeMillis)
@@ -50,8 +53,8 @@
                      "idvs"
                      verification-id
                      (schema/IdvChangelog->pb
-                      {:verification-id verification-id
-                       :party-id party-id
+                      {:organization-id test-org-id
+                       :verification-id verification-id
                        :status-before :pending
                        :status-after :accepted}))))))
 
@@ -62,7 +65,9 @@
                 store-fn
                 "parties"
                 (fn [store]
-                  (when-let [rec (fdb/load-record store party-id)]
+                  (when-let [rec (fdb/load-record store
+                                                  test-org-id
+                                                  party-id)]
                     (schema/pb->Party rec)))))
 
 (defn- poll-party-status
@@ -82,7 +87,8 @@
 (defn- test-create-party
   [proc schemas]
   (testing "create-party creates party with pending status"
-    (let [create-payload {:type "PERSON"
+    (let [create-payload {:organization-id test-org-id
+                          :type "PERSON"
                           :display-name "Jane Doe"
                           :given-name "Jane"
                           :family-name "Doe"
@@ -110,7 +116,8 @@
     (let [ni {:type "NATIONAL_INSURANCE"
               :value "ZZ999999D"
               :issuing-country "GB"}
-          payload {:type "PERSON"
+          payload {:organization-id test-org-id
+                   :type "PERSON"
                    :display-name "First"
                    :given-name "First"
                    :family-name "Person"
@@ -138,7 +145,8 @@
 (defn- test-watcher-transitions
   [proc schemas record-db store-fn]
   (testing "watcher transitions party pending->active on accepted IDV"
-    (let [create-payload {:type "PERSON"
+    (let [create-payload {:organization-id test-org-id
+                          :type "PERSON"
                           :display-name "Watcher Test"
                           :given-name "Watch"
                           :family-name "Test"
@@ -165,7 +173,8 @@
     (let [result (send-command proc
                                schemas
                                "unknown-party-command"
-                               {:type "PERSON"
+                               {:organization-id test-org-id
+                                :type "PERSON"
                                 :display-name "X"
                                 :given-name "X"
                                 :family-name "Y"

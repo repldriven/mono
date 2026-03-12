@@ -1,5 +1,6 @@
 <script>
   import { list_accounts, close_account } from "./api.mjs";
+  import { timeAgo } from "./time.mjs";
   import { onMount } from "svelte";
 
   let accounts = $state([]);
@@ -66,6 +67,7 @@
   <table>
     <thead>
       <tr>
+        <th>Org ID</th>
         <th>Account ID</th>
         <th>Party ID</th>
         <th>Currency</th>
@@ -77,16 +79,17 @@
     </thead>
     <tbody>
       {#if accounts.length === 0 && !loading}
-        <tr><td colspan="7" class="empty">No accounts found</td></tr>
+        <tr><td colspan="8" class="empty">No accounts found</td></tr>
       {/if}
       {#each accounts as acct}
         <tr>
+          <td class="mono">{acct["organization-id"]}</td>
           <td class="mono">{acct["account-id"]}</td>
           <td class="mono">{acct["party-id"]}</td>
           <td>{acct.currency}</td>
           <td>{acct["account-status"]}</td>
-          <td>{acct["created-at"]}</td>
-          <td>{acct["updated-at"]}</td>
+          <td title={acct["created-at"]}>{timeAgo(acct["created-at"])}</td>
+          <td title={acct["updated-at"]}>{timeAgo(acct["updated-at"])}</td>
           <td>
             {#if acct["account-status"] === "opened"}
               <button

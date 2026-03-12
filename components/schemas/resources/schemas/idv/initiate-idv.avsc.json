@@ -3,6 +3,7 @@
   "name": "InitiateIdv",
   "namespace": "com.repldriven.mono.idv",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "party_id", "type": "string"}
   ]
 }

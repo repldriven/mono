@@ -17,6 +17,7 @@
 
     [clojure.test :refer [deftest is testing]]))
 
+(def ^:private test-org-id "org_test_list_parties")
 (def ^:dynamic *base-url* "http://localhost:{PORT}")
 
 (defn- seed-party
@@ -53,7 +54,8 @@
          jetty (system/instance sys [:server :jetty-adapter])
          ids (mapv #(format "py-%03d" %) (range 1 4))
          parties (mapv (fn [id]
-                         {:party-id id
+                         {:organization-id test-org-id
+                          :party-id id
                           :type :person
                           :display-name (str "Party " id)
                           :status :pending

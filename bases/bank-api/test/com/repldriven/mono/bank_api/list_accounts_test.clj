@@ -16,6 +16,7 @@
 
     [clojure.test :refer [deftest is testing]]))
 
+(def ^:private test-org-id "org_test_list_accounts")
 (def ^:dynamic *base-url* "http://localhost:{PORT}")
 
 (defn- seed-account
@@ -44,7 +45,8 @@
          jetty (system/instance sys [:server :jetty-adapter])
          ids (mapv #(format "acct-%03d" %) (range 1 4))
          accounts (mapv (fn [id]
-                          {:account-id id
+                          {:organization-id test-org-id
+                           :account-id id
                            :party-id (str "cust-" id)
                            :name (str "Account " id)
                            :currency "GBP"

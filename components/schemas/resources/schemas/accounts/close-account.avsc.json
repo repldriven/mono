@@ -3,6 +3,7 @@
   "name": "CloseAccount",
   "namespace": "com.repldriven.mono.accounts.account_lifecycle",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "account_id",     "type": "string"}
   ]
 }

@@ -30,7 +30,7 @@
   [org-id api-key-name key-data]
   (let [now (System/currentTimeMillis)]
     {:id (encryption/generate-id "sk")
-     :org-id org-id
+     :organization-id org-id
      :key-hash (:key-hash key-data)
      :key-prefix (:key-prefix key-data)
      :name api-key-name

@@ -14,14 +14,17 @@
     (let [changelog (schema/pb->IdvChangelog changelog-bytes)]
       (when (= :accepted (:status-after changelog))
         (let [idv-store (record-store ctx "idvs")
+              org-id (:organization-id changelog)
               idv-record (fdb/load-record
                           idv-store
+                          org-id
                           (:verification-id changelog))]
           (when idv-record
             (let [idv (schema/pb->Idv idv-record)
                   party-store (record-store ctx "parties")
                   party-record (fdb/load-record
                                 party-store
+                                org-id
                                 (:party-id idv))]
               (when party-record
                 (let [party (schema/pb->Party party-record)]
@@ -35,6 +38,7 @@
                        "parties"
                        (:party-id activated)
                        (schema/PartyChangelog->pb
-                        {:party-id (:party-id activated)
+                        {:organization-id org-id
+                         :party-id (:party-id activated)
                          :status-before :pending
                          :status-after :active})))))))))))))

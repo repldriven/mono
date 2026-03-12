@@ -101,21 +101,51 @@
                           (f (fn [store-name]
                                (open-store open-store-fn ctx store-name))))))))
 
+(defn- prefix-range
+  "Returns a TupleRange scoped to a prefix tuple."
+  [prefix-tuple]
+  (TupleRange/allOf prefix-tuple))
+
+(defn- cursor-tuple
+  "Builds a cursor Tuple from prefix parts and a cursor
+  value."
+  [prefix cursor]
+  (let [parts (into (vec prefix) [cursor])]
+    (Tuple/from (into-array Object parts))))
+
 (defn scan
   "Scans records by primary key order. Returns
   {:records [bytes ...] :has-more boolean}.
 
   opts:
-    :after   primary-key string, exclusive lower bound (forward)
-    :before  primary-key string, exclusive upper bound (reverse)
+    :prefix  vector of leading PK parts to scope the scan
+    :after   cursor string, exclusive lower bound (forward)
+    :before  cursor string, exclusive upper bound (reverse)
     :limit   int, page size
 
-  When :after is given, scans forward from that key. When :before
-  is given, scans backward from that key, results returned in
-  forward order. When neither, scans from the start."
-  [store {:keys [after before limit]}]
+  When :prefix is given, the scan is constrained to records
+  whose PK starts with those values. :after/:before cursors
+  operate within that prefix scope."
+  [store {:keys [prefix after before limit]}]
   (let [reverse? (some? before)
+        prefix-tuple (when (seq prefix)
+                       (Tuple/from (into-array Object prefix)))
+        base-range (when prefix-tuple (prefix-range prefix-tuple))
         range (cond
+               (and prefix-tuple after)
+               (TupleRange.
+                (cursor-tuple prefix after)
+                (.getHigh ^TupleRange base-range)
+                EndpointType/RANGE_EXCLUSIVE
+                (.getHighEndpoint ^TupleRange base-range))
+               (and prefix-tuple before)
+               (TupleRange.
+                (.getLow ^TupleRange base-range)
+                (cursor-tuple prefix before)
+                (.getLowEndpoint ^TupleRange base-range)
+                EndpointType/RANGE_EXCLUSIVE)
+               prefix-tuple
+               base-range
                after
                (TupleRange.
                 (Tuple/from (into-array Object [after]))

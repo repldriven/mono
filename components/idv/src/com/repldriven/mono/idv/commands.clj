@@ -24,10 +24,14 @@
   [store idv changelog]
   (error/let-nom>
     [_ (fdb/save-record store (schema/Idv->java idv))
-     _ (fdb/write-changelog store
-                            "idvs"
-                            (:verification-id idv)
-                            (schema/IdvChangelog->pb changelog))]
+     _ (fdb/write-changelog
+        store
+        "idvs"
+        (:verification-id idv)
+        (schema/IdvChangelog->pb
+         (assoc changelog
+                :organization-id
+                (:organization-id idv))))]
     (schema/Idv->pb idv)))
 
 (defn- create
@@ -59,13 +63,15 @@
 
 (defn- read
   "Loads IDV by id. Returns protobuf record or anomaly."
-  [config verification-id]
+  [config organization-id verification-id]
   (let [{:keys [record-db record-store]} config]
     (fdb/transact record-db
                   record-store
                   "idvs"
                   (fn [store]
-                    (or (fdb/load-record store verification-id)
+                    (or (fdb/load-record store
+                                         organization-id
+                                         verification-id)
                         (error/reject
                          :idv/not-found
                          "IDV not found"))))))
@@ -78,5 +84,8 @@
 (defn get
   "Returns the current IDV or rejection anomaly."
   [config data]
-  (let [{:keys [verification-id]} data]
-    (->response config (read config verification-id))))
+  (let [{:keys [organization-id verification-id]} data]
+    (->response config
+                (read config
+                      organization-id
+                      verification-id))))

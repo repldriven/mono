@@ -79,12 +79,14 @@
                       "party-national-identifiers")
                      (domain/new-party-national-identifier
                       ni
+                      (:organization-id party)
                       party-id))
                     nil)
                 result (save-party
                         party-store
                         party
-                        {:party-id party-id
+                        {:organization-id (:organization-id party)
+                         :party-id party-id
                          :status-after (:status party)})]
                result))))]
     (if (uniqueness-violation? result)

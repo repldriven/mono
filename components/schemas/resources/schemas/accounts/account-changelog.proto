@@ -7,6 +7,7 @@ import "schemas/accounts/account.proto";
 option java_outer_classname = "AccountChangelogProto";
 
 message AccountChangelog {
+  required string organization_id = 4;
   required string account_id = 1;
   optional Account.AccountStatus status_before = 2;
   required Account.AccountStatus status_after = 3;

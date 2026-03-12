@@ -31,11 +31,12 @@
 
 (defn new-party-national-identifier
   "Creates a party-national-identifier map linked to
-  party-id."
-  [national-identifier party-id]
+  organization-id and party-id."
+  [national-identifier organization-id party-id]
   (let [{:keys [type value issuing-country]}
         national-identifier]
-    {:party-id party-id
+    {:organization-id organization-id
+     :party-id party-id
      :type (keyword (str/replace (str/lower-case type) "_" "-"))
      :value value
      :issuing-country issuing-country

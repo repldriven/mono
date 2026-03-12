@@ -1,5 +1,6 @@
 <script>
   import { list_parties, open_account } from "./api.mjs";
+  import { timeAgo } from "./time.mjs";
   import { onMount } from "svelte";
 
   let { onAccountOpened } = $props();
@@ -74,21 +75,27 @@
   <table>
     <thead>
       <tr>
+        <th>Org ID</th>
         <th>Party ID</th>
         <th>Display Name</th>
         <th>Status</th>
+        <th>Created</th>
+        <th>Updated</th>
         <th>Action</th>
       </tr>
     </thead>
     <tbody>
       {#if parties.length === 0 && !loading}
-        <tr><td colspan="4" class="empty">No parties found</td></tr>
+        <tr><td colspan="7" class="empty">No parties found</td></tr>
       {/if}
       {#each parties as party}
         <tr>
+          <td class="mono">{party["organization-id"]}</td>
           <td class="mono">{party["party-id"]}</td>
           <td>{party["display-name"]}</td>
           <td>{party.status}</td>
+          <td title={party["created-at"]}>{timeAgo(party["created-at"])}</td>
+          <td title={party["updated-at"]}>{timeAgo(party["updated-at"])}</td>
           <td>
             {#if party.status === "active"}
               <button

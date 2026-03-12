@@ -14,6 +14,8 @@
 
     [clojure.test :refer [deftest is testing]]))
 
+(def ^:private test-org-id "org_test_accounts")
+
 (defn- send-command
   [proc schemas command-name data]
   (let [payload (avro/serialize (get schemas command-name) data)]
@@ -31,7 +33,11 @@
   [proc schemas account-id expected]
   (loop [attempts 50]
     (let [result
-          (send-command proc schemas "get-account" {:account-id account-id})
+          (send-command proc
+                        schemas
+                        "get-account"
+                        {:organization-id test-org-id
+                         :account-id account-id})
           decoded (when (= "ACCEPTED" (:status result))
                     (decode-payload schemas "account" result))]
       (cond
@@ -49,7 +55,8 @@
                 store-fn
                 "parties"
                 (fn [store]
-                  (let [party {:party-id party-id
+                  (let [party {:organization-id test-org-id
+                               :party-id party-id
                                :type :person
                                :status :active
                                :display-name "Test Party"
@@ -66,7 +73,8 @@
                 store-fn
                 "parties"
                 (fn [store]
-                  (let [party {:party-id party-id
+                  (let [party {:organization-id test-org-id
+                               :party-id party-id
                                :type :person
                                :status status
                                :display-name "Test Party"
@@ -83,7 +91,8 @@
   and payment addresses"
     (let [party-id "cust-1"
           open-payload
-          {:party-id party-id
+          {:organization-id test-org-id
+           :party-id party-id
            :name "Test Account"
            :currency "USD"}]
       (seed-active-party record-db store-fn party-id)
@@ -115,7 +124,8 @@
       (let [result (send-command proc
                                  schemas
                                  "open-account"
-                                 {:party-id party-id
+                                 {:organization-id test-org-id
+                                  :party-id party-id
                                   :name "Pending Account"
                                   :currency "USD"})]
         (is (error/rejection? result))
@@ -127,7 +137,8 @@
     (let [result (send-command proc
                                schemas
                                "open-account"
-                               {:party-id "nonexistent"
+                               {:organization-id test-org-id
+                                :party-id "nonexistent"
                                 :name "Ghost Account"
                                 :currency "USD"})]
       (is (error/rejection? result))
@@ -138,7 +149,8 @@
   (testing "close-account sets status to closing"
     (let [party-id "cust-2"
           open-payload
-          {:party-id party-id
+          {:organization-id test-org-id
+           :party-id party-id
            :name "Account to Close"
            :currency "USD"}]
       (seed-active-party record-db store-fn party-id)
@@ -148,11 +160,12 @@
                               "open-account"
                               open-payload)
          account (decode-payload schemas "account" opened)
-         account-id (select-keys account [:account-id])
+         close-data (select-keys account
+                                 [:organization-id :account-id])
          result (send-command proc
                               schemas
                               "close-account"
-                              account-id)
+                              close-data)
          _ (is (= "ACCEPTED" (:status result)))
          decoded (decode-payload schemas "account" result)
          _ (is (= open-payload
@@ -164,7 +177,8 @@
   (testing "watcher transitions closing->closed"
     (let [party-id "cust-watcher"
           open-payload
-          {:party-id party-id
+          {:organization-id test-org-id
+           :party-id party-id
            :name "Watcher Account"
            :currency "GBP"}]
       (seed-active-party record-db store-fn party-id)
@@ -179,7 +193,8 @@
          closed (send-command proc
                               schemas
                               "close-account"
-                              {:account-id account-id})
+                              {:organization-id test-org-id
+                               :account-id account-id})
          closing-account (decode-payload schemas
                                          "account"
                                          closed)
@@ -195,7 +210,8 @@
   (testing "get-account returns account"
     (let [party-id "cust-7"
           open-payload
-          {:party-id party-id
+          {:organization-id test-org-id
+           :party-id party-id
            :name "Status Account"
            :currency "USD"}]
       (seed-active-party record-db store-fn party-id)
@@ -205,11 +221,12 @@
                               "open-account"
                               open-payload)
          account (decode-payload schemas "account" opened)
-         account-id (select-keys account [:account-id])
+         get-data (select-keys account
+                               [:organization-id :account-id])
          result (send-command proc
                               schemas
                               "get-account"
-                              account-id)
+                              get-data)
          _ (is (= "ACCEPTED" (:status result)))
          decoded (decode-payload schemas "account" result)
          _ (is (= (:account-id account)
@@ -222,7 +239,8 @@
     (let [result (send-command proc
                                schemas
                                "close-account"
-                               {:account-id "missing-id"})]
+                               {:organization-id test-org-id
+                                :account-id "missing-id"})]
       (is (error/rejection? result))
       (is (= :account/not-found (error/kind result))))))
 
@@ -230,7 +248,9 @@
   [proc schemas record-db store-fn]
   (testing "open-account allows multiple accounts per customer"
     (let [party-id "cust-multi"
-          payload {:party-id party-id :currency "USD"}]
+          payload {:organization-id test-org-id
+                   :party-id party-id
+                   :currency "USD"}]
       (seed-active-party record-db store-fn party-id)
       (nom-test>
         [r1 (send-command proc
@@ -254,7 +274,8 @@
           (send-command proc
                         schemas
                         "unknown-command"
-                        {:account-id "acc-8"})]
+                        {:organization-id test-org-id
+                         :account-id "acc-8"})]
       (is (error/rejection? result))
       (is (= :accounts/unknown-command (error/kind result))))))
 

@@ -20,6 +20,7 @@ store: !system/component
   record-types: !strs
     accounts:
       record-type: Account
+      primary-key: [organization_id, account_id]
       indexes:
         - name: party_id_idx
           field: party_id
@@ -28,25 +29,27 @@ store: !system/component
       indexes: []
     parties:
       record-type: Party
+      primary-key: [organization_id, party_id]
       indexes: []
     party-national-identifiers:
       record-type: PartyNationalIdentifier
       primary-key: [party_id, type]
       indexes:
-        - name: type_value_unique_idx
-          fields: [type, value]
+        - name: org_type_value_unique_idx
+          fields: [organization_id, type, value]
           unique: true
     person-identifications:
       record-type: PersonIdentification
       indexes: []
     idvs:
       record-type: Idv
+      primary-key: [organization_id, verification_id]
       indexes: []
     api-keys:
       record-type: ApiKey
       indexes:
         - name: ApiKey_by_org
-          field: org_id
+          field: organization_id
         - name: ApiKey_by_hash
           field: key_hash
 
@@ -58,6 +61,7 @@ meta-store: !system/component
   record-types: !strs
     accounts:
       record-type: Account
+      primary-key: [organization_id, account_id]
       indexes:
         - name: party_id_idx
           field: party_id
@@ -66,25 +70,27 @@ meta-store: !system/component
       indexes: []
     parties:
       record-type: Party
+      primary-key: [organization_id, party_id]
       indexes: []
     party-national-identifiers:
       record-type: PartyNationalIdentifier
       primary-key: [party_id, type]
       indexes:
-        - name: type_value_unique_idx
-          fields: [type, value]
+        - name: org_type_value_unique_idx
+          fields: [organization_id, type, value]
           unique: true
     person-identifications:
       record-type: PersonIdentification
       indexes: []
     idvs:
       record-type: Idv
+      primary-key: [organization_id, verification_id]
       indexes: []
     api-keys:
       record-type: ApiKey
       indexes:
         - name: ApiKey_by_org
-          field: org_id
+          field: organization_id
         - name: ApiKey_by_hash
           field: key_hash
 

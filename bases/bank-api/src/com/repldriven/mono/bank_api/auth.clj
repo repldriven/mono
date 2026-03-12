@@ -1,15 +1,34 @@
 (ns com.repldriven.mono.bank-api.auth
   (:require
+    [com.repldriven.mono.cache.interface :as cache]
     [com.repldriven.mono.encryption.interface :as encryption]
+    [com.repldriven.mono.organizations.interface :as organizations]
     [com.repldriven.mono.utility.interface :as util]
 
     [clojure.string :as str]))
+
+(def ^:private api-key-cache (cache/create 60000))
 
 (defn- extract-bearer
   [request]
   (some-> (get-in request [:headers "authorization"])
           (str/split #" " 2)
           (as-> parts (when (= "Bearer" (first parts)) (second parts)))))
+
+(defn- verify-org-key
+  [request raw-key]
+  (let [key-hash (encryption/hash-api-key raw-key)
+        {:keys [record-db record-store]} request
+        api-key (cache/lookup
+                 api-key-cache
+                 key-hash
+                 #(organizations/find-api-key-by-hash
+                   {:record-db record-db
+                    :record-store record-store}
+                   key-hash))]
+    (when (and (map? api-key)
+               (zero? (:revoked-at api-key 0)))
+      {:role :org :organization-id (:organization-id api-key)})))
 
 (def authenticate
   {:name ::authenticate
@@ -26,4 +45,6 @@
                (assoc-in ctx [:request :auth] {:role :admin})
 
                :else
-               (assoc-in ctx [:request :auth] {:role :org}))))})
+               (if-let [auth (verify-org-key request raw-key)]
+                 (assoc-in ctx [:request :auth] auth)
+                 ctx))))})

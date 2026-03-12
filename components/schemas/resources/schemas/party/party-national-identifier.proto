@@ -9,6 +9,7 @@ option java_outer_classname = "PartyNationalIdentifierProto";
 message PartyNationalIdentifier {
   option (com.apple.foundationdb.record.record).usage = RECORD;
 
+  required string organization_id = 6;
   required string party_id        = 1 [(com.apple.foundationdb.record.field).primary_key = true];
   required IdentifierType type    = 2;
   required string value           = 3;

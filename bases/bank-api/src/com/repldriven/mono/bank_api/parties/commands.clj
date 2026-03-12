@@ -27,4 +27,7 @@
                   request
                   "create-party"
                   "party"
-                  (get-in request [:parameters :body]))))
+                  (assoc (get-in request [:parameters :body])
+                         :organization-id
+                         (get-in request
+                                 [:auth :organization-id])))))

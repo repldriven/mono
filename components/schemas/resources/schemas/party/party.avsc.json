@@ -3,6 +3,7 @@
   "name": "Party",
   "namespace": "com.repldriven.mono.party",
   "fields": [
+    {"name": "organization_id", "type": "string"},
     {"name": "party_id",     "type": "string"},
     {"name": "type",         "type": {"type": "enum",
                                        "name": "PartyType",

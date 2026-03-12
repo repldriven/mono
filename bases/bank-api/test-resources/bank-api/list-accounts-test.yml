@@ -6,6 +6,9 @@ system:
       system/component-kind: server/interceptors
       record-db: !system/ref fdb.record-db
       record-store: !system/ref fdb.store
+      auth:
+        role: !keyword org
+        organization-id: org_test_list_accounts
     jetty-adapter: !system/component
       system/component-kind: server/jetty-adapter
       handler: !system/ref server.handler

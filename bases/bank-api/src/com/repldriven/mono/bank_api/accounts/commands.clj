@@ -25,14 +25,19 @@
                   request
                   "open-account"
                   "account"
-                  (get-in request [:parameters :body]))))
+                  (assoc (get-in request [:parameters :body])
+                         :organization-id
+                         (get-in request
+                                 [:auth :organization-id])))))
 
 (defn close-account
   [request]
-  (let [{:keys [account-id]} (get-in request [:parameters :path])]
+  (let [{:keys [account-id]} (get-in request [:parameters :path])
+        org-id (get-in request [:auth :organization-id])]
     (format-account-response
      (commands/send (dispatcher request)
                     request
                     "close-account"
                     "account"
-                    {:account-id account-id}))))
+                    {:organization-id org-id
+                     :account-id account-id}))))

@@ -18,7 +18,8 @@
   (examples-registry [#'PartyNotFound #'DuplicateNationalIdentifier]))
 
 (def Party
-  {:party-id "pty_01JMABC123"
+  {:organization-id "org_01JMABC"
+   :party-id "pty_01JMABC123"
    :type :person
    :display-name "Jane Doe"
    :status :pending

@@ -74,10 +74,11 @@
 ;-----------------------------------------------------------------------------
 ; Idv
 ;-----------------------------------------------------------------------------
-(defrecord Idv-record [verification-id party-id status created-at completed-at
-                       updated-at]
+(defrecord Idv-record [organization-id verification-id party-id status
+                       created-at completed-at updated-at]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 7 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:verification-id this) os)
       (serdes.core/write-String 2 {:optimize true} (:party-id this) os)
       (write-Idv-IdvStatus 3 {:optimize true} (:status this) os)
@@ -87,6 +88,7 @@
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.idv.Idv"))
 
+(s/def :com.repldriven.mono.schemas.idv.Idv/organization-id string?)
 (s/def :com.repldriven.mono.schemas.idv.Idv/verification-id string?)
 (s/def :com.repldriven.mono.schemas.idv.Idv/party-id string?)
 (s/def :com.repldriven.mono.schemas.idv.Idv/status
@@ -96,14 +98,16 @@
 (s/def :com.repldriven.mono.schemas.idv.Idv/completed-at int?)
 (s/def :com.repldriven.mono.schemas.idv.Idv/updated-at int?)
 (s/def ::Idv-spec
-  (s/keys :opt-un [:com.repldriven.mono.schemas.idv.Idv/verification-id
+  (s/keys :opt-un [:com.repldriven.mono.schemas.idv.Idv/organization-id
+                   :com.repldriven.mono.schemas.idv.Idv/verification-id
                    :com.repldriven.mono.schemas.idv.Idv/party-id
                    :com.repldriven.mono.schemas.idv.Idv/status
                    :com.repldriven.mono.schemas.idv.Idv/created-at
                    :com.repldriven.mono.schemas.idv.Idv/completed-at
                    :com.repldriven.mono.schemas.idv.Idv/updated-at]))
 (def Idv-defaults
-  {:verification-id ""
+  {:organization-id ""
+   :verification-id ""
    :party-id ""
    :status Idv-IdvStatus-default
    :created-at 0
@@ -116,6 +120,7 @@
   (->> (tag-map Idv-defaults
                 (fn [tag index]
                   (case index
+                    7 [:organization-id (serdes.core/cis->String is)]
                     1 [:verification-id (serdes.core/cis->String is)]
                     2 [:party-id (serdes.core/cis->String is)]
                     3 [:status (cis->Idv-IdvStatus is)]
@@ -154,15 +159,18 @@
 ;-----------------------------------------------------------------------------
 ; IdvChangelog
 ;-----------------------------------------------------------------------------
-(defrecord IdvChangelog-record [verification-id status-before status-after]
+(defrecord IdvChangelog-record [organization-id verification-id status-before
+                                status-after]
   pb/Writer
     (serialize [this os]
+      (serdes.core/write-String 4 {:optimize true} (:organization-id this) os)
       (serdes.core/write-String 1 {:optimize true} (:verification-id this) os)
       (write-Idv-IdvStatus 2 {:optimize true} (:status-before this) os)
       (write-Idv-IdvStatus 3 {:optimize true} (:status-after this) os))
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.idv.IdvChangelog"))
 
+(s/def :com.repldriven.mono.schemas.idv.IdvChangelog/organization-id string?)
 (s/def :com.repldriven.mono.schemas.idv.IdvChangelog/verification-id string?)
 (s/def :com.repldriven.mono.schemas.idv.IdvChangelog/status-before
   (s/or :keyword keyword?
@@ -171,11 +179,13 @@
   (s/or :keyword keyword?
         :int int?))
 (s/def ::IdvChangelog-spec
-  (s/keys :opt-un [:com.repldriven.mono.schemas.idv.IdvChangelog/verification-id
+  (s/keys :opt-un [:com.repldriven.mono.schemas.idv.IdvChangelog/organization-id
+                   :com.repldriven.mono.schemas.idv.IdvChangelog/verification-id
                    :com.repldriven.mono.schemas.idv.IdvChangelog/status-before
                    :com.repldriven.mono.schemas.idv.IdvChangelog/status-after]))
 (def IdvChangelog-defaults
-  {:verification-id ""
+  {:organization-id ""
+   :verification-id ""
    :status-before Idv-IdvStatus-default
    :status-after Idv-IdvStatus-default})
 
@@ -185,6 +195,7 @@
   (->> (tag-map IdvChangelog-defaults
                 (fn [tag index]
                   (case index
+                    4 [:organization-id (serdes.core/cis->String is)]
                     1 [:verification-id (serdes.core/cis->String is)]
                     2 [:status-before (cis->Idv-IdvStatus is)]
                     3 [:status-after (cis->Idv-IdvStatus is)]

@@ -13,6 +13,8 @@
 
     [clojure.test :refer [deftest is testing]]))
 
+(def ^:private test-org-id "org_test_idv")
+
 (defn- send-command
   [proc schemas command-name data]
   (let [payload (avro/serialize (get schemas command-name) data)]
@@ -35,7 +37,8 @@
     (let [result (send-command proc
                                schemas
                                "get-idv"
-                               {:verification-id verification-id})
+                               {:organization-id test-org-id
+                                :verification-id verification-id})
           decoded (when (= "ACCEPTED" (:status result))
                     (decode-payload schemas "idv" result))]
       (cond
@@ -49,7 +52,8 @@
 (defn- test-initiate-idv
   [proc schemas]
   (testing "initiate creates IDV with pending status"
-    (let [payload {:party-id "pty.test-party-id"}]
+    (let [payload {:organization-id test-org-id
+                   :party-id "pty.test-party-id"}]
       (nom-test>
         [result (send-command proc
                               schemas
@@ -65,7 +69,8 @@
 (defn- test-watcher-transitions
   [proc schemas]
   (testing "watcher transitions pending->accepted"
-    (let [payload {:party-id "pty.watcher-test"}]
+    (let [payload {:organization-id test-org-id
+                   :party-id "pty.watcher-test"}]
       (nom-test>
         [result (send-command proc
                               schemas
@@ -87,7 +92,8 @@
           (send-command proc
                         schemas
                         "unknown-idv-command"
-                        {:party-id "pty.x"})]
+                        {:organization-id test-org-id
+                         :party-id "pty.x"})]
       (is (error/rejection? result))
       (is (= :idv/unknown-command (error/kind result))))))
 

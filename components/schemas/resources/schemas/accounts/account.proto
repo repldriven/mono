@@ -22,7 +22,8 @@ message PaymentAddress {
 message Account {
   option (com.apple.foundationdb.record.record).usage = RECORD;
 
-  required string account_id = 1 [(com.apple.foundationdb.record.field).primary_key = true];
+  required string organization_id = 8;
+  required string account_id = 1;
   optional string party_id = 2;
   optional string name = 3;
   optional string currency = 4;

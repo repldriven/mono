@@ -17,7 +17,8 @@
 (def registry (examples-registry [#'AccountNotFound #'AccountAlreadyExists]))
 
 (def Account
-  {:account-id "acc_01JMABC123DEF456"
+  {:organization-id "org_01JMABC"
+   :account-id "acc_01JMABC123DEF456"
    :party-id "pty_01JMABC"
    :name "Jane Doe"
    :currency "GBP"

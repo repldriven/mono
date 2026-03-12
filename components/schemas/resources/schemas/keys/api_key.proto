@@ -10,7 +10,7 @@ message ApiKey {
   option (com.apple.foundationdb.record.record).usage = RECORD;
 
   required string id         = 1 [(com.apple.foundationdb.record.field).primary_key = true];
-  optional string org_id     = 2;
+  optional string organization_id = 2;
   optional string key_hash   = 3;
   optional string key_prefix = 4;
   optional string name       = 5;

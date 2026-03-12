@@ -15,8 +15,11 @@
                      changelog-bytes)]
       (when (= :closing (:status-after changelog))
         (let [store (accounts-store-fn ctx "accounts")
-              account-id (:account-id changelog)]
-          (when-some [rec (fdb/load-record store account-id)]
+              account-id (:account-id changelog)
+              organization-id (:organization-id changelog)]
+          (when-some [rec (fdb/load-record store
+                                           organization-id
+                                           account-id)]
             (let [account (schema/pb->Account rec)]
               (when-some [transitioned
                           (domain/transition-lifecyle

@@ -55,6 +55,7 @@
 (defn list-parties
   [request]
   (let [{:keys [record-db record-store]} request
+        org-id (get-in request [:auth :organization-id])
         query (get-in request [:parameters :query])
         after-cursor (get query (keyword "page[after]"))
         before-cursor (get query (keyword "page[before]"))
@@ -66,7 +67,8 @@
                              "parties"
                              (fn [store]
                                (fdb/scan-records store
-                                                 {:after after-id
+                                                 {:prefix [org-id]
+                                                  :after after-id
                                                   :before before-id
                                                   :limit size})))]
     (if (error/anomaly? result)
@@ -86,12 +88,15 @@
 (defn get-party
   [request]
   (let [{:keys [record-db record-store]} request
+        org-id (get-in request [:auth :organization-id])
         {:keys [party-id]} (get-in request [:parameters :path])
         result (fdb/transact record-db
                              record-store
                              "parties"
                              (fn [store]
-                               (fdb/load-record store party-id)))]
+                               (fdb/load-record store
+                                                org-id
+                                                party-id)))]
     (cond
      (error/anomaly? result)
      {:status 500

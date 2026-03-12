@@ -1,6 +1,7 @@
 (ns lib.api)
 
 (def ^:private api-key (atom nil))
+(def ^:private api-keys-store "mono-api-keys")
 
 (defn- admin-token
   []
@@ -13,34 +14,68 @@
        (fn [body]
          #js {:http-status (.-status res) :body body}))))
 
-(defn init
+(defn- load-keys
+  "Loads the org-id->api-key map from localStorage."
   []
-  (->
-    (js/fetch
-     "/v1/organizations"
-     #js {:method "POST"
-          :headers
-          #js {"Content-Type" "application/json"
-               "Authorization"
-               (str "Bearer " (admin-token))}
-          :body (js/JSON.stringify #js {"name" "dev-org"})})
-    (.then (fn [res]
-             (when-not (.-ok res)
-               (throw
-                (js/Error.
-                 (str "Failed to create org: "
-                      (.-status res)))))
-             (.json res)))
-    (.then
-     (fn [body]
-       (let [raw-key (aget body "raw-key")]
-         (reset! api-key raw-key))))))
+  (let [raw (.getItem js/localStorage api-keys-store)]
+    (if raw
+      (js->clj (js/JSON.parse raw))
+      {})))
+
+(defn- save-key
+  "Persists a single org-id->api-key entry to localStorage."
+  [org-id raw-key]
+  (let [keys-map (assoc (load-keys) org-id raw-key)]
+    (.setItem js/localStorage
+              api-keys-store
+              (js/JSON.stringify (clj->js keys-map)))))
+
+(defn set-org
+  "Switches the active API key to the one stored for org-id."
+  [org-id]
+  (reset! api-key (get (load-keys) org-id)))
+
+(defn create-organization
+  [org-name]
+  (-> (js/fetch
+       "/v1/organizations"
+       #js {:method "POST"
+            :headers
+            #js {"Content-Type" "application/json"
+                 "Authorization"
+                 (str "Bearer " (admin-token))}
+            :body
+            (js/JSON.stringify #js {"name" org-name})})
+      (.then parse-response)
+      (.then
+       (fn [res]
+         (let [status (aget res "http-status")]
+           (when (and (>= status 200) (< status 300))
+             (let [body (.-body res)
+                   org-id (aget body
+                                "organization"
+                                "organization-id")
+                   raw-key (aget body "api-key" "raw-key")]
+               (save-key org-id raw-key)
+               (reset! api-key raw-key))))
+         res))))
+
+(defn list-organizations
+  []
+  (-> (js/fetch
+       "/v1/organizations"
+       #js {:headers
+            #js {"Authorization"
+                 (str "Bearer " (admin-token))}})
+      (.then parse-response)))
 
 (defn create-party
-  [{:strs [display-name given-name middle-names
-           family-name date-of-birth nationality
-           national-identifier]}]
-  (let [body (cond-> {"type" "PERSON"
+  [data]
+  (let [{:strs [display-name given-name middle-names
+                family-name date-of-birth nationality
+                national-identifier]}
+        (js->clj data)
+        body (cond-> {"type" "PERSON"
                       "display-name" display-name
                       "given-name" given-name
                       "family-name" family-name
@@ -76,22 +111,23 @@
         (.then parse-response))))
 
 (defn open-account
-  [{:strs [party-id name currency]}]
-  (-> (js/fetch
-       "/v1/accounts"
-       #js {:method "POST"
-            :headers
-            #js {"Content-Type" "application/json"
-                 "Authorization"
-                 (str "Bearer " @api-key)
-                 "Idempotency-Key"
-                 (str (random-uuid))}
-            :body
-            (js/JSON.stringify
-             #js {"party-id" party-id
-                  "name" name
-                  "currency" currency})})
-      (.then parse-response)))
+  [data]
+  (let [{:strs [party-id name currency]} (js->clj data)]
+    (-> (js/fetch
+         "/v1/accounts"
+         #js {:method "POST"
+              :headers
+              #js {"Content-Type" "application/json"
+                   "Authorization"
+                   (str "Bearer " @api-key)
+                   "Idempotency-Key"
+                   (str (random-uuid))}
+              :body
+              (js/JSON.stringify
+               #js {"party-id" party-id
+                    "name" name
+                    "currency" currency})})
+        (.then parse-response))))
 
 (defn close-account
   [account-id]

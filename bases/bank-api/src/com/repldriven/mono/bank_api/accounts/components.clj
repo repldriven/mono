@@ -10,6 +10,7 @@
 (def Account
   [:map
    {:json-schema/example examples/Account}
+   [:organization-id {:optional true} [:maybe string?]]
    [:account-id [:ref "AccountId"]]
    [:party-id string?]
    [:name string?]
