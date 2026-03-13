@@ -15,7 +15,7 @@
 
 (def routes
   [["/parties"
-    {:openapi {:security [{"orgAuth" []}]}}
+    {:openapi {:tags ["Parties"] :security [{"orgAuth" []}]}}
     [""
      {:get {:summary "List parties"
             :openapi {:operationId "ListParties"}

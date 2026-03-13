@@ -65,6 +65,32 @@
                 (:organization-id account))))]
     (schema/Account->pb account)))
 
+(defn- resolve-published-version
+  "Returns the latest published version for the given
+  product, or a rejection anomaly if none found."
+  [store organization-id product-id]
+  (let [result (fdb/scan-records
+                store
+                {:prefix [organization-id product-id]
+                 :limit 1000})
+        versions (->> (:records result)
+                      (map schema/pb->AccountProductVersion)
+                      (filter #(= "published" (:status %)))
+                      (sort-by :version-number))]
+    (or (last versions)
+        (error/reject :account/product-not-published
+                      "No published product version found"))))
+
+(defn- validate-currency
+  "Validates currency against version's allowed-currencies.
+  Returns nil on success, rejection anomaly on failure."
+  [currency version]
+  (let [allowed (:allowed-currencies version)]
+    (when (and (seq allowed)
+               (not (some #{currency} allowed)))
+      (error/reject :account/invalid-currency
+                    "Currency not allowed for this product"))))
+
 (defn- party-status->rejection
   "Returns a rejection anomaly for the given party status,
   or nil if the party is active."
@@ -77,37 +103,51 @@
 
 (defn- open-account
   "Opens an account within a multi-store transaction.
-  Validates the party is active, then creates the account
+  Resolves published product version, validates currency,
+  validates the party is active, then creates the account
   with opened status and payment addresses."
   [config data]
   (let [{:keys [record-db record-store]} config
-        {:keys [organization-id party-id]} data]
+        {:keys [organization-id party-id product-id
+                currency]}
+        data]
     (fdb/transact-multi
      record-db
      record-store
      (fn [open-store]
-       (let [party-store (open-store "parties")]
-         (if-some [party-rec (fdb/load-record party-store
-                                              organization-id
-                                              party-id)]
-           (let [party (schema/pb->Party party-rec)]
-             (or (party-status->rejection (:status party))
-                 (let [acct-store (open-store "accounts")
-                       existing (->> (load-party-accounts
-                                      acct-store
-                                      party-id)
-                                     (map schema/pb->Account))
-                       account (domain/open-account
-                                acct-store
-                                data
-                                existing)]
-                   (save acct-store
-                         account
-                         {:account-id (:account-id account)
-                          :status-after
-                          (:account-status account)}))))
-           (error/reject :account/party-unknown
-                         "Party not found")))))))
+       (error/let-nom>
+         [version-store (open-store
+                         "account-product-versions")
+          version (resolve-published-version
+                   version-store
+                   organization-id
+                   product-id)
+          _ (validate-currency currency version)
+          party-store (open-store "parties")
+          party-rec (or (fdb/load-record party-store
+                                         organization-id
+                                         party-id)
+                        (error/reject
+                         :account/party-unknown
+                         "Party not found"))
+          party (schema/pb->Party party-rec)
+          _ (party-status->rejection (:status party))
+          acct-store (open-store "accounts")
+          existing (->> (load-party-accounts
+                         acct-store
+                         party-id)
+                        (map schema/pb->Account))
+          account (domain/open-account
+                   acct-store
+                   (assoc data
+                          :version-id
+                          (:version-id version))
+                   existing)]
+         (save acct-store
+               account
+               {:account-id (:account-id account)
+                :status-after
+                (:account-status account)}))))))
 
 (defn- read
   "Loads account by id. Returns protobuf record or anomaly."

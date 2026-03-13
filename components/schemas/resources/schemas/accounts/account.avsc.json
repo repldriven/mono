@@ -14,6 +14,8 @@
                                                        "CLOSING", "CLOSED"]}},
     {"name": "created_at", "type": {"type": "long", "logicalType": "timestamp-millis"}},
     {"name": "updated_at", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "product_id",  "type": "string"},
+    {"name": "version_id", "type": "string"},
     {"name": "payment_addresses",
      "type": {"type": "array",
               "items": {

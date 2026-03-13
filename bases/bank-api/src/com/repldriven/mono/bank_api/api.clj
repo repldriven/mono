@@ -1,5 +1,11 @@
 (ns com.repldriven.mono.bank-api.api
   (:require
+    [com.repldriven.mono.bank-api.account-products.components :as
+     account-products.components]
+    [com.repldriven.mono.bank-api.account-products.examples :as
+     account-products.examples]
+    [com.repldriven.mono.bank-api.account-products.routes :as
+     account-products]
     [com.repldriven.mono.bank-api.accounts.components :as
      accounts.components]
     [com.repldriven.mono.bank-api.accounts.examples :as accounts.examples]
@@ -32,7 +38,9 @@
 (def ^:private coercion
   (malli-coercion/create
    {:options {:registry (merge (m/default-schemas)
-                               {"ErrorResponse" schema/ErrorResponseSchema}
+                               {"Currency" schema/Currency
+                                "ErrorResponse" schema/ErrorResponseSchema}
+                               account-products.components/registry
                                accounts.components/registry
                                api-keys.components/registry
                                organizations.components/registry
@@ -53,6 +61,7 @@
               "orgAuth"
               {:type :http :scheme :bearer :description "Organization API key"}}
              :examples (merge examples/registry
+                              account-products.examples/registry
                               accounts.examples/registry
                               api-keys.examples/registry
                               organizations.examples/registry
@@ -68,7 +77,8 @@
             403 (schema/ErrorResponse [#'examples/Forbidden])
             500 (schema/ErrorResponse [#'examples/InternalServerError
                                        #'examples/BadResponse])}}]
-         (concat accounts/routes
+         (concat account-products/routes
+                 accounts/routes
                  api-keys/routes
                  organizations/routes
                  parties/routes))])

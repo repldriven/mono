@@ -1,7 +1,8 @@
 {:aliases
  {:dev
   {:extra-deps
-   {components/accounts {:local/root "components/accounts"}
+   {components/account-products {:local/root "components/account-products"}
+    components/accounts {:local/root "components/accounts"}
     components/avro {:local/root "components/avro"}
     components/cache {:local/root "components/cache"}
     components/cli {:local/root "components/cli"}
@@ -47,11 +48,15 @@
     ;; at runtime — pin to 3.x for binary compatibility
     com.google.protobuf/protobuf-java {:mvn/version "3.25.8"}
     org.clojure/clojure {:mvn/version "1.12.4"}
-    org.clojure/core.async {:mvn/version "1.8.741"}}
+    org.clojure/core.async {:mvn/version "1.8.741"}
+    djblue/portal {:mvn/version "0.63.0"}}
+   :main-opts ["-e" "(require '[portal.nrepl :as portal])"]
    :extra-paths ["development/resources"]
    :jvm-opts
    ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]}
-  :test {:extra-paths ["components/accounts/test"
+  :test {:extra-paths ["components/account-products/test"
+                       "components/account-products/test-resources"
+                       "components/accounts/test"
                        "components/accounts/test-resources"
                        "components/avro/test"
                        "components/cache/test"
@@ -101,8 +106,7 @@
                        "bases/bank-monolith/test-resources"
                        "bases/service/test"
                        "bases/service/test-resources"
-                       "bases/external-test-runner/test"
-]}
+                       "bases/external-test-runner/test"]}
   :format/zprint {:extra-deps {zprint/zprint {:mvn/version "1.3.0"}}
                   :main-opts ["-m" "zprint.main"]}
   :lint/clj-kondo {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2026.01.19"}}

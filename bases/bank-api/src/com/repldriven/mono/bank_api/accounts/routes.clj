@@ -3,7 +3,8 @@
     [com.repldriven.mono.bank-api.accounts.commands :as commands]
     [com.repldriven.mono.bank-api.accounts.queries :as queries]
     [com.repldriven.mono.bank-api.accounts.examples :refer
-     [AccountNotFound AccountAlreadyExists]]
+     [AccountNotFound AccountAlreadyExists ProductNotPublished
+      InvalidCurrency]]
     [com.repldriven.mono.bank-api.schema :refer [ErrorResponse]]
 
     [com.repldriven.mono.telemetry.interface :as telemetry]))
@@ -15,7 +16,7 @@
 
 (def routes
   [["/accounts"
-    {:openapi {:security [{"orgAuth" []}]}}
+    {:openapi {:tags ["Accounts"] :security [{"orgAuth" []}]}}
     [""
      {:get {:summary "List accounts"
             :openapi {:operationId "ListAccounts"}
@@ -27,7 +28,9 @@
              :interceptors [telemetry/require-idempotency-key]
              :parameters {:body [:ref "CreateAccountRequest"]}
              :responses {200 {:body [:ref "CreateAccountResponse"]}
-                         422 (ErrorResponse [#'AccountAlreadyExists])}
+                         422 (ErrorResponse [#'AccountAlreadyExists
+                                             #'ProductNotPublished
+                                             #'InvalidCurrency])}
              :handler commands/open-account}}]
     ["/{account-id}"
      {:parameters {:path {:account-id [:ref "AccountId"]}}}

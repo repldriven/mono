@@ -50,6 +50,8 @@
                            :party-id (str "cust-" id)
                            :name (str "Account " id)
                            :currency "GBP"
+                           :product-id "prd_test_list"
+                           :version-id "prv_test_list"
                            :account-status :opened})
                         ids)]
      (doseq [a accounts] (seed-account record-db record-store a))

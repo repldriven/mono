@@ -52,6 +52,12 @@ store: !system/component
           field: organization_id
         - name: ApiKey_by_hash
           field: key_hash
+    account-product-versions:
+      record-type: AccountProductVersion
+      primary-key: [organization_id, product_id, version_id]
+      indexes:
+        - name: AccountProductVersion_by_org
+          field: organization_id
 
 meta-store: !system/component
   system/component-kind: fdb/meta-store
@@ -93,6 +99,12 @@ meta-store: !system/component
           field: organization_id
         - name: ApiKey_by_hash
           field: key_hash
+    account-product-versions:
+      record-type: AccountProductVersion
+      primary-key: [organization_id, product_id, version_id]
+      indexes:
+        - name: AccountProductVersion_by_org
+          field: organization_id
 
 pet-store: !system/component
   system/component-kind: fdb/store

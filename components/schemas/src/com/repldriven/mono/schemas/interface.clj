@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.schemas.interface
   (:require
+    [com.repldriven.mono.schemas.account_products :as account-products]
     [com.repldriven.mono.schemas.accounts :as accounts]
     [com.repldriven.mono.schemas.idv :as idv]
     [com.repldriven.mono.schemas.keys :as keys]
@@ -11,6 +12,8 @@
 
     [protojure.protobuf :as proto])
   (:import
+    (com.repldriven.mono.schemas.account_products
+     AccountProductProto$AccountProductVersion)
     (com.repldriven.mono.schemas.accounts
      AccountProto$Account
      AccountChangelogProto$AccountChangelog)
@@ -28,6 +31,15 @@
     (com.repldriven.mono.schemas.person_identification
      PersonIdentificationProto$PersonIdentification)
     (com.repldriven.mono.schemas.persons PersonProto$Person)))
+
+(def pb->AccountProductVersion account-products/pb->AccountProductVersion)
+(defn AccountProductVersion->pb
+  [m]
+  (proto/->pb (account-products/new-AccountProductVersion m)))
+(defn AccountProductVersion->java
+  [m]
+  (AccountProductProto$AccountProductVersion/parseFrom
+   (AccountProductVersion->pb m)))
 
 (def pb->Person persons/pb->Person)
 (defn Person->pb [m] (proto/->pb (persons/new-Person m)))

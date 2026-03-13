@@ -6,6 +6,7 @@
     {"name": "organization_id", "type": "string"},
     {"name": "party_id",       "type": "string"},
     {"name": "name",           "type": "string"},
-    {"name": "currency",       "type": "string"}
+    {"name": "currency",       "type": "string"},
+    {"name": "product_id",    "type": "string"}
   ]
 }

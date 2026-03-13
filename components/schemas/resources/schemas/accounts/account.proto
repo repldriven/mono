@@ -31,6 +31,8 @@ message Account {
   optional int64 created_at = 6;
   optional int64 updated_at = 7;
   repeated PaymentAddress payment_addresses = 10;
+  required string product_id = 11;
+  required string version_id = 12;
 
   enum AccountStatus {
     ACCOUNT_STATUS_UNKNOWN = 0;

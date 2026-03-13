@@ -49,6 +49,13 @@
     }
   }
 
+  function scanOf(acct) {
+    const addr = (acct["payment-addresses"] ?? [])[0];
+    const scan = addr?.identifier?.scan;
+    if (!scan) return null;
+    return `${scan["sort-code"]} ${scan["account-number"]}`;
+  }
+
   onMount(() => load());
 </script>
 
@@ -70,6 +77,7 @@
         <th>Org ID</th>
         <th>Account ID</th>
         <th>Party ID</th>
+        <th>SCAN</th>
         <th>Currency</th>
         <th>Status</th>
         <th>Created</th>
@@ -79,15 +87,24 @@
     </thead>
     <tbody>
       {#if accounts.length === 0 && !loading}
-        <tr><td colspan="8" class="empty">No accounts found</td></tr>
+        <tr><td colspan="9" class="empty">No accounts found</td></tr>
       {/if}
       {#each accounts as acct}
         <tr>
           <td class="mono">{acct["organization-id"]}</td>
           <td class="mono">{acct["account-id"]}</td>
           <td class="mono">{acct["party-id"]}</td>
+          <td class="mono">{scanOf(acct) ?? ""}</td>
           <td>{acct.currency}</td>
-          <td>{acct["account-status"]}</td>
+          <td>
+            <span class="status-badge"
+                  class:opened={acct["account-status"] === "opened"}
+                  class:opening={acct["account-status"] === "opening"}
+                  class:closing={acct["account-status"] === "closing"}
+                  class:closed={acct["account-status"] === "closed"}>
+              {acct["account-status"]}
+            </span>
+          </td>
           <td title={acct["created-at"]}>{timeAgo(acct["created-at"])}</td>
           <td title={acct["updated-at"]}>{timeAgo(acct["updated-at"])}</td>
           <td>
@@ -154,8 +171,8 @@
   }
 
   .error-msg {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
+    background: var(--bg-error);
+    border: 1px solid var(--border-error);
     padding: 0.75rem;
     border-radius: 4px;
     margin-bottom: 1rem;
@@ -170,16 +187,16 @@
   th, td {
     text-align: left;
     padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
   }
 
   th {
-    background: #f9fafb;
+    background: var(--bg-secondary);
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b7280;
+    color: var(--text-muted);
   }
 
   .mono {
@@ -189,7 +206,7 @@
 
   .empty {
     text-align: center;
-    color: #9ca3af;
+    color: var(--text-faint);
     padding: 1.5rem;
   }
 
@@ -202,8 +219,8 @@
 
   .pagination button {
     padding: 0.4rem 1rem;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
+    background: var(--bg-pagination);
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.85rem;
@@ -215,7 +232,35 @@
   }
 
   .pagination button:not(:disabled):hover {
-    background: #e5e7eb;
+    background: var(--bg-hover);
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .status-badge.opened {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-badge.opening {
+    background: #fef9c3;
+    color: #854d0e;
+  }
+
+  .status-badge.closing {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  .status-badge.closed {
+    background: #fee2e2;
+    color: #991b1b;
   }
 
   .close-btn {

@@ -1,0 +1,38 @@
+syntax = "proto2";
+
+package com.repldriven.mono.schemas.account_products;
+
+import "record_metadata_options.proto";
+
+option java_outer_classname = "AccountProductProto";
+
+message AccountProductVersion {
+  option (com.apple.foundationdb.record.record).usage = RECORD;
+
+  required string organization_id = 1;
+  required string product_id = 2;
+  required string version_id = 3;
+  optional int32 version_number = 4;
+  optional string status = 5;
+  optional AccountType account_type = 6;
+  optional BalanceSheetSide balance_sheet_side = 7;
+  optional string valid_from = 8;
+  optional string valid_to = 9;
+  optional int64 created_at = 10;
+  optional int64 updated_at = 11;
+  optional string name = 12;
+  repeated string allowed_currencies = 13;
+
+  enum AccountType {
+    ACCOUNT_TYPE_UNKNOWN = 0;
+    CURRENT = 1;
+    SAVINGS = 2;
+    TERM_DEPOSIT = 3;
+  }
+
+  enum BalanceSheetSide {
+    BALANCE_SHEET_SIDE_UNKNOWN = 0;
+    ASSET = 1;
+    LIABILITY = 2;
+  }
+}

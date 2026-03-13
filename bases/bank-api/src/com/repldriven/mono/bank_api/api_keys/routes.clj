@@ -4,7 +4,7 @@
 
 (def routes
   [["/api-keys"
-    {:openapi {:security [{"orgAuth" []}]}}
+    {:openapi {:tags ["API Keys"] :security [{"orgAuth" []}]}}
     [""
      {:get {:summary "List API keys"
             :openapi {:operationId "ListApiKeys"}

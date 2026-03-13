@@ -96,8 +96,8 @@
   }
 
   .error-msg {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
+    background: var(--bg-error);
+    border: 1px solid var(--border-error);
     padding: 0.75rem;
     border-radius: 4px;
     margin-bottom: 1rem;
@@ -112,16 +112,16 @@
   th, td {
     text-align: left;
     padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
   }
 
   th {
-    background: #f9fafb;
+    background: var(--bg-secondary);
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b7280;
+    color: var(--text-muted);
   }
 
   .mono {
@@ -131,7 +131,7 @@
 
   .empty {
     text-align: center;
-    color: #9ca3af;
+    color: var(--text-faint);
     padding: 1.5rem;
   }
 </style>

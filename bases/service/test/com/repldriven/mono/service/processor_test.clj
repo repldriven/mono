@@ -57,6 +57,30 @@
                      :created-at (System/currentTimeMillis)
                      :updated-at (System/currentTimeMillis)})))))
 
+(def ^:private test-product-id "prd_test_processor")
+
+(defn- seed-published-product-version
+  [record-db store-fn product-id]
+  (fdb/transact record-db
+                store-fn
+                "account-product-versions"
+                (fn [store]
+                  (fdb/save-record
+                   store
+                   (schema/AccountProductVersion->java
+                    {:organization-id test-org-id
+                     :product-id product-id
+                     :version-id "prv_test_001"
+                     :version-number 1
+                     :status "published"
+                     :account-type :current
+                     :balance-sheet-side :liability
+                     :name "Test Product"
+                     :allowed-currencies []
+                     :created-at (System/currentTimeMillis)
+                     :updated-at
+                     (System/currentTimeMillis)})))))
+
 (deftest process-command-test
   (testing "Commands sent are processed and replied to via message-bus"
     (with-test-system
@@ -64,6 +88,7 @@
      (let [record-db (system/instance sys [:fdb :record-db])
            store-fn (system/instance sys [:fdb :store])]
        (seed-active-party record-db store-fn "cust-api-test")
+       (seed-published-product-version record-db store-fn test-product-id)
        (telemetry/with-span-tests
         [_ ["send-command" "process-command"]]
         (let [schemas (system/instance sys [:avro :serde])]
@@ -72,7 +97,8 @@
                                            {:organization-id test-org-id
                                             :party-id "cust-api-test"
                                             :name "API Test Account"
-                                            :currency "GBP"})
+                                            :currency "GBP"
+                                            :product-id test-product-id})
                       _ (is (= "ACCEPTED" (:status result)))
                       decoded (avro/deserialize-same (get schemas "account")
                                                      (:payload result))

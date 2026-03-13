@@ -7,6 +7,22 @@
 (def AccountId
   [:string {:title "AccountId" :json-schema/example examples/AccountId}])
 
+(def ScanAddress
+  [:map
+   [:sort-code string?]
+   [:account-number string?]])
+
+(def PaymentAddress
+  [:map
+   [:scheme string?]
+   [:identifier {:optional true}
+    [:maybe
+     [:map
+      [:scan {:optional true}
+       [:maybe [:ref "ScanAddress"]]]
+      [:value {:optional true}
+       [:maybe string?]]]]]])
+
 (def Account
   [:map
    {:json-schema/example examples/Account}
@@ -14,8 +30,12 @@
    [:account-id [:ref "AccountId"]]
    [:party-id string?]
    [:name string?]
-   [:currency string?]
+   [:currency [:ref "Currency"]]
+   [:product-id string?]
+   [:version-id string?]
    [:account-status [:enum :opening :opened :closing :closed]]
+   [:payment-addresses {:optional true}
+    [:maybe [:vector [:ref "PaymentAddress"]]]]
    [:created-at {:optional true} [:maybe string?]]
    [:updated-at {:optional true} [:maybe string?]]])
 
@@ -24,7 +44,8 @@
    {:json-schema/example examples/CreateAccountRequest}
    [:party-id string?]
    [:name string?]
-   [:currency string?]])
+   [:currency [:ref "Currency"]]
+   [:product-id string?]])
 
 (def CreateAccountResponse [:ref "Account"])
 
@@ -41,7 +62,7 @@
 (def CloseAccountResponse [:ref "Account"])
 
 (def registry
-  (components-registry [#'AccountId #'Account #'CreateAccountRequest
-                        #'CreateAccountResponse #'AccountList
-                        #'CloseAccountResponse]))
+  (components-registry [#'AccountId #'ScanAddress #'PaymentAddress #'Account
+                        #'CreateAccountRequest #'CreateAccountResponse
+                        #'AccountList #'CloseAccountResponse]))
 

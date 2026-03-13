@@ -21,6 +21,8 @@
     [com.repldriven.mono.schemas.idv :as com.repldriven.mono.schemas.idv]
     [com.repldriven.mono.schemas.accounts :as
      com.repldriven.mono.schemas.accounts]
+    [com.repldriven.mono.schemas.account_products :as
+     com.repldriven.mono.schemas.account_products]
     [clojure.set :as set]
     [clojure.spec.alpha :as s]))
 
@@ -44,19 +46,20 @@
 ;-----------------------------------------------------------------------------
 ; RecordTypeUnion
 ;-----------------------------------------------------------------------------
-(defrecord RecordTypeUnion-record [-Account -Person -Organization -ApiKey
-                                   -PersonIdentification -Party -Idv
-                                   -PartyNationalIdentifier]
+(defrecord RecordTypeUnion-record [-Account -ApiKey -Party -PersonIdentification
+                                   -Person -PartyNationalIdentifier -Idv
+                                   -Organization -AccountProductVersion]
   pb/Writer
     (serialize [this os]
       (serdes.core/write-embedded 1 (:-Account this) os)
-      (serdes.core/write-embedded 2 (:-Person this) os)
-      (serdes.core/write-embedded 3 (:-Organization this) os)
       (serdes.core/write-embedded 4 (:-ApiKey this) os)
-      (serdes.core/write-embedded 5 (:-PersonIdentification this) os)
       (serdes.core/write-embedded 6 (:-Party this) os)
+      (serdes.core/write-embedded 5 (:-PersonIdentification this) os)
+      (serdes.core/write-embedded 2 (:-Person this) os)
+      (serdes.core/write-embedded 8 (:-PartyNationalIdentifier this) os)
       (serdes.core/write-embedded 7 (:-Idv this) os)
-      (serdes.core/write-embedded 8 (:-PartyNationalIdentifier this) os))
+      (serdes.core/write-embedded 3 (:-Organization this) os)
+      (serdes.core/write-embedded 10 (:-AccountProductVersion this) os))
   pb/TypeReflection
     (gettype [this] "com.repldriven.mono.schemas.schemas.RecordTypeUnion"))
 
@@ -72,19 +75,23 @@
      (fn [tag index]
        (case index
          1 [:-Account (com.repldriven.mono.schemas.accounts/ecis->Account is)]
-         2 [:-Person (com.repldriven.mono.schemas.persons/ecis->Person is)]
-         3 [:-Organization
-            (com.repldriven.mono.schemas.organizations/ecis->Organization is)]
          4 [:-ApiKey (com.repldriven.mono.schemas.keys/ecis->ApiKey is)]
+         6 [:-Party (com.repldriven.mono.schemas.party/ecis->Party is)]
          5
          [:-PersonIdentification
           (com.repldriven.mono.schemas.person_identification/ecis->PersonIdentification
            is)]
-         6 [:-Party (com.repldriven.mono.schemas.party/ecis->Party is)]
-         7 [:-Idv (com.repldriven.mono.schemas.idv/ecis->Idv is)]
+         2 [:-Person (com.repldriven.mono.schemas.persons/ecis->Person is)]
          8 [:-PartyNationalIdentifier
             (com.repldriven.mono.schemas.party/ecis->PartyNationalIdentifier
              is)]
+         7 [:-Idv (com.repldriven.mono.schemas.idv/ecis->Idv is)]
+         3 [:-Organization
+            (com.repldriven.mono.schemas.organizations/ecis->Organization is)]
+         10
+         [:-AccountProductVersion
+          (com.repldriven.mono.schemas.account_products/ecis->AccountProductVersion
+           is)]
 
          [index (serdes.core/cis->undefined tag is)]))
      is)
@@ -108,26 +115,31 @@
     (merge RecordTypeUnion-defaults init)
     (cond-> (some? (get init :-Account))
             (update :-Account com.repldriven.mono.schemas.accounts/new-Account))
-    (cond-> (some? (get init :-Person))
-            (update :-Person com.repldriven.mono.schemas.persons/new-Person))
-    (cond-> (some? (get init :-Organization))
-            (update :-Organization
-                    com.repldriven.mono.schemas.organizations/new-Organization))
     (cond-> (some? (get init :-ApiKey))
             (update :-ApiKey com.repldriven.mono.schemas.keys/new-ApiKey))
+    (cond-> (some? (get init :-Party))
+            (update :-Party com.repldriven.mono.schemas.party/new-Party))
     (cond->
      (some? (get init :-PersonIdentification))
      (update
       :-PersonIdentification
       com.repldriven.mono.schemas.person_identification/new-PersonIdentification))
-    (cond-> (some? (get init :-Party))
-            (update :-Party com.repldriven.mono.schemas.party/new-Party))
-    (cond-> (some? (get init :-Idv))
-            (update :-Idv com.repldriven.mono.schemas.idv/new-Idv))
+    (cond-> (some? (get init :-Person))
+            (update :-Person com.repldriven.mono.schemas.persons/new-Person))
     (cond-> (some? (get init :-PartyNationalIdentifier))
             (update
              :-PartyNationalIdentifier
              com.repldriven.mono.schemas.party/new-PartyNationalIdentifier))
+    (cond-> (some? (get init :-Idv))
+            (update :-Idv com.repldriven.mono.schemas.idv/new-Idv))
+    (cond-> (some? (get init :-Organization))
+            (update :-Organization
+                    com.repldriven.mono.schemas.organizations/new-Organization))
+    (cond->
+     (some? (get init :-AccountProductVersion))
+     (update
+      :-AccountProductVersion
+      com.repldriven.mono.schemas.account_products/new-AccountProductVersion))
     (map->RecordTypeUnion-record)))
 
 (defn pb->RecordTypeUnion

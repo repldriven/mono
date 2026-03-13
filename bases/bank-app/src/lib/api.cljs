@@ -111,7 +111,8 @@
 
 (defn open-account
   [data]
-  (let [{:strs [party-id name currency]} (js->clj data)]
+  (let [{:strs [party-id name currency product-id]}
+        (js->clj data)]
     (-> (js/fetch
          "/v1/accounts"
          #js {:method "POST"
@@ -125,7 +126,8 @@
               (js/JSON.stringify
                #js {"party-id" party-id
                     "name" name
-                    "currency" currency})})
+                    "currency" currency
+                    "product-id" product-id})})
         (.then parse-response))))
 
 (defn close-account
@@ -152,6 +154,51 @@
               #js {"Authorization"
                    (str "Bearer " @api-key)}})
         (.then parse-response))))
+
+(defn create-account-product
+  [data]
+  (let [{:strs [name account-type balance-sheet-side
+                allowed-currencies]}
+        (js->clj data)
+        body (cond-> {"name" name
+                      "account-type" account-type
+                      "balance-sheet-side" balance-sheet-side}
+                     (seq allowed-currencies)
+                     (assoc "allowed-currencies"
+                            allowed-currencies))]
+    (-> (js/fetch
+         "/v1/account-products"
+         #js {:method "POST"
+              :headers
+              #js {"Content-Type" "application/json"
+                   "Authorization"
+                   (str "Bearer " @api-key)}
+              :body (js/JSON.stringify (clj->js body))})
+        (.then parse-response))))
+
+(defn list-account-products
+  []
+  (-> (js/fetch
+       "/v1/account-products"
+       #js {:headers
+            #js {"Authorization"
+                 (str "Bearer " @api-key)}})
+      (.then parse-response)))
+
+(defn publish-version
+  [product-id version-id]
+  (-> (js/fetch
+       (str "/v1/account-products/"
+            product-id
+            "/versions/"
+            version-id
+            "/publish")
+       #js {:method "POST"
+            :headers
+            #js {"Content-Type" "application/json"
+                 "Authorization"
+                 (str "Bearer " @api-key)}})
+      (.then parse-response)))
 
 (defn list-api-keys
   []

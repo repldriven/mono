@@ -26,15 +26,16 @@
   label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-secondary);
   }
 
   select {
     padding: 0.4rem 0.6rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     font-size: 0.85rem;
-    background: white;
+    background: var(--bg-input);
+    color: var(--text);
     min-width: 200px;
   }
 </style>

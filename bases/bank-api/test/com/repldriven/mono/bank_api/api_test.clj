@@ -24,6 +24,8 @@
    :party-id "acc-test"
    :name "Test Account"
    :currency "GBP"
+   :product-id "prd_test_api"
+   :version-id "prv_test_api"
    :payment-addresses []
    :account-status :opened
    :created-at 1700000000000
@@ -50,14 +52,15 @@
     {:stop (fn [] (message-bus/unsubscribe bus :accounts-command))}))
 
 (defn- open-account-request
-  [party-id name currency]
+  [party-id name currency product-id]
   (http/request {:method :post
                  :url (str *base-url* "/v1/accounts")
                  :headers {"Content-Type" "application/json"
                            "Idempotency-Key" (str (util/uuidv7))}
                  :body (json/write-str {"party-id" party-id
                                         "name" name
-                                        "currency" currency})}))
+                                        "currency" currency
+                                        "product-id" product-id})}))
 
 (defn- close-account-request
   [account-id]
@@ -68,7 +71,8 @@
 (defn- test-open-account
   [sys]
   (let [{:keys [stop]} (command-processor sys test-account-open)]
-    (nom-test> [res (open-account-request "acc-test" "Test Account" "GBP")
+    (nom-test> [res (open-account-request "acc-test" "Test Account"
+                                          "GBP" "prd_test_api")
                 _ (is (= 200 (:status res)))
                 body (http/res->edn res)
                 _ (is (= (-> (select-keys test-account-open

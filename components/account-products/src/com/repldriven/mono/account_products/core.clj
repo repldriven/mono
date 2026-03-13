@@ -1,0 +1,168 @@
+(ns com.repldriven.mono.account-products.core
+  (:require
+    [com.repldriven.mono.account-products.domain :as domain]
+
+    [com.repldriven.mono.encryption.interface :as encryption]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.schemas.interface :as schema]))
+
+(defn new-product
+  "Creates an account product as an initial draft v1.
+  Returns {:version <map>} or anomaly."
+  [{:keys [record-db record-store]} org-id version-data]
+  (let [product-id (encryption/generate-id "prd")
+        version (domain/new-version org-id
+                                    product-id
+                                    1
+                                    version-data)]
+    (error/let-nom>
+      [_ (fdb/transact record-db
+                       record-store
+                       "account-product-versions"
+                       (fn [store]
+                         (fdb/save-record
+                          store
+                          (schema/AccountProductVersion->java
+                           version))))]
+      {:version version})))
+
+(defn new-version
+  "Creates a new draft version for a product. Computes
+  next version-number from existing versions. Returns
+  {:version <map>} or anomaly."
+  [{:keys [record-db record-store]} org-id product-id
+   version-data]
+  (fdb/transact
+   record-db
+   record-store
+   "account-product-versions"
+   (fn [store]
+     (let [existing (fdb/scan-records
+                     store
+                     {:prefix [org-id product-id]
+                      :limit 1000})
+           records (:records existing)
+           latest (->> records
+                       (map schema/pb->AccountProductVersion)
+                       (sort-by :version-number)
+                       last)]
+       (if (and latest
+                (= "draft" (:status latest)))
+         (error/reject
+          :account-products/draft-exists
+          {:message
+           "Cannot create a new version while the latest version is still a draft"})
+         (let [next-num (inc (count records))
+               version (domain/new-version
+                        org-id
+                        product-id
+                        next-num
+                        version-data)]
+           (fdb/save-record
+            store
+            (schema/AccountProductVersion->java
+             version))
+           {:version version}))))))
+
+(defn get-version
+  "Loads a version by org-id, product-id, and version-id.
+  Returns the version map, nil if not found, or anomaly."
+  [{:keys [record-db record-store]} org-id product-id
+   version-id]
+  (error/let-nom>
+    [result (fdb/transact record-db
+                          record-store
+                          "account-product-versions"
+                          (fn [store]
+                            (fdb/load-record store
+                                             org-id
+                                             product-id
+                                             version-id)))]
+    (when result
+      (schema/pb->AccountProductVersion result))))
+
+(defn get-versions
+  "Lists versions. With product-id, scans that product;
+  without, scans all products for the org. Returns
+  {:versions [<map> ...]} or anomaly."
+  ([{:keys [record-db record-store]} org-id]
+   (error/let-nom>
+     [result (fdb/transact record-db
+                           record-store
+                           "account-product-versions"
+                           (fn [store]
+                             (fdb/scan-records
+                              store
+                              {:prefix [org-id]
+                               :limit 1000})))]
+     {:versions (mapv schema/pb->AccountProductVersion
+                      (:records result))}))
+  ([{:keys [record-db record-store]} org-id product-id]
+   (error/let-nom>
+     [result (fdb/transact record-db
+                           record-store
+                           "account-product-versions"
+                           (fn [store]
+                             (fdb/scan-records
+                              store
+                              {:prefix [org-id product-id]
+                               :limit 100})))]
+     {:versions (mapv schema/pb->AccountProductVersion
+                      (:records result))})))
+
+(defn get-published
+  "Returns the highest-version-number published version for
+  a product, or nil if none published. Returns anomaly on
+  error."
+  [{:keys [record-db record-store]} org-id product-id]
+  (error/let-nom>
+    [result (fdb/transact record-db
+                          record-store
+                          "account-product-versions"
+                          (fn [store]
+                            (fdb/scan-records
+                             store
+                             {:prefix [org-id product-id]
+                              :limit 1000})))]
+    (->> (:records result)
+         (map schema/pb->AccountProductVersion)
+         (filter #(= "published" (:status %)))
+         (sort-by :version-number)
+         last)))
+
+(defn publish
+  "Publishes a draft version. Returns the published
+  version map or anomaly."
+  [{:keys [record-db record-store]} org-id product-id
+   version-id]
+  (fdb/transact record-db
+                record-store
+                "account-product-versions"
+                (fn [store]
+                  (let [bytes (fdb/load-record store
+                                               org-id
+                                               product-id
+                                               version-id)]
+                    (cond
+                     (nil? bytes)
+                     (error/reject
+                      :account-products/version-not-found
+                      {:message "Version not found"})
+
+                     :else
+                     (let [version
+                           (schema/pb->AccountProductVersion
+                            bytes)]
+                       (if-not (= "draft" (:status version))
+                         (error/reject
+                          :account-products/not-draft
+                          {:message
+                           "Only draft versions can be published"})
+                         (let [published (domain/publish
+                                          version)]
+                           (fdb/save-record
+                            store
+                            (schema/AccountProductVersion->java
+                             published))
+                           published))))))))

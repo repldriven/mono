@@ -54,7 +54,8 @@
 </script>
 
 <section>
-  <h2>Create Party</h2>
+  <details>
+  <summary><h2>Create Party</h2></summary>
   <form onsubmit={handleSubmit}>
     <label>
       Display Name
@@ -123,6 +124,7 @@
       <pre>{JSON.stringify(result, null, 2)}</pre>
     </div>
   {/if}
+  </details>
 </section>
 
 <style>
@@ -130,8 +132,42 @@
     margin-bottom: 2rem;
   }
 
-  h2 {
+  details {
+    border: 1px solid var(--details-border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+  }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::before {
+    content: "\25B6";
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.15s;
+  }
+
+  details[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  details[open] > summary {
     margin-bottom: 1rem;
+  }
+
+  h2 {
+    margin: 0;
+    display: inline;
   }
 
   form {
@@ -149,13 +185,15 @@
 
   input, select {
     padding: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     font-size: 1rem;
+    background: var(--bg-input);
+    color: var(--text);
   }
 
   fieldset {
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     padding: 1rem;
     display: flex;
@@ -192,16 +230,19 @@
   .success {
     background: #dcfce7;
     border: 1px solid #86efac;
+    color: #166534;
   }
 
   .warning {
     background: #fef9c3;
     border: 1px solid #fde047;
+    color: #854d0e;
   }
 
   .error {
     background: #fee2e2;
     border: 1px solid #fca5a5;
+    color: #991b1b;
   }
 
   pre {

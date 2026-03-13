@@ -2,6 +2,8 @@
   (:require
     [com.repldriven.mono.utility.interface :refer [vname]]))
 
+(def Currency [:re #"^[A-Z]{3}$"])
+
 (def ErrorResponseSchema
   [:map
    [:title string?]

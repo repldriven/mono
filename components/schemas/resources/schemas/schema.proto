@@ -2,6 +2,7 @@ syntax = "proto2";
 
 package com.repldriven.mono.schemas.schemas;
 
+import "schemas/account-products/account-product.proto";
 import "schemas/accounts/account.proto";
 import "schemas/idv/idv.proto";
 import "schemas/keys/api_key.proto";
@@ -25,4 +26,6 @@ message RecordTypeUnion {
   optional com.repldriven.mono.schemas.party.Party _Party = 6;
   optional com.repldriven.mono.schemas.idv.Idv _Idv = 7;
   optional com.repldriven.mono.schemas.party.PartyNationalIdentifier _PartyNationalIdentifier = 8;
+  reserved 9;
+  optional com.repldriven.mono.schemas.account_products.AccountProductVersion _AccountProductVersion = 10;
 }

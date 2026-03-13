@@ -103,7 +103,12 @@
         <tr>
           <td class="mono">{org["organization-id"]}</td>
           <td>{org.name}</td>
-          <td>{org.status}</td>
+          <td>
+            <span class="status-badge"
+                  class:active={org.status === "active"}>
+              {org.status}
+            </span>
+          </td>
           <td title={org["created-at"]}>{timeAgo(org["created-at"])}</td>
           <td title={org["updated-at"]}>{timeAgo(org["updated-at"])}</td>
           <td>
@@ -164,9 +169,11 @@
   .create-form input {
     flex: 1;
     padding: 0.5rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
     font-size: 0.9rem;
+    background: var(--bg-input);
+    color: var(--text);
   }
 
   .create-form button {
@@ -185,8 +192,8 @@
   }
 
   .error-msg {
-    background: #fee2e2;
-    border: 1px solid #fca5a5;
+    background: var(--bg-error);
+    border: 1px solid var(--border-error);
     padding: 0.75rem;
     border-radius: 4px;
     margin-bottom: 1rem;
@@ -201,16 +208,16 @@
   th, td {
     text-align: left;
     padding: 0.5rem 0.6rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
   }
 
   th {
-    background: #f9fafb;
+    background: var(--bg-secondary);
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b7280;
+    color: var(--text-muted);
   }
 
   .mono {
@@ -220,8 +227,21 @@
 
   .empty {
     text-align: center;
-    color: #9ca3af;
+    color: var(--text-faint);
     padding: 1.5rem;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .status-badge.active {
+    background: #dcfce7;
+    color: #166534;
   }
 
   .default-badge {
