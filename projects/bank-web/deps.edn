@@ -11,7 +11,8 @@
     component/test-schemas {:local/root "../../components/test-schemas"}
     component/test-system {:local/root "../../components/test-system"}
     component/testcontainers {:local/root "../../components/testcontainers"}}}}
- :deps {component/cash-account-products {:local/root "../../components/cash-account-products"}
+ :deps {component/balances {:local/root "../../components/balances"}
+        component/cash-account-products {:local/root "../../components/cash-account-products"}
         component/avro {:local/root "../../components/avro"}
         component/cache {:local/root "../../components/cache"}
         component/cli {:local/root "../../components/cli"}

@@ -4,6 +4,7 @@
     com.repldriven.mono.testcontainers.interface
 
     [com.repldriven.mono.avro.interface :as avro]
+    [com.repldriven.mono.balances.interface :as balances]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.fdb.interface :as fdb]
     [com.repldriven.mono.processor.interface :as processor]
@@ -79,6 +80,16 @@
     product-id
     []))
   ([record-db store-fn product-id allowed-currencies]
+   (seed-published-product-version
+    record-db store-fn product-id allowed-currencies
+    [{:balance-type :balance-type-default
+      :balance-status :balance-status-posted}
+     {:balance-type :balance-type-default
+      :balance-status :balance-status-pending-incoming}
+     {:balance-type :balance-type-default
+      :balance-status :balance-status-pending-outgoing}]))
+  ([record-db store-fn product-id allowed-currencies
+    balance-products]
    (fdb/transact record-db
                  store-fn
                  "cash-account-product-versions"
@@ -94,6 +105,8 @@
                           :name "Test Product"
                           :allowed-currencies
                           allowed-currencies
+                          :balance-products
+                          balance-products
                           :created-at
                           (System/currentTimeMillis)
                           :updated-at
@@ -124,15 +137,17 @@
 (defn- test-open-account
   [proc schemas record-db store-fn]
   (testing
-    "open-cash-account creates account with opened status
-  and payment addresses"
+    "open-cash-account creates account with opened status,
+  payment addresses, and balances from product"
     (let [party-id "cust-1"
           open-payload
           {:organization-id test-org-id
            :party-id party-id
            :name "Test Account"
            :currency "USD"
-           :product-id test-product-id}]
+           :product-id test-product-id}
+          fdb-config {:record-db record-db
+                      :record-store store-fn}]
       (seed-active-party record-db store-fn party-id)
       (seed-published-product-version record-db
                                       store-fn
@@ -161,7 +176,23 @@
          _ (is (some? (get-in decoded
                               [:payment-addresses 0
                                :scan
-                               :account-number])))]))))
+                               :account-number])))
+         account-balances (balances/get-balances
+                           fdb-config
+                           (:account-id decoded))
+         _ (is (= 3 (count account-balances)))
+         _ (is (= #{:balance-type-default}
+                   (set (map :balance-type
+                             account-balances))))
+         _ (is (= #{:balance-status-posted
+                     :balance-status-pending-incoming
+                     :balance-status-pending-outgoing}
+                   (set (map :balance-status
+                             account-balances))))
+         _ (is (every? #(= "USD" (:currency %))
+                       account-balances))
+         _ (is (every? #(= 0 (:credit %))
+                       account-balances))]))))
 
 (defn- test-open-account-party-not-active
   [proc schemas record-db store-fn]

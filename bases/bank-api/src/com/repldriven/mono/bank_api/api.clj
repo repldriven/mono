@@ -1,5 +1,10 @@
 (ns com.repldriven.mono.bank-api.api
   (:require
+    [com.repldriven.mono.bank-api.balances.components :as
+     balances.components]
+    [com.repldriven.mono.bank-api.balances.examples :as
+     balances.examples]
+    [com.repldriven.mono.bank-api.balances.routes :as balances]
     [com.repldriven.mono.bank-api.cash-account-products.components :as
      cash-account-products.components]
     [com.repldriven.mono.bank-api.cash-account-products.examples :as
@@ -41,6 +46,7 @@
    {:options {:registry (merge (m/default-schemas)
                                {"Currency" schema/Currency
                                 "ErrorResponse" schema/ErrorResponseSchema}
+                               balances.components/registry
                                cash-account-products.components/registry
                                cash-accounts.components/registry
                                api-keys.components/registry
@@ -62,6 +68,7 @@
               "orgAuth"
               {:type :http :scheme :bearer :description "Organization API key"}}
              :examples (merge examples/registry
+                              balances.examples/registry
                               cash-account-products.examples/registry
                               cash-accounts.examples/registry
                               api-keys.examples/registry
@@ -78,7 +85,8 @@
             403 (schema/ErrorResponse [#'examples/Forbidden])
             500 (schema/ErrorResponse [#'examples/InternalServerError
                                        #'examples/BadResponse])}}]
-         (concat cash-account-products/routes
+         (concat balances/routes
+                 cash-account-products/routes
                  cash-accounts/routes
                  api-keys/routes
                  organizations/routes

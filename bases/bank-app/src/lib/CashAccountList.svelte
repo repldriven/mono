@@ -1,5 +1,5 @@
 <script>
-  import { list_cash_accounts, list_cash_account_products, close_cash_account } from "./api.mjs";
+  import { list_cash_accounts, list_cash_account_products, close_cash_account, list_balances } from "./api.mjs";
   import { time_ago } from "./time.mjs";
   import { onMount } from "svelte";
 
@@ -9,6 +9,9 @@
   let error = $state(null);
   let currentQuery = $state(null);
   let productTypes = $state({});
+  let expandedAccountId = $state(null);
+  let balances = $state({});
+  let loadingBalances = $state({});
 
   function queryFromLink(url) {
     const idx = url.indexOf("?");
@@ -71,6 +74,33 @@
     }
   }
 
+  async function toggleBalances(accountId) {
+    if (expandedAccountId === accountId) {
+      expandedAccountId = null;
+      return;
+    }
+    expandedAccountId = accountId;
+    if (!balances[accountId]) {
+      loadingBalances[accountId] = true;
+      try {
+        const res = await list_balances(accountId);
+        if (res["http-status"] >= 200 && res["http-status"] < 300) {
+          balances[accountId] = res.body.balances ?? [];
+        } else {
+          balances[accountId] = [];
+        }
+      } catch (_) {
+        balances[accountId] = [];
+      } finally {
+        delete loadingBalances[accountId];
+      }
+    }
+  }
+
+  function stripPrefix(value, prefix) {
+    return value?.startsWith(prefix) ? value.slice(prefix.length) : value;
+  }
+
   function scanOf(acct) {
     const addr = (acct["payment-addresses"] ?? [])[0];
     const scan = addr?.identifier?.scan;
@@ -115,8 +145,11 @@
         <tr><td colspan="9" class="empty">No accounts found</td></tr>
       {/if}
       {#each accounts as acct}
-        <tr>
-          <td class="mono">{acct["account-id"]}</td>
+        <tr class="account-row" onclick={() => toggleBalances(acct["account-id"])}>
+          <td class="mono">
+            <span class="chevron">{expandedAccountId === acct["account-id"] ? "\u25BC" : "\u25B6"}</span>
+            {acct["account-id"]}
+          </td>
           <td>{acct.name ?? ""}</td>
           <td>{productTypes[acct["product-id"]] ?? ""}</td>
           <td>{acct.currency}</td>
@@ -137,13 +170,56 @@
               <button
                 class="close-btn"
                 disabled={closing[acct["account-id"]]}
-                onclick={() => handleClose(acct["account-id"])}
+                onclick={(e) => { e.stopPropagation(); handleClose(acct["account-id"]); }}
               >
                 {closing[acct["account-id"]] ? "Closing..." : "Close"}
               </button>
             {/if}
           </td>
         </tr>
+        {#if expandedAccountId === acct["account-id"]}
+          <tr class="balances-row">
+            <td colspan="9">
+              {#if loadingBalances[acct["account-id"]]}
+                <div class="balances-loading">Loading balances...</div>
+              {:else if (balances[acct["account-id"]] ?? []).length === 0}
+                <div class="balances-empty">No balances found</div>
+              {:else}
+                <table class="balances-table">
+                  <thead>
+                    <tr>
+                      <th>Balance Type</th>
+                      <th>Balance Status</th>
+                      <th>Currency</th>
+                      <th>Credit</th>
+                      <th>Debit</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each balances[acct["account-id"]] as bal}
+                      <tr>
+                        <td>{stripPrefix(bal["balance-type"], "balance-type-")}</td>
+                        <td>
+                          <span class="status-badge"
+                                class:opened={bal["balance-status"] === "balance-status-posted"}
+                                class:opening={bal["balance-status"] === "balance-status-pending-incoming" || bal["balance-status"] === "balance-status-pending-outgoing"}
+                                class:closed={bal["balance-status"] === "balance-status-closed"}>
+                            {stripPrefix(bal["balance-status"], "balance-status-")}
+                          </span>
+                        </td>
+                        <td>{bal.currency}</td>
+                        <td class="mono">{bal.credit}</td>
+                        <td class="mono">{bal.debit}</td>
+                        <td title={bal["created-at"]}>{time_ago(bal["created-at"])}</td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              {/if}
+            </td>
+          </tr>
+        {/if}
       {/each}
     </tbody>
   </table>
@@ -308,5 +384,55 @@
 
   .close-btn:not(:disabled):hover {
     background: #b91c1c;
+  }
+
+  .account-row {
+    cursor: pointer;
+  }
+
+  .account-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .chevron {
+    display: inline-block;
+    width: 1em;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .balances-row > td {
+    padding: 0 0.6rem 0.6rem 2rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .balances-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .balances-table th,
+  .balances-table td {
+    text-align: left;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .balances-table th {
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+  }
+
+  .balances-loading,
+  .balances-empty {
+    padding: 0.75rem 0;
+    color: var(--text-faint);
+    font-size: 0.85rem;
   }
 </style>

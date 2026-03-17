@@ -103,11 +103,22 @@
                              (str "party-" s))
                     (str "Party is " s)))))
 
+(defn- save-balances
+  "Saves balance records for an account's balance-products."
+  [balance-store account-id currency balance-products]
+  (let [balances (domain/balances account-id
+                                      currency
+                                      balance-products)]
+    (doseq [balance balances]
+      (fdb/save-record balance-store
+                       (schema/Balance->java balance)))))
+
 (defn- open-account
   "Opens an account within a multi-store transaction.
   Resolves published product version, validates currency,
   validates the party is active, then creates the account
-  with opened status and payment addresses."
+  with opened status, payment addresses, and balances from
+  the product's balance-products."
   [config data]
   (let [{:keys [record-db record-store]} config
         {:keys [organization-id party-id product-id
@@ -144,12 +155,18 @@
                    (assoc data
                           :version-id
                           (:version-id version))
-                   existing)]
-         (save acct-store
-               account
-               {:account-id (:account-id account)
-                :status-after
-                (:account-status account)}))))))
+                   existing)
+          result (save acct-store
+                       account
+                       {:account-id (:account-id account)
+                        :status-after
+                        (:account-status account)})]
+         (when (seq (:balance-products version))
+           (save-balances (open-store "balances")
+                          (:account-id account)
+                          currency
+                          (:balance-products version)))
+         result)))))
 
 (defn- read
   "Loads account by id. Returns protobuf record or anomaly."

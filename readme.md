@@ -32,7 +32,7 @@ library composes into a production-shaped system.
 5. **Account lifecycle** — accounts move through `opened` → `closing` →
    `closed`, driven by API calls and reactive watchers.
 
-[![Demo](thumbnail.png)](https://github.com/user-attachments/assets/671b9d87-6cb5-482d-a53c-578d086734e9)
+[![Account Opening Demo](thumbnail.png)](https://github.com/user-attachments/assets/671b9d87-6cb5-482d-a53c-578d086734e9)
 
 ### How It Works
 
@@ -218,14 +218,14 @@ pipelines without defensive `try/catch` noise.
 
 ### Messaging
 
-| Component            | Purpose                                              |
-| -------------------- | ---------------------------------------------------- |
-| `pulsar`             | Apache Pulsar producer/consumer/reader with Avro     |
-| `mqtt`               | MQTT publish/subscribe                               |
-| `message-bus`        | Protocol abstraction over messaging backends         |
-| `command`            | Request-reply and async command dispatch over bus    |
-| `processor`          | Message processor protocol                           |
-| `command-processor`  | Bus-subscription lifecycle for domain processors     |
+| Component           | Purpose                                           |
+| ------------------- | ------------------------------------------------- |
+| `pulsar`            | Apache Pulsar producer/consumer/reader with Avro  |
+| `mqtt`              | MQTT publish/subscribe                            |
+| `message-bus`       | Protocol abstraction over messaging backends      |
+| `command`           | Request-reply and async command dispatch over bus |
+| `processor`         | Message processor protocol                        |
+| `command-processor` | Bus-subscription lifecycle for domain processors  |
 
 ### Web & HTTP
 
@@ -276,10 +276,10 @@ pipelines without defensive `try/catch` noise.
 
 ## Deployed Applications
 
-| Project              | Base                | Description                                     |
-| -------------------- | ------------------- | ----------------------------------------------- |
-| `bank-web`           | `bank-api`          | Account lifecycle API (open, close, suspend, …) |
-| `accounts-service`   | `service`           | Async command handler for account operations    |
+| Project            | Base       | Description                                     |
+| ------------------ | ---------- | ----------------------------------------------- |
+| `bank-web`         | `bank-api` | Account lifecycle API (open, close, suspend, …) |
+| `accounts-service` | `service`  | Async command handler for account operations    |
 
 ## Getting Started
 

@@ -18,6 +18,10 @@ store: !system/component
   system/component-kind: fdb/store
   descriptor: com.repldriven.mono.schemas.schemas.SchemaProto
   record-types: !strs
+    balances:
+      record-type: Balance
+      primary-key: [account_id, balance_type, currency, balance_status]
+      indexes: []
     cash-accounts:
       record-type: CashAccount
       primary-key: [organization_id, account_id]
@@ -65,6 +69,10 @@ meta-store: !system/component
   path: meta
   descriptor: com.repldriven.mono.schemas.schemas.SchemaProto
   record-types: !strs
+    balances:
+      record-type: Balance
+      primary-key: [account_id, balance_type, currency, balance_status]
+      indexes: []
     cash-accounts:
       record-type: CashAccount
       primary-key: [organization_id, account_id]

@@ -5,9 +5,9 @@
 
   const navItems = [
     { id: "organizations", label: "Organizations", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3zm1 2h2v2H4V3zm0 4h2v2H4V7zm0 4h2v2H4v-2zm4-8h2v2H8V3zm0 4h2v2H8V7zm0 4h2v2H8v-2z"/></svg>` },
+    { id: "products", label: "Products", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm0 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8zm1 4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1H3z"/></svg>` },
     { id: "parties", label: "Parties", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM2 13c0-3 2.5-5 6-5s6 2 6 5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg>` },
     { id: "accounts", label: "Accounts", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1H2V4zm0 3v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H2zm3 2h2a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2z"/></svg>` },
-    { id: "products", label: "Products", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm0 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8zm1 4a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1H3z"/></svg>` },
     { id: "api-keys", label: "API Keys", icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 1a4.5 4.5 0 0 0-4.38 5.57L2 10.7V14a1 1 0 0 0 1 1h2v-2h2v-2h1.59l.53-.53A4.5 4.5 0 1 0 10.5 1zm1 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>` },
   ];
 

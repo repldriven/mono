@@ -1,0 +1,41 @@
+syntax = "proto2";
+
+package com.repldriven.mono.schemas.balances;
+
+import "record_metadata_options.proto";
+
+option java_outer_classname = "BalanceProto";
+
+message Balance {
+  option (com.apple.foundationdb.record.record).usage = RECORD;
+
+  required string account_id = 1;
+  required BalanceType balance_type = 2;
+  required BalanceStatus balance_status = 3;
+  required string currency = 4;
+  optional int64 credit = 5;
+  optional int64 debit = 6;
+  optional int64 created_at = 7;
+  optional int64 updated_at = 8;
+
+  enum BalanceType {
+    BALANCE_TYPE_UNKNOWN          = 0;
+    BALANCE_TYPE_DEFAULT          = 1;
+    BALANCE_TYPE_INTEREST_ACCRUED = 2;
+    BALANCE_TYPE_INTEREST_PAID    = 3;
+    BALANCE_TYPE_PURCHASE         = 4;
+    BALANCE_TYPE_CASH             = 5;
+  }
+
+  enum BalanceStatus {
+    BALANCE_STATUS_UNKNOWN          = 0;
+    BALANCE_STATUS_POSTED           = 1;
+    BALANCE_STATUS_PENDING_INCOMING = 2;
+    BALANCE_STATUS_PENDING_OUTGOING = 3;
+  }
+}
+
+message BalanceProduct {
+  required Balance.BalanceType balance_type = 1;
+  required Balance.BalanceStatus balance_status = 2;
+}

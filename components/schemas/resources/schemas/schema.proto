@@ -2,6 +2,7 @@ syntax = "proto2";
 
 package com.repldriven.mono.schemas.schemas;
 
+import "schemas/balances/balance.proto";
 import "schemas/cash-account-products/account-product.proto";
 import "schemas/cash-accounts/account.proto";
 import "schemas/idv/idv.proto";
@@ -28,4 +29,5 @@ message RecordTypeUnion {
   optional com.repldriven.mono.schemas.party.PartyNationalIdentifier _PartyNationalIdentifier = 8;
   reserved 9;
   optional com.repldriven.mono.schemas.cash_account_products.CashAccountProductVersion _CashAccountProductVersion = 10;
+  optional com.repldriven.mono.schemas.balances.Balance _Balance = 11;
 }

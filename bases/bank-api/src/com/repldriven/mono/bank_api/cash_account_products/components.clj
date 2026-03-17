@@ -14,6 +14,8 @@
    [:balance-sheet-side string?]
    [:allowed-currencies {:optional true}
     [:maybe [:vector [:ref "Currency"]]]]
+   [:balance-products {:optional true}
+    [:maybe [:vector [:ref "BalanceProductRequest"]]]]
    [:valid-from {:optional true} [:maybe string?]]
    [:valid-to {:optional true} [:maybe string?]]])
 
@@ -36,6 +38,8 @@
       :balance-sheet-side-unknown]]]
    [:allowed-currencies {:optional true}
     [:maybe [:vector [:ref "Currency"]]]]
+   [:balance-products {:optional true}
+    [:maybe [:vector [:ref "BalanceProduct"]]]]
    [:valid-from {:optional true} [:maybe string?]]
    [:valid-to {:optional true} [:maybe string?]]
    [:created-at {:optional true} [:maybe string?]]
@@ -54,6 +58,8 @@
    [:balance-sheet-side string?]
    [:allowed-currencies {:optional true}
     [:maybe [:vector [:ref "Currency"]]]]
+   [:balance-products {:optional true}
+    [:maybe [:vector [:ref "BalanceProductRequest"]]]]
    [:valid-from {:optional true} [:maybe string?]]
    [:valid-to {:optional true} [:maybe string?]]])
 

@@ -34,6 +34,8 @@
    :account-type :current
    :balance-sheet-side :liability
    :allowed-currencies ["GBP" "EUR"]
+   :balance-products [{:balance-type :balance-type-default
+                       :balance-status :balance-status-posted}]
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"
    :created-at "2025-01-01T00:00:00Z"
@@ -46,6 +48,8 @@
    :account-type "CURRENT"
    :balance-sheet-side "LIABILITY"
    :allowed-currencies ["GBP" "EUR"]
+   :balance-products [{:balance-type :balance-type-default
+                       :balance-status :balance-status-posted}]
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"})
 
@@ -54,5 +58,7 @@
    :account-type "CURRENT"
    :balance-sheet-side "LIABILITY"
    :allowed-currencies ["GBP" "EUR"]
+   :balance-products [{:balance-type :balance-type-default
+                       :balance-status :balance-status-posted}]
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"})

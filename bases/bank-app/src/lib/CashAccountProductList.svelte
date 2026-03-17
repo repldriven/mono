@@ -17,6 +17,16 @@
   let allowedCurrencies = $state("GBP");
   let creating = $state(false);
 
+  const defaultBalanceProducts = [
+    { type: "BALANCE_TYPE_DEFAULT",          status: "BALANCE_STATUS_POSTED",           label: "Default / Posted" },
+    { type: "BALANCE_TYPE_DEFAULT",          status: "BALANCE_STATUS_PENDING_INCOMING",  label: "Default / Pending Incoming" },
+    { type: "BALANCE_TYPE_DEFAULT",          status: "BALANCE_STATUS_PENDING_OUTGOING",  label: "Default / Pending Outgoing" },
+    { type: "BALANCE_TYPE_INTEREST_ACCRUED", status: "BALANCE_STATUS_POSTED",           label: "Interest Accrued / Posted" },
+    { type: "BALANCE_TYPE_INTEREST_PAID",    status: "BALANCE_STATUS_POSTED",           label: "Interest Paid / Posted" },
+  ];
+
+  let selectedBalanceProducts = $state(defaultBalanceProducts.map(() => true));
+
   let publishing = $state({});
 
   function isLatestVersion(v) {
@@ -33,6 +43,7 @@
   let reviseAccountType = $state("CURRENT");
   let reviseBalanceSheetSide = $state("LIABILITY");
   let reviseAllowedCurrencies = $state("");
+  let reviseSelectedBalanceProducts = $state(defaultBalanceProducts.map(() => true));
   let revising = $state(false);
 
   function openReviseModal(v) {
@@ -41,6 +52,11 @@
     reviseAccountType = (v["account-type"] ?? "").toUpperCase().replace(/-/g, "_");
     reviseBalanceSheetSide = (v["balance-sheet-side"] ?? "").toUpperCase().replace(/-/g, "_");
     reviseAllowedCurrencies = (v["allowed-currencies"] ?? []).join(", ");
+    const existing = v["balance-products"] ?? [];
+    reviseSelectedBalanceProducts = defaultBalanceProducts.map(bp =>
+      existing.some(e =>
+        e["balance-type"] === bp.type.toLowerCase().replace(/_/g, "-") &&
+        e["balance-status"] === bp.status.toLowerCase().replace(/_/g, "-")));
     reviseModalOpen = true;
   }
 
@@ -49,11 +65,15 @@
     revising = true;
     try {
       const currencies = reviseAllowedCurrencies.split(",").map(s => s.trim()).filter(Boolean);
+      const bps = defaultBalanceProducts
+        .filter((_, i) => reviseSelectedBalanceProducts[i])
+        .map(bp => ({ "balance-type": bp.type, "balance-status": bp.status }));
       const res = await create_cash_account_product_version(reviseVersion["product-id"], {
         "name": reviseName,
         "account-type": reviseAccountType,
         "balance-sheet-side": reviseBalanceSheetSide,
         "allowed-currencies": currencies.length > 0 ? currencies : undefined,
+        "balance-products": bps.length > 0 ? bps : undefined,
       });
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         reviseModalOpen = false;
@@ -99,11 +119,15 @@
     creating = true;
     try {
       const currencies = allowedCurrencies.split(",").map(s => s.trim()).filter(Boolean);
+      const bps = defaultBalanceProducts
+        .filter((_, i) => selectedBalanceProducts[i])
+        .map(bp => ({ "balance-type": bp.type, "balance-status": bp.status }));
       const res = await create_cash_account_product({
         "name": name,
         "account-type": accountType,
         "balance-sheet-side": balanceSheetSide,
         "allowed-currencies": currencies.length > 0 ? currencies : undefined,
+        "balance-products": bps.length > 0 ? bps : undefined,
       });
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         modalOpen = false;
@@ -168,6 +192,15 @@
           <option value="ASSET">Asset</option>
         </select>
       </label>
+      <fieldset class="checkbox-group" disabled={creating}>
+        <legend>Balances</legend>
+        {#each defaultBalanceProducts as bp, i}
+          <label class="checkbox-label">
+            <input type="checkbox" bind:checked={selectedBalanceProducts[i]} />
+            {bp.label}
+          </label>
+        {/each}
+      </fieldset>
       <label>
         Allowed Currencies
         <input type="text" bind:value={allowedCurrencies} placeholder="e.g. GBP,EUR" disabled={creating} />
@@ -199,6 +232,15 @@
           <option value="ASSET">Asset</option>
         </select>
       </label>
+      <fieldset class="checkbox-group" disabled={revising}>
+        <legend>Balances</legend>
+        {#each defaultBalanceProducts as bp, i}
+          <label class="checkbox-label">
+            <input type="checkbox" bind:checked={reviseSelectedBalanceProducts[i]} />
+            {bp.label}
+          </label>
+        {/each}
+      </fieldset>
       <label>
         Allowed Currencies
         <input type="text" bind:value={reviseAllowedCurrencies} placeholder="e.g. GBP,EUR" disabled={revising} />
@@ -338,6 +380,39 @@
     font-size: 0.9rem;
     background: var(--bg-input);
     color: var(--text);
+  }
+
+  .checkbox-group {
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0;
+  }
+
+  .checkbox-group legend {
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0 0.25rem;
+  }
+
+  .checkbox-group:disabled {
+    opacity: 0.6;
+  }
+
+  .checkbox-label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 400;
+    font-size: 0.85rem;
+    padding: 0.2rem 0;
+    cursor: pointer;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
   }
 
   form button {

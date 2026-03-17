@@ -128,3 +128,6 @@ start-telemetry:
     jaegertracing/jaeger:latest \
     --set receivers.otlp.protocols.http.endpoint=0.0.0.0:4318
 
+stop-telemetry:
+  docker stop jaeger && docker rm jaeger
+

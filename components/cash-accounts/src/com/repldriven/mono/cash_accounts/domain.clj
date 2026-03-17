@@ -45,6 +45,21 @@
             :created-at now
             :updated-at now))))
 
+(defn balances
+  "Returns balances for each balance-product."
+  [account-id currency balance-products]
+  (let [now (System/currentTimeMillis)]
+    (mapv (fn [{:keys [balance-type balance-status]}]
+            {:account-id account-id
+             :balance-type balance-type
+             :balance-status balance-status
+             :currency currency
+             :credit 0
+             :debit 0
+             :created-at now
+             :updated-at now})
+          balance-products)))
+
 (def ^:private lifecycle-transitions {:closing :closed})
 
 (defn transition-lifecyle

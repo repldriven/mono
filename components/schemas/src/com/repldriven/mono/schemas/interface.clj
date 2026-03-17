@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.schemas.interface
   (:require
+    [com.repldriven.mono.schemas.balances :as balances]
     [com.repldriven.mono.schemas.cash_account_products
      :as cash-account-products]
     [com.repldriven.mono.schemas.cash_accounts :as cash-accounts]
@@ -13,6 +14,7 @@
 
     [protojure.protobuf :as proto])
   (:import
+    (com.repldriven.mono.schemas.balances BalanceProto$Balance)
     (com.repldriven.mono.schemas.cash_account_products
      CashAccountProductProto$CashAccountProductVersion)
     (com.repldriven.mono.schemas.cash_accounts
@@ -32,6 +34,16 @@
     (com.repldriven.mono.schemas.person_identification
      PersonIdentificationProto$PersonIdentification)
     (com.repldriven.mono.schemas.persons PersonProto$Person)))
+
+(def pb->Balance balances/pb->Balance)
+(defn Balance->pb [m] (proto/->pb (balances/new-Balance m)))
+(defn Balance->java
+  [m]
+  (BalanceProto$Balance/parseFrom (Balance->pb m)))
+
+(def balance-type->int balances/Balance-BalanceType-label2val)
+(def balance-status->int
+  balances/Balance-BalanceStatus-label2val)
 
 (def pb->CashAccountProductVersion
   cash-account-products/pb->CashAccountProductVersion)

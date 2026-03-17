@@ -11,6 +11,12 @@
   (when v
     (keyword (str/replace (str/lower-case (name v)) "_" "-"))))
 
+(defn- ->balance-product
+  "Coerces balance-product string fields to keywords."
+  [{:keys [balance-type balance-status]}]
+  {:balance-type (->enum balance-type)
+   :balance-status (->enum balance-status)})
+
 (defn new-version
   "Creates a new CashAccountProductVersion record map in
   draft status."
@@ -30,7 +36,11 @@
             (assoc :account-type (->enum (:account-type data)))
             (:balance-sheet-side data)
             (assoc :balance-sheet-side
-                   (->enum (:balance-sheet-side data))))))
+                   (->enum (:balance-sheet-side data)))
+            (seq (:balance-products data))
+            (assoc :balance-products
+                   (mapv ->balance-product
+                         (:balance-products data))))))
 
 (defn publish
   "Sets version status to published."

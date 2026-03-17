@@ -158,14 +158,17 @@
 (defn create-cash-account-product
   [data]
   (let [{:strs [name account-type balance-sheet-side
-                allowed-currencies]}
+                allowed-currencies balance-products]}
         (js->clj data)
         body (cond-> {"name" name
                       "account-type" account-type
                       "balance-sheet-side" balance-sheet-side}
                      (seq allowed-currencies)
                      (assoc "allowed-currencies"
-                            allowed-currencies))]
+                            allowed-currencies)
+                     (seq balance-products)
+                     (assoc "balance-products"
+                            balance-products))]
     (-> (js/fetch
          "/v1/cash-account-products"
          #js {:method "POST"
@@ -203,14 +206,17 @@
 (defn create-cash-account-product-version
   [product-id data]
   (let [{:strs [name account-type balance-sheet-side
-                allowed-currencies]}
+                allowed-currencies balance-products]}
         (js->clj data)
         body (cond-> {"name" name
                       "account-type" account-type
                       "balance-sheet-side" balance-sheet-side}
                      (seq allowed-currencies)
                      (assoc "allowed-currencies"
-                            allowed-currencies))]
+                            allowed-currencies)
+                     (seq balance-products)
+                     (assoc "balance-products"
+                            balance-products))]
     (-> (js/fetch
          (str "/v1/cash-account-products/"
               product-id
@@ -222,6 +228,15 @@
                    (str "Bearer " @api-key)}
               :body (js/JSON.stringify (clj->js body))})
         (.then parse-response))))
+
+(defn list-balances
+  [account-id]
+  (-> (js/fetch
+       (str "/v1/cash-accounts/" account-id "/balances")
+       #js {:headers
+            #js {"Authorization"
+                 (str "Bearer " @api-key)}})
+      (.then parse-response)))
 
 (defn list-api-keys
   []

@@ -3,6 +3,7 @@ syntax = "proto2";
 package com.repldriven.mono.schemas.cash_account_products;
 
 import "record_metadata_options.proto";
+import "schemas/balances/balance.proto";
 
 option java_outer_classname = "CashAccountProductProto";
 
@@ -22,6 +23,7 @@ message CashAccountProductVersion {
   optional int64 updated_at = 11;
   optional string name = 12;
   repeated string allowed_currencies = 13;
+  repeated com.repldriven.mono.schemas.balances.BalanceProduct balance_products = 14;
 
   enum AccountType {
     ACCOUNT_TYPE_UNKNOWN = 0;
