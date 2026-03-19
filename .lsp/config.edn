@@ -1,5 +1,5 @@
 {;; Polylith monorepo configuration
- :source-aliases #{:dev :poly :test}
+ :source-aliases #{:dev :+bank :poly :test}
  ;; Enable kondo config copying for dependency analysis
  :copy-kondo-configs? true
  ;; Linting configuration

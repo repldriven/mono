@@ -100,7 +100,7 @@ format:
     echo "Formatting Clojure source files..."
     files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | while read f; do [ -f "$f" ] && echo "$f"; done)
     if [ -n "$files" ]; then
-        echo "$files" | xargs clojure -M:format/zprint -w
+        echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
         echo "✓ Formatting complete"
     else
         echo "No Clojure files found"

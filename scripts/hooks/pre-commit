@@ -7,7 +7,7 @@ files=$(git diff --cached --name-only --diff-filter=ACM \
 
 if [ -n "$files" ]; then
   echo "Formatting Clojure files..."
-  echo "$files" | xargs clojure -M:format/zprint -w
+  echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
   echo "$files" | xargs git add
 
   echo "Linting Clojure files..."
