@@ -4,9 +4,10 @@
   Replaces eftest.report.junit to add:
   - time attribute on <testsuite> elements (fixes NaN in CI reports)
   - strips com.repldriven.mono. prefix from suite/classname attributes"
-  (:require [clojure.stacktrace :as stack]
-            [eftest.report :refer [*context*]]
-            [clojure.test :as test]))
+  (:require
+    [clojure.stacktrace :as stack]
+    [eftest.report :refer [*context*]]
+    [clojure.test :as test]))
 
 (set! *warn-on-reflection* true)
 
@@ -44,16 +45,16 @@
   [tag {:keys [message expected actual file line]}]
   (start-element tag (if message {:message message} {}))
   (element-content (let [detail (apply str
-                                  (interpose "\n"
-                                    [(str "expected: " (pr-str expected))
-                                     (str "  actual: "
-                                          (if (instance? Throwable actual)
-                                            (with-out-str
-                                              (stack/print-cause-trace
-                                                actual
-                                                test/*stack-trace-depth*))
-                                            (pr-str actual)))
-                                     (str "      at: " file ":" line)]))]
+                                       (interpose "\n"
+                                        [(str "expected: " (pr-str expected))
+                                         (str "  actual: "
+                                              (if (instance? Throwable actual)
+                                                (with-out-str
+                                                  (stack/print-cause-trace
+                                                   actual
+                                                   test/*stack-trace-depth*))
+                                                (pr-str actual)))
+                                         (str "      at: " file ":" line)]))]
                      (if message (str message "\n" detail) detail)))
   (finish-element tag)
   (println))
@@ -82,11 +83,11 @@
   (let [ns-str (name (ns-name (:ns m)))
         start-time (System/nanoTime)
         f #(test/with-test-out
-             (start-element 'testsuite
-                            {:name (trim-ns ns-str),
-                             :time (format "%.03f"
-                                           (/ (- (System/nanoTime) start-time)
-                                              1e9))}))]
+            (start-element 'testsuite
+                           {:name (trim-ns ns-str)
+                            :time (format "%.03f"
+                                          (/ (- (System/nanoTime) start-time)
+                                             1e9))}))]
     (swap! *context* assoc-in [::deferred-report ns-str] f)))
 
 (defmethod report :end-test-ns
@@ -112,20 +113,20 @@
                     (get-in @*context* [::test-start-times (:var m)]))
         testing-vars test/*testing-vars*
         f #(test/with-test-out
-             (let [test-var (:var m)
-                   time-str (format "%.03f" (/ duration 1e9))
-                   results (get-in @*context* [::test-results test-var])]
-               (start-element 'testcase
-                              {:name (test-name testing-vars),
-                               :classname (trim-ns ns-str),
-                               :time time-str})
-               (doseq [result results]
-                 (if (= :fail (:type result))
-                   (message-el 'failure result)
-                   (message-el 'error result)))
-               (finish-element 'testcase)
-               (println)
-               (swap! *context* update ::test-results dissoc test-var)))]
+            (let [test-var (:var m)
+                  time-str (format "%.03f" (/ duration 1e9))
+                  results (get-in @*context* [::test-results test-var])]
+              (start-element 'testcase
+                             {:name (test-name testing-vars)
+                              :classname (trim-ns ns-str)
+                              :time time-str})
+              (doseq [result results]
+                (if (= :fail (:type result))
+                  (message-el 'failure result)
+                  (message-el 'error result)))
+              (finish-element 'testcase)
+              (println)
+              (swap! *context* update ::test-results dissoc test-var)))]
     (swap! *context* update-in [::deferred-report ns-str] (partial combine f))))
 
 (defmethod report :pass [_] (test/inc-report-counter :pass))

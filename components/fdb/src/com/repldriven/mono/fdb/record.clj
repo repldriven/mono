@@ -1,18 +1,20 @@
 (ns com.repldriven.mono.fdb.record
   (:refer-clojure :exclude [load])
-  (:require [com.repldriven.mono.error.interface :as error])
-  (:import (com.apple.foundationdb.record EndpointType
-                                          ExecuteProperties
-                                          ScanProperties
-                                          TupleRange)
-           (com.apple.foundationdb.record.provider.foundationdb
-             FDBDatabase
-             FDBStoreTimer$Waits)
-           (com.apple.foundationdb.record.query RecordQuery)
-           (com.apple.foundationdb.record.query.expressions Query)
-           (com.apple.foundationdb.tuple Tuple)
-           (com.google.protobuf MessageLite)
-           (java.util.function Function)))
+  (:require
+    [com.repldriven.mono.error.interface :as error])
+  (:import
+    (com.apple.foundationdb.record EndpointType
+                                   ExecuteProperties
+                                   ScanProperties
+                                   TupleRange)
+    (com.apple.foundationdb.record.provider.foundationdb
+     FDBDatabase
+     FDBStoreTimer$Waits)
+    (com.apple.foundationdb.record.query RecordQuery)
+    (com.apple.foundationdb.record.query.expressions Query)
+    (com.apple.foundationdb.tuple Tuple)
+    (com.google.protobuf MessageLite)
+    (java.util.function Function)))
 
 (defn open-store
   "Opens a record store by calling the store function (returned by
@@ -130,26 +132,30 @@
         prefix-tuple (when (seq prefix) (Tuple/from (into-array Object prefix)))
         base-range (when prefix-tuple (prefix-range prefix-tuple))
         range (cond (and prefix-tuple after)
-                      (TupleRange. (cursor-tuple prefix after)
-                                   (.getHigh ^TupleRange base-range)
-                                   EndpointType/RANGE_EXCLUSIVE
-                                   (.getHighEndpoint ^TupleRange base-range))
+                    (TupleRange. (cursor-tuple prefix after)
+                                 (.getHigh ^TupleRange base-range)
+                                 EndpointType/RANGE_EXCLUSIVE
+                                 (.getHighEndpoint ^TupleRange base-range))
                     (and prefix-tuple before)
-                      (TupleRange. (.getLow ^TupleRange base-range)
-                                   (cursor-tuple prefix before)
-                                   (.getLowEndpoint ^TupleRange base-range)
-                                   EndpointType/RANGE_EXCLUSIVE)
-                    prefix-tuple base-range
-                    after (TupleRange. (Tuple/from (into-array Object [after]))
-                                       nil
-                                       EndpointType/RANGE_EXCLUSIVE
-                                       EndpointType/TREE_END)
-                    before (TupleRange. nil
-                                        (Tuple/from (into-array Object
-                                                                [before]))
-                                        EndpointType/TREE_START
-                                        EndpointType/RANGE_EXCLUSIVE)
-                    :else TupleRange/ALL)
+                    (TupleRange. (.getLow ^TupleRange base-range)
+                                 (cursor-tuple prefix before)
+                                 (.getLowEndpoint ^TupleRange base-range)
+                                 EndpointType/RANGE_EXCLUSIVE)
+                    prefix-tuple
+                    base-range
+                    after
+                    (TupleRange. (Tuple/from (into-array Object [after]))
+                                 nil
+                                 EndpointType/RANGE_EXCLUSIVE
+                                 EndpointType/TREE_END)
+                    before
+                    (TupleRange. nil
+                                 (Tuple/from (into-array Object
+                                                         [before]))
+                                 EndpointType/TREE_START
+                                 EndpointType/RANGE_EXCLUSIVE)
+                    :else
+                    TupleRange/ALL)
         execute-props (-> (ExecuteProperties/newBuilder)
                           (.setReturnedRowLimit (inc limit))
                           .build)
@@ -164,6 +170,8 @@
                      (mapv record->bytes))
         has-more (> (count records) limit)
         page (cond-> (if has-more (subvec records 0 limit) records)
-               reverse? rseq
-               reverse? vec)]
-    {:records page, :has-more has-more}))
+                     reverse?
+                     rseq
+                     reverse?
+                     vec)]
+    {:records page :has-more has-more}))

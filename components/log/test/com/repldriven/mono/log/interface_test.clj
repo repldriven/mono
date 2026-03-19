@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.log.interface-test
-  (:require [com.repldriven.mono.log.interface :as SUT]
-            [clojure.test :as test :refer [deftest is testing]]))
+  (:require
+    [com.repldriven.mono.log.interface :as SUT]
+    [clojure.test :as test :refer [deftest is testing]]))
 
 (deftest log-test
   (testing "The log should initialize without error"

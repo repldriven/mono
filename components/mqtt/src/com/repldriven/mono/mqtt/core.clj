@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.mqtt.core
-  (:require [com.repldriven.mono.mqtt.client :as client]))
+  (:require
+    [com.repldriven.mono.mqtt.client :as client]))
 
 (defn publish [c topic payload] (client/publish c topic payload))
 
@@ -12,9 +13,9 @@
 (defn producer
   [{:keys [client conf]}]
   (let [{:keys [topic qos]} conf]
-    {:client client, :topic topic, :qos (or qos 0)}))
+    {:client client :topic topic :qos (or qos 0)}))
 
 (defn consumer
   [{:keys [client conf]}]
   (let [{:keys [topic qos]} conf]
-    {:client client, :topic topic, :qos (or qos 0)}))
+    {:client client :topic topic :qos (or qos 0)}))

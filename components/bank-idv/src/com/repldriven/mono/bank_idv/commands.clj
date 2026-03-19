@@ -1,10 +1,11 @@
 (ns com.repldriven.mono.bank-idv.commands
   (:refer-clojure :exclude [get read])
-  (:require [com.repldriven.mono.bank-idv.domain :as domain]
-            [com.repldriven.mono.avro.interface :as avro]
-            [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.fdb.interface :as fdb]
-            [com.repldriven.mono.bank-schema.interface :as schema]))
+  (:require
+    [com.repldriven.mono.bank-idv.domain :as domain]
+    [com.repldriven.mono.avro.interface :as avro]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.bank-schema.interface :as schema]))
 
 (defn- idv-pb->avro
   "Converts protobuf Idv to Avro-compatible map. Proto
@@ -17,15 +18,17 @@
   serialized changelog proto, returns protobuf record or
   anomaly."
   [store idv changelog]
-  (error/let-nom> [_ (fdb/save-record store (schema/Idv->java idv)) _
+  (error/let-nom> [_ (fdb/save-record store (schema/Idv->java idv))
+                   _
                    (fdb/write-changelog store
                                         "idvs"
                                         (:verification-id idv)
                                         (schema/IdvChangelog->pb
-                                          (assoc changelog
-                                            :organization-id (:organization-id
-                                                               idv))))]
-                  (schema/Idv->pb idv)))
+                                         (assoc changelog
+                                                :organization-id
+                                                (:organization-id
+                                                 idv))))]
+    (schema/Idv->pb idv)))
 
 (defn- create
   "Creates a new IDV in a transaction. Returns protobuf
@@ -37,11 +40,11 @@
                   "idvs"
                   (fn [store]
                     (error/let-nom> [idv (domain/new-idv data)]
-                                    (save store
-                                          idv
-                                          {:verification-id (:verification-id
-                                                              idv),
-                                           :status-after (:status idv)}))))))
+                      (save store
+                            idv
+                            {:verification-id (:verification-id
+                                               idv)
+                             :status-after (:status idv)}))))))
 
 (defn- ->response
   "Converts a protobuf record to an ACCEPTED response.
@@ -50,7 +53,7 @@
   (if (error/anomaly? result)
     result
     (let [{:keys [schemas]} config]
-      {:status "ACCEPTED",
+      {:status "ACCEPTED"
        :payload (avro/serialize (schemas "idv") (idv-pb->avro result))})))
 
 (defn- read

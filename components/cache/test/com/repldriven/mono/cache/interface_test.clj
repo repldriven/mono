@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.cache.interface-test
-  (:require [com.repldriven.mono.cache.interface :as SUT]
-            [clojure.test :refer [deftest is testing]]))
+  (:require
+    [com.repldriven.mono.cache.interface :as SUT]
+    [clojure.test :refer [deftest is testing]]))
 
 (deftest create-cache-test
   (testing "creates an atom-backed TTL cache"

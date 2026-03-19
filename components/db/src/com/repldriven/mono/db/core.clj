@@ -1,8 +1,10 @@
 (ns com.repldriven.mono.db.core
-  (:require [com.repldriven.mono.error.interface :as error]
-            [next.jdbc :as jdbc]
-            [next.jdbc.result-set :as rs])
-  (:import org.postgresql.util.PSQLException))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [next.jdbc :as jdbc]
+    [next.jdbc.result-set :as rs])
+  (:import
+    org.postgresql.util.PSQLException))
 
 (def as-unqualified-lower-maps rs/as-unqualified-lower-maps)
 (def as-unqualified-kebab-maps rs/as-unqualified-kebab-maps)

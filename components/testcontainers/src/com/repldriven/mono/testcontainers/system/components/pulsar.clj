@@ -1,9 +1,11 @@
 (ns com.repldriven.mono.testcontainers.system.components.pulsar
-  (:require [com.repldriven.mono.testcontainers.container :as container]
-            [com.repldriven.mono.log.interface :as log])
-  (:import (java.time Duration)
-           (org.testcontainers.containers PulsarContainer)
-           (org.testcontainers.utility DockerImageName)))
+  (:require
+    [com.repldriven.mono.testcontainers.container :as container]
+    [com.repldriven.mono.log.interface :as log])
+  (:import
+    (java.time Duration)
+    (org.testcontainers.containers PulsarContainer)
+    (org.testcontainers.utility DockerImageName)))
 
 (def default-exposed-broker-port 6650)
 (def default-exposed-broker-http-port 8080)
@@ -29,12 +31,12 @@
 
 (def container
   {:system/start (fn [{:system/keys [config instance]}]
-                   (or instance (start-container config))),
+                   (or instance (start-container config)))
    :system/stop (fn [{:system/keys [instance]}]
                   (log/info "Stopping pulsar container")
-                  (container/stop! instance)),
-   :system/config {:docker-image-name default-docker-image-name,
-                   :exposed-ports default-exposed-ports},
+                  (container/stop! instance))
+   :system/config {:docker-image-name default-docker-image-name
+                   :exposed-ports default-exposed-ports}
    :system/config-schema [:map [:docker-image-name string?]
-                          [:exposed-ports [:vector int?]]],
+                          [:exposed-ports [:vector int?]]]
    :system/instance-schema map?})

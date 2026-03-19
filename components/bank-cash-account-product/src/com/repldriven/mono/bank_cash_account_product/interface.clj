@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.bank-cash-account-product.interface
-  (:require [com.repldriven.mono.bank-cash-account-product.core :as core]))
+  (:require
+    [com.repldriven.mono.bank-cash-account-product.core :as core]))
 
 (defn new-product [config org-id data] (core/new-product config org-id data))
 

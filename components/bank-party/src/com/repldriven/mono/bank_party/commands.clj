@@ -1,22 +1,25 @@
 (ns com.repldriven.mono.bank-party.commands
-  (:require [com.repldriven.mono.bank-party.domain :as domain]
-            [com.repldriven.mono.avro.interface :as avro]
-            [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.fdb.interface :as fdb]
-            [com.repldriven.mono.bank-schema.interface :as schema])
-  (:import (com.apple.foundationdb.record RecordIndexUniquenessViolation)))
+  (:require
+    [com.repldriven.mono.bank-party.domain :as domain]
+    [com.repldriven.mono.avro.interface :as avro]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.bank-schema.interface :as schema])
+  (:import
+    (com.apple.foundationdb.record RecordIndexUniquenessViolation)))
 
 (defn- save-party
   "Saves party to store, writes changelog entry with
   serialized changelog proto, returns protobuf record or
   anomaly."
   [store party changelog]
-  (error/let-nom> [_ (fdb/save-record store (schema/Party->java party)) _
+  (error/let-nom> [_ (fdb/save-record store (schema/Party->java party))
+                   _
                    (fdb/write-changelog store
                                         "parties"
                                         (:party-id party)
                                         (schema/PartyChangelog->pb changelog))]
-                  (schema/Party->pb party)))
+    (schema/Party->pb party)))
 
 (defn- save-person-identification
   "Saves person-identification to store."
@@ -34,41 +37,46 @@
   [anomaly]
   (when (error/anomaly? anomaly)
     (loop [ex (:exception (error/payload anomaly))]
-      (cond (nil? ex) false
-            (instance? RecordIndexUniquenessViolation ex) true
-            :else (recur (.getCause ex))))))
+      (cond (nil? ex)
+            false
+            (instance? RecordIndexUniquenessViolation ex)
+            true
+            :else
+            (recur (.getCause ex))))))
 
 (defn- create-person
   "Creates a person party with person-identification and
   optional national-identifier in a single transaction."
   [record-db record-store data]
   (fdb/transact-multi
-    record-db
-    record-store
-    (fn [open-store]
-      (let [party (domain/new-party data)
-            party-id (:party-id party)
-            person-id (domain/new-person-identification data
-                                                        party-id)
-            party-store (open-store "parties")
-            pid-store (open-store "person-identifications")
-            ni (:national-identifier data)]
-        (error/let-nom>
-          [_ (save-person-identification pid-store person-id) _
-           (if ni
-             (save-party-national-identifier
-               (open-store "party-national-identifiers")
-               (domain/new-party-national-identifier
-                 ni
-                 (:organization-id party)
-                 party-id))
-             nil) result
-           (save-party party-store
-                       party
-                       {:organization-id (:organization-id party),
-                        :party-id party-id,
-                        :status-after (:status party)})]
-          result)))))
+   record-db
+   record-store
+   (fn [open-store]
+     (let [party (domain/new-party data)
+           party-id (:party-id party)
+           person-id (domain/new-person-identification data
+                                                       party-id)
+           party-store (open-store "parties")
+           pid-store (open-store "person-identifications")
+           ni (:national-identifier data)]
+       (error/let-nom>
+         [_ (save-person-identification pid-store person-id)
+          _
+          (if ni
+            (save-party-national-identifier
+             (open-store "party-national-identifiers")
+             (domain/new-party-national-identifier
+              ni
+              (:organization-id party)
+              party-id))
+            nil)
+          result
+          (save-party party-store
+                      party
+                      {:organization-id (:organization-id party)
+                       :party-id party-id
+                       :status-after (:status party)})]
+         result)))))
 
 (defn- create-internal
   "Creates an internal party — no person-identification or
@@ -81,8 +89,8 @@
                   (let [party (domain/new-party data)]
                     (save-party store
                                 party
-                                {:organization-id (:organization-id party),
-                                 :party-id (:party-id party),
+                                {:organization-id (:organization-id party)
+                                 :party-id (:party-id party)
                                  :status-after (:status party)})))))
 
 (defn create
@@ -106,7 +114,7 @@
   (if (error/anomaly? result)
     result
     (let [{:keys [schemas]} config]
-      {:status "ACCEPTED",
+      {:status "ACCEPTED"
        :payload (avro/serialize (schemas "party") (schema/pb->Party result))})))
 
 (defn create-party

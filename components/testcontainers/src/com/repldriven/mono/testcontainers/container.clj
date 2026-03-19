@@ -9,7 +9,7 @@
   instance and its mapped ports."
   [container exposed-ports]
   (doto container (.withExposedPorts (->integer-array exposed-ports)) (.start))
-  {:container container,
+  {:container container
    :mapped-ports (into {}
                        (map (fn [p] [p (.getMappedPort container (int p))]))
                        exposed-ports)})

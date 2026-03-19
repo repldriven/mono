@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.utility.uuid
   "UUID utilities with support for UUIDv7 (sortable, timestamp-based)."
-  (:import (com.github.f4b6a3.uuid UuidCreator)))
+  (:import
+    (com.github.f4b6a3.uuid UuidCreator)))
 
 (defn v7
   "Generate a UUIDv7 (timestamp-ordered, RFC 9562).

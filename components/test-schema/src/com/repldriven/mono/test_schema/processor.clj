@@ -1,13 +1,15 @@
 (ns com.repldriven.mono.test-schema.processor
-  (:require [com.repldriven.mono.test_schemas.pets :as pets]
+  (:require
+    [com.repldriven.mono.test_schemas.pets :as pets]
 
-            [com.repldriven.mono.avro.interface :as avro]
-            [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.fdb.interface :as fdb]
-            [com.repldriven.mono.processor.interface :as processor]
+    [com.repldriven.mono.avro.interface :as avro]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.processor.interface :as processor]
 
-            [protojure.protobuf :as proto])
-  (:import (com.repldriven.mono.test_schemas.pets PetProto$Pet)))
+    [protojure.protobuf :as proto])
+  (:import
+    (com.repldriven.mono.test_schemas.pets PetProto$Pet)))
 
 (defn- Pet->java
   [m]
@@ -18,7 +20,7 @@
   (if (error/anomaly? result)
     result
     (let [{:keys [schemas]} config]
-      {:status "ACCEPTED",
+      {:status "ACCEPTED"
        :payload (avro/serialize (schemas "pet")
                                 result)})))
 
@@ -28,20 +30,20 @@
         {:keys [name species age-months]} data
         pet-id (str (java.util.UUID/randomUUID))]
     (fdb/transact
-      record-db
-      record-store
-      "pets"
-      (fn [store]
-        (error/let-nom>
-          [_ (fdb/save-record store
-                              (Pet->java {:pet-id pet-id,
-                                          :name name,
-                                          :species species,
-                                          :age-months age-months}))]
-          {:pet-id pet-id,
-           :name name,
-           :species species,
-           :age-months age-months})))))
+     record-db
+     record-store
+     "pets"
+     (fn [store]
+       (error/let-nom>
+         [_ (fdb/save-record store
+                             (Pet->java {:pet-id pet-id
+                                         :name name
+                                         :species species
+                                         :age-months age-months}))]
+         {:pet-id pet-id
+          :name name
+          :species species
+          :age-months age-months})))))
 
 (defn- dispatch
   [config message]
@@ -50,7 +52,7 @@
         schema (get schemas command)]
     (if-not schema
       (error/fail :test-schema/process-command
-                  {:message "No schema found for command",
+                  {:message "No schema found for command"
                    :command command})
       (error/let-nom>
         [data (avro/deserialize-same schema payload)]

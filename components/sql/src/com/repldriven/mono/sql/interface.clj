@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.sql.interface
   (:refer-clojure :exclude [format])
-  (:require [com.repldriven.mono.sql.core :as core]))
+  (:require
+    [com.repldriven.mono.sql.core :as core]))
 
 (defn format
   "Format a HoneySQL query map into a [sql & params] vector.

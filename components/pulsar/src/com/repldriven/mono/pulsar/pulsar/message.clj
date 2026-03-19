@@ -1,11 +1,13 @@
 (ns com.repldriven.mono.pulsar.pulsar.message
-  (:require [com.repldriven.mono.pulsar.pulsar.generic-record :as
-             generic-record]
-            [com.repldriven.mono.error.interface :as error])
-  (:import (java.util Optional)
-           (org.apache.pulsar.client.api Message)
-           (org.apache.pulsar.client.api.schema GenericRecord)
-           (org.apache.pulsar.common.api EncryptionContext)))
+  (:require
+    [com.repldriven.mono.pulsar.pulsar.generic-record :as
+     generic-record]
+    [com.repldriven.mono.error.interface :as error])
+  (:import
+    (java.util Optional)
+    (org.apache.pulsar.client.api Message)
+    (org.apache.pulsar.client.api.schema GenericRecord)
+    (org.apache.pulsar.common.api EncryptionContext)))
 
 (defn encrypted?
   "Returns true if the message is still encrypted (decryption failed)."
@@ -26,5 +28,5 @@
       (if (instance? GenericRecord value)
         (generic-record/deserialize value)
         (error/fail :pulsar/message-format
-                    {:message "Expected GenericRecord",
+                    {:message "Expected GenericRecord"
                      :actual (type value)})))))

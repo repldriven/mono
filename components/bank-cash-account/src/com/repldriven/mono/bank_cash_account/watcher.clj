@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.bank-cash-account.watcher
-  (:require [com.repldriven.mono.bank-cash-account.domain :as domain]
-            [com.repldriven.mono.fdb.interface :as fdb]
-            [com.repldriven.mono.bank-schema.interface :as schema]))
+  (:require
+    [com.repldriven.mono.bank-cash-account.domain :as domain]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.bank-schema.interface :as schema]))
 
 (defn cash-account-changelog-handler
   "Returns a watcher handler that transitions closing
@@ -20,10 +21,10 @@
                                                                    account)]
                 (fdb/save-record store (schema/CashAccount->java transitioned))
                 (fdb/write-changelog
-                  store
-                  "cash-accounts"
-                  (:account-id transitioned)
-                  (schema/CashAccountChangelog->pb
-                    {:account-id account-id,
-                     :status-before (:account-status account),
-                     :status-after (:account-status transitioned)}))))))))))
+                 store
+                 "cash-accounts"
+                 (:account-id transitioned)
+                 (schema/CashAccountChangelog->pb
+                  {:account-id account-id
+                   :status-before (:account-status account)
+                   :status-after (:account-status transitioned)}))))))))))

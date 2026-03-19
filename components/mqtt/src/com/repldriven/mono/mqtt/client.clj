@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.mqtt.client
-  (:require [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.log.interface :as log]
-            [clojurewerkz.machine-head.client :as mh]))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.log.interface :as log]
+    [clojurewerkz.machine-head.client :as mh]))
 
 (defn- strip-prefix [s] (if (.startsWith s "mqtt://") (subs s 7) s))
 
@@ -21,15 +22,15 @@
   "Subscribe to MQTT topics. Returns nil on success or an anomaly on failure."
   [client topics-and-qos handler-fn]
   (log/debugf
-    "mqqt.client/subscribe [client=%s, topic-and-qos=%s, handler-fn=%s]"
-    client
-    topics-and-qos
-    handler-fn)
+   "mqqt.client/subscribe [client=%s, topic-and-qos=%s, handler-fn=%s]"
+   client
+   topics-and-qos
+   handler-fn)
   (error/try-nom
-    :mqtt/subscribe
-    (format "Failed to subscribe to topics %s" topics-and-qos)
-    (mh/subscribe client (update-keys topics-and-qos strip-prefix) handler-fn)
-    nil))
+   :mqtt/subscribe
+   (format "Failed to subscribe to topics %s" topics-and-qos)
+   (mh/subscribe client (update-keys topics-and-qos strip-prefix) handler-fn)
+   nil))
 
 (defn unsubscribe
   "Unsubscribe from MQTT topics. Returns nil on success or an anomaly on failure."

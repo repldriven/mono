@@ -1,9 +1,10 @@
 (ns com.repldriven.mono.fdb.interface
-  (:require com.repldriven.mono.fdb.system.core
-            [com.repldriven.mono.fdb.changelog :as changelog]
-            [com.repldriven.mono.fdb.counter :as counter]
-            [com.repldriven.mono.fdb.kv :as kv]
-            [com.repldriven.mono.fdb.record :as record]))
+  (:require
+    com.repldriven.mono.fdb.system.core
+    [com.repldriven.mono.fdb.changelog :as changelog]
+    [com.repldriven.mono.fdb.counter :as counter]
+    [com.repldriven.mono.fdb.kv :as kv]
+    [com.repldriven.mono.fdb.record :as record]))
 
 ;; KV layer
 

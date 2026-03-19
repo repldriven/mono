@@ -1,11 +1,13 @@
 (ns com.repldriven.mono.testcontainers.system.components.fdb
-  (:require [com.repldriven.mono.log.interface :as log])
-  (:import (java.io File)
-           (java.net ServerSocket)
-           (java.time Duration)
-           (org.testcontainers.containers FixedHostPortGenericContainer)
-           (org.testcontainers.containers.wait.strategy Wait)
-           (org.testcontainers.images.builder ImageFromDockerfile)))
+  (:require
+    [com.repldriven.mono.log.interface :as log])
+  (:import
+    (java.io File)
+    (java.net ServerSocket)
+    (java.time Duration)
+    (org.testcontainers.containers FixedHostPortGenericContainer)
+    (org.testcontainers.containers.wait.strategy Wait)
+    (org.testcontainers.images.builder ImageFromDockerfile)))
 
 (def fdb-version "7.3.75")
 (def default-image-name (str "mono/foundationdb:" fdb-version))
@@ -18,8 +20,8 @@
       (if-let [parent (.getParentFile dir)]
         (recur parent)
         (throw (ex-info
-                 "Could not find workspace.edn - are we in a Polylith project?"
-                 {}))))))
+                "Could not find workspace.edn - are we in a Polylith project?"
+                {}))))))
 
 (defn- fdb-image
   [image-name]
@@ -51,10 +53,10 @@
 
 (def container
   {:system/start (fn [{:system/keys [config instance]}]
-                   (or instance (start-container config))),
+                   (or instance (start-container config)))
    :system/stop (fn [{:system/keys [instance]}]
                   (log/info "Stopping FDB container")
-                  (when (some? instance) (.stop instance))),
-   :system/config {:image-name default-image-name},
-   :system/config-schema [:map [:image-name string?]],
+                  (when (some? instance) (.stop instance)))
+   :system/config {:image-name default-image-name}
+   :system/config-schema [:map [:image-name string?]]
    :system/instance-schema some?})

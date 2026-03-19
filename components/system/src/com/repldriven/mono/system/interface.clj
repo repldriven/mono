@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.system.interface
-  (:require com.repldriven.mono.system.reader.edn
-            com.repldriven.mono.system.reader.yml
-            [com.repldriven.mono.system.core :as core]
-            [com.repldriven.mono.system.components :as components]))
+  (:require
+    com.repldriven.mono.system.reader.edn
+    com.repldriven.mono.system.reader.yml
+    [com.repldriven.mono.system.core :as core]
+    [com.repldriven.mono.system.components :as components]))
 
 (defn system? [config-name] (core/system? config-name))
 

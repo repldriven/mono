@@ -1,15 +1,16 @@
 (ns com.repldriven.mono.cli.interface-test
-  (:require [com.repldriven.mono.cli.interface :as SUT]
-            [clojure.test :as test :refer [deftest is testing]]))
+  (:require
+    [com.repldriven.mono.cli.interface :as SUT]
+    [clojure.test :as test :refer [deftest is testing]]))
 
 (deftest validate-args-test
   (testing "Valid arguments with both config and profile"
     (let [result (SUT/validate-args "test-program"
                                     ["-c" "test.edn" "-p" "dev"])]
-      (is (= {:options {:config-file "test.edn", :profile "dev"}} result))))
+      (is (= {:options {:config-file "test.edn" :profile "dev"}} result))))
   (testing "Valid arguments with defaults"
     (let [result (SUT/validate-args "test-program" [])]
-      (is (= {:options {:config-file "env.edn", :profile "default"}} result))))
+      (is (= {:options {:config-file "env.edn" :profile "default"}} result))))
   (testing "Help flag returns usage message"
     (let [result (SUT/validate-args "test-program" ["-h"])]
       (is (:ok? result))
@@ -28,7 +29,7 @@
     (let [result (SUT/validate-args "test-program"
                                     ["--config-file" "app.edn" "--profile"
                                      "test"])]
-      (is (= {:options {:config-file "app.edn", :profile "test"}} result))))
+      (is (= {:options {:config-file "app.edn" :profile "test"}} result))))
   (testing "Profile validation accepts valid profiles"
     (doseq [profile ["default" "dev" "test"]]
       (let [result (SUT/validate-args "test-program" ["-p" profile])]

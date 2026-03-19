@@ -1,37 +1,39 @@
 (ns com.repldriven.mono.bank-schema.interface
-  (:require [com.repldriven.mono.schemas.balances :as balances]
-            [com.repldriven.mono.schemas.cash_account_products :as
-             cash-account-products]
-            [com.repldriven.mono.schemas.cash_accounts :as cash-accounts]
-            [com.repldriven.mono.schemas.idv :as idv]
-            [com.repldriven.mono.schemas.keys :as keys]
-            [com.repldriven.mono.schemas.organizations :as organizations]
-            [com.repldriven.mono.schemas.party :as party]
-            [com.repldriven.mono.schemas.person_identification :as
-             person-identification]
-            [com.repldriven.mono.schemas.transactions :as transactions]
-            [protojure.protobuf :as proto])
-  (:import (com.repldriven.mono.schemas.balances BalanceProto$Balance)
-           (com.repldriven.mono.schemas.cash_account_products
-             CashAccountProductProto$CashAccountProductVersion)
-           (com.repldriven.mono.schemas.cash_accounts
-             CashAccountProto$CashAccount
-             CashAccountChangelogProto$CashAccountChangelog)
-           (com.repldriven.mono.schemas.idv IdvProto$Idv
-                                            IdvChangelogProto$IdvChangelog)
-           (com.repldriven.mono.schemas.keys ApiKeyProto$ApiKey)
-           (com.repldriven.mono.schemas.organizations
-             OrganizationProto$Organization
-             OrganizationChangelogProto$OrganizationChangelog)
-           (com.repldriven.mono.schemas.party
-             PartyProto$Party
-             PartyChangelogProto$PartyChangelog
-             PartyNationalIdentifierProto$PartyNationalIdentifier)
-           (com.repldriven.mono.schemas.person_identification
-             PersonIdentificationProto$PersonIdentification)
-           (com.repldriven.mono.schemas.transactions
-             TransactionProto$Transaction
-             TransactionProto$TransactionLeg)))
+  (:require
+    [com.repldriven.mono.schemas.balances :as balances]
+    [com.repldriven.mono.schemas.cash_account_products :as
+     cash-account-products]
+    [com.repldriven.mono.schemas.cash_accounts :as cash-accounts]
+    [com.repldriven.mono.schemas.idv :as idv]
+    [com.repldriven.mono.schemas.keys :as keys]
+    [com.repldriven.mono.schemas.organizations :as organizations]
+    [com.repldriven.mono.schemas.party :as party]
+    [com.repldriven.mono.schemas.person_identification :as
+     person-identification]
+    [com.repldriven.mono.schemas.transactions :as transactions]
+    [protojure.protobuf :as proto])
+  (:import
+    (com.repldriven.mono.schemas.balances BalanceProto$Balance)
+    (com.repldriven.mono.schemas.cash_account_products
+     CashAccountProductProto$CashAccountProductVersion)
+    (com.repldriven.mono.schemas.cash_accounts
+     CashAccountProto$CashAccount
+     CashAccountChangelogProto$CashAccountChangelog)
+    (com.repldriven.mono.schemas.idv IdvProto$Idv
+                                     IdvChangelogProto$IdvChangelog)
+    (com.repldriven.mono.schemas.keys ApiKeyProto$ApiKey)
+    (com.repldriven.mono.schemas.organizations
+     OrganizationProto$Organization
+     OrganizationChangelogProto$OrganizationChangelog)
+    (com.repldriven.mono.schemas.party
+     PartyProto$Party
+     PartyChangelogProto$PartyChangelog
+     PartyNationalIdentifierProto$PartyNationalIdentifier)
+    (com.repldriven.mono.schemas.person_identification
+     PersonIdentificationProto$PersonIdentification)
+    (com.repldriven.mono.schemas.transactions
+     TransactionProto$Transaction
+     TransactionProto$TransactionLeg)))
 
 (def pb->Balance balances/pb->Balance)
 (defn Balance->pb [m] (proto/->pb (balances/new-Balance m)))
@@ -48,7 +50,7 @@
 (defn CashAccountProductVersion->java
   [m]
   (CashAccountProductProto$CashAccountProductVersion/parseFrom
-    (CashAccountProductVersion->pb m)))
+   (CashAccountProductVersion->pb m)))
 
 (def pb->ApiKey keys/pb->ApiKey)
 (defn ApiKey->pb [m] (proto/->pb (keys/new-ApiKey m)))
@@ -71,7 +73,7 @@
 (defn PartyNationalIdentifier->java
   [m]
   (PartyNationalIdentifierProto$PartyNationalIdentifier/parseFrom
-    (PartyNationalIdentifier->pb m)))
+   (PartyNationalIdentifier->pb m)))
 
 (def pb->PersonIdentification person-identification/pb->PersonIdentification)
 (defn PersonIdentification->pb
@@ -80,7 +82,7 @@
 (defn PersonIdentification->java
   [m]
   (PersonIdentificationProto$PersonIdentification/parseFrom
-    (PersonIdentification->pb m)))
+   (PersonIdentification->pb m)))
 
 (def pb->Idv idv/pb->Idv)
 (defn Idv->pb [m] (proto/->pb (idv/new-Idv m)))
@@ -101,7 +103,7 @@
 (defn CashAccountChangelog->java
   [m]
   (CashAccountChangelogProto$CashAccountChangelog/parseFrom
-    (CashAccountChangelog->pb m)))
+   (CashAccountChangelog->pb m)))
 
 (def pb->PartyChangelog party/pb->PartyChangelog)
 (defn PartyChangelog->pb [m] (proto/->pb (party/new-PartyChangelog m)))
@@ -134,4 +136,4 @@
 (defn OrganizationChangelog->java
   [m]
   (OrganizationChangelogProto$OrganizationChangelog/parseFrom
-    (OrganizationChangelog->pb m)))
+   (OrganizationChangelog->pb m)))

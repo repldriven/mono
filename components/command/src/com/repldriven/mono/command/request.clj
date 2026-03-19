@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.command.request
-  (:require [com.repldriven.mono.telemetry.interface :as telemetry]))
+  (:require
+    [com.repldriven.mono.telemetry.interface :as telemetry]))
 
 (defn- req->ids
   [req]
@@ -20,11 +21,11 @@
   sending."
   [req command]
   (let [[idempotency-key correlation-id] (req->ids req)]
-    {:command command,
-     :id idempotency-key,
-     :correlation-id correlation-id,
-     :causation-id nil,
-     :traceparent (telemetry/inject-traceparent),
-     :tracestate nil,
-     :payload nil,
+    {:command command
+     :id idempotency-key
+     :correlation-id correlation-id
+     :causation-id nil
+     :traceparent (telemetry/inject-traceparent)
+     :tracestate nil
+     :payload nil
      :reply-to nil}))

@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.json.interface
-  (:require [com.repldriven.mono.json.core :as core]))
+  (:require
+    [com.repldriven.mono.json.core :as core]))
 
 (defn read-str
   "Parse a JSON string into Clojure data structures.

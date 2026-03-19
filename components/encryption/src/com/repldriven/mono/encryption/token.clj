@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.encryption.token
-  (:require [buddy.core.codecs :as codecs]
-            [buddy.core.hash :as hash]
-            [buddy.core.nonce :as nonce]))
+  (:require
+    [buddy.core.codecs :as codecs]
+    [buddy.core.hash :as hash]
+    [buddy.core.nonce :as nonce]))
 
 (defn generate
   "Returns a random token string with the given prefix."

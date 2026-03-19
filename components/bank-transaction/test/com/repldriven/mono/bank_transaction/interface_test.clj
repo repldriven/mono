@@ -1,5 +1,4 @@
-(ns ^:eftest/synchronized
- com.repldriven.mono.bank-transaction.interface-test
+(ns ^:eftest/synchronized com.repldriven.mono.bank-transaction.interface-test
   (:require
     com.repldriven.mono.bank-transaction.interface
     com.repldriven.mono.testcontainers.interface
@@ -57,9 +56,9 @@
                                  result)
          _ (is (some? (:transaction-id decoded)))
          _ (is (= :transaction-status-pending
-                   (:status decoded)))
+                  (:status decoded)))
          _ (is (= :transaction-type-manual-transfer
-                   (:transaction-type decoded)))
+                  (:transaction-type decoded)))
          _ (is (= "GBP" (:currency decoded)))
          _ (is (= "Test transfer" (:reference decoded)))
          _ (is (= 2 (count (:legs decoded))))
@@ -87,10 +86,8 @@
              (error/kind result))))))
 
 (deftest process-transaction-test
-  (with-test-system
-    [sys "classpath:bank-transaction/application-test.yml"]
-    (let [proc (system/instance sys
-                                [:transactions :processor])
-          schemas (system/instance sys [:avro :serde])]
-      (test-record-transaction proc schemas)
-      (test-unknown-command proc schemas))))
+  (with-test-system [sys "classpath:bank-transaction/application-test.yml"]
+                    (let [proc (system/instance sys [:transactions :processor])
+                          schemas (system/instance sys [:avro :serde])]
+                      (test-record-transaction proc schemas)
+                      (test-unknown-command proc schemas))))

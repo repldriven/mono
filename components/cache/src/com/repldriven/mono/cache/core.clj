@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.cache.core
-  (:require [clojure.core.cache.wrapped :as cw]))
+  (:require
+    [clojure.core.cache.wrapped :as cw]))
 
 (defn create [ttl-ms] (cw/ttl-cache-factory {} :ttl ttl-ms))
 

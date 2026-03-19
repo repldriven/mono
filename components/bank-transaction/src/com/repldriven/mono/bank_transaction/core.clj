@@ -17,7 +17,7 @@
                   {:message "No schema found for command"
                    :command command})
       (error/let-nom> [data (avro/deserialize-same schema
-                                                    payload)]
+                                                   payload)]
         (case command
           "record-transaction"
           (commands/record-transaction config data)

@@ -1,9 +1,10 @@
 (ns com.repldriven.mono.telemetry.interface
   "Public API for telemetry operations."
-  (:require com.repldriven.mono.telemetry.system
-            [com.repldriven.mono.telemetry.core :as core]
-            [com.repldriven.mono.telemetry.interceptors :as interceptors]
-            [com.repldriven.mono.telemetry.span-tests :as span-tests]))
+  (:require
+    com.repldriven.mono.telemetry.system
+    [com.repldriven.mono.telemetry.core :as core]
+    [com.repldriven.mono.telemetry.interceptors :as interceptors]
+    [com.repldriven.mono.telemetry.span-tests :as span-tests]))
 
 ;; Tracing
 (defmacro with-span

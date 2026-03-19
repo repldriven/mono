@@ -1,8 +1,10 @@
 (ns com.repldriven.mono.build.proto
-  (:require [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojure.tools.build.api :as b])
-  (:import [java.util.jar JarFile]))
+  (:require
+    [clojure.java.io :as io]
+    [clojure.string :as str]
+    [clojure.tools.build.api :as b])
+  (:import
+    [java.util.jar JarFile]))
 
 (defn- proto-files
   [proto-dir]
@@ -29,7 +31,7 @@
   "Resolve the fdb-record-layer-core JAR, extract its .proto
   files into a temp directory, and return the path."
   [root]
-  (let [basis (b/create-basis {:project (str root "/deps.edn"),
+  (let [basis (b/create-basis {:project (str root "/deps.edn")
                                :aliases [:build]})
         cp (:classpath-roots basis)
         jar (first (filter #(str/includes? % "fdb-record-layer-core") cp))
@@ -53,7 +55,7 @@
       (when (not= content stripped) (spit f stripped)))))
 
 (defn gen-proto
-  [{:keys [root], :or {root "."}}]
+  [{:keys [root] :or {root "."}}]
   (let [proto-path (str root "/resources")
         clj-out (str root "/gen")
         java-out (str root "/target/gen-java")
@@ -66,10 +68,12 @@
     (b/process {:command-args (cond-> ["protoc" "--clojure_out" clj-out
                                        "--java_out" java-out "--proto_path"
                                        proto-path]
-                                fdb-path (conj "--proto_path" fdb-path)
-                                true (into protos))})
+                                      fdb-path
+                                      (conj "--proto_path" fdb-path)
+                                      true
+                                      (into protos))})
     (strip-fdb-requires clj-out)
-    (b/javac {:src-dirs [java-out],
-              :class-dir class-out,
-              :basis (b/create-basis {:project (str root "/deps.edn")}),
+    (b/javac {:src-dirs [java-out]
+              :class-dir class-out
+              :basis (b/create-basis {:project (str root "/deps.edn")})
               :javac-opts ["-proc:none"]})))

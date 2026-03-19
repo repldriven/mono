@@ -1,15 +1,16 @@
 (ns com.repldriven.mono.server.openapi
-  (:require [reitit.openapi :as openapi]))
+  (:require
+    [reitit.openapi :as openapi]))
 
 (defn standard-handler [] (openapi/create-openapi-handler))
 
 (defn standard-ui-handler
   []
   (fn [_]
-    {:status 200,
-     :headers {"Content-Type" "text/html"},
+    {:status 200
+     :headers {"Content-Type" "text/html"}
      :body
-       "<!DOCTYPE html>
+     "<!DOCTYPE html>
 <html>
 <head>
   <title>API Docs</title>

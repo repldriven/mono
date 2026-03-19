@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.command.dispatcher
   (:refer-clojure :exclude [send])
-  (:require [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.message-bus.interface :as message-bus]))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.message-bus.interface :as message-bus]))
 
 (defn start
   "Start a shared command-response dispatcher.
@@ -20,19 +21,19 @@
   [bus command-channel command-response-channel]
   (let [pending (atom {})
         sub (message-bus/subscribe
-              bus
-              command-response-channel
-              (fn [response]
-                (let [correlation-id (or (:correlation-id response)
-                                         (get response "correlation-id"))]
-                  (when-let [p (get @pending correlation-id)]
-                    (deliver p response)))))
+             bus
+             command-response-channel
+             (fn [response]
+               (let [correlation-id (or (:correlation-id response)
+                                        (get response "correlation-id"))]
+                 (when-let [p (get @pending correlation-id)]
+                   (deliver p response)))))
         stop-fn (fn [] (message-bus/unsubscribe bus command-response-channel))]
     (if (error/anomaly? sub)
       (throw (ex-info "Failed to start command dispatcher" {:anomaly sub}))
-      {:bus bus,
-       :command-channel command-channel,
-       :pending pending,
+      {:bus bus
+       :command-channel command-channel
+       :pending pending
        :stop-fn stop-fn})))
 
 (defn stop
@@ -56,7 +57,7 @@
   Returns response map or anomaly."
   ([dispatcher command] (send dispatcher command {}))
   ([{:keys [bus command-channel pending]} command opts]
-   (let [{:keys [timeout-ms], :or {timeout-ms 10000}} opts
+   (let [{:keys [timeout-ms] :or {timeout-ms 10000}} opts
          correlation-id (:correlation-id command)
          p (promise)]
      (swap! pending assoc correlation-id p)

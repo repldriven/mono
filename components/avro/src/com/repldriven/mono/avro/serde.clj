@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.avro.serde
-  (:require [com.repldriven.mono.error.interface :as error]
-            [deercreeklabs.lancaster :as avro]))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [deercreeklabs.lancaster :as avro]))
 
 (defn json->schema
   [json]

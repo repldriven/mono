@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.mqtt.message-bus
-  (:require [com.repldriven.mono.message-bus.interface :as message-bus]
-            [com.repldriven.mono.mqtt.client :as client]
-            [com.repldriven.mono.json.interface :as json]))
+  (:require
+    [com.repldriven.mono.message-bus.interface :as message-bus]
+    [com.repldriven.mono.mqtt.client :as client]
+    [com.repldriven.mono.json.interface :as json]))
 
 (defrecord MqttProducer [client topic qos]
   message-bus/Producer

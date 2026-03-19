@@ -1,11 +1,12 @@
 (ns com.repldriven.mono.bank-api.cash-account.components
-  (:require [com.repldriven.mono.bank-api.cash-account.coercion :as coercion]
-            [com.repldriven.mono.bank-api.cash-account.examples :as examples]
-            [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
+  (:require
+    [com.repldriven.mono.bank-api.cash-account.coercion :as coercion]
+    [com.repldriven.mono.bank-api.cash-account.examples :as examples]
+    [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
 
 (def CashAccountId
   [:string
-   {:title "CashAccountId", :json-schema/example examples/CashAccountId}])
+   {:title "CashAccountId" :json-schema/example examples/CashAccountId}])
 
 (def ScanAddress [:map [:sort-code string?] [:account-number string?]])
 
@@ -22,9 +23,10 @@
    [:account-id [:ref "CashAccountId"]] [:party-id string?] [:name string?]
    [:currency [:ref "Currency"]] [:product-id string?] [:version-id string?]
    [:account-status
-    [:enum {:json-schema coercion/cash-account-status-json-schema,
-            :decode/api coercion/decode-cash-account-status,
-            :encode/api coercion/encode-cash-account-status}
+    [:enum
+     {:json-schema coercion/cash-account-status-json-schema
+      :decode/api coercion/decode-cash-account-status
+      :encode/api coercion/encode-cash-account-status}
      :cash-account-status-opening :cash-account-status-opened
      :cash-account-status-closing :cash-account-status-closed]]
    [:payment-addresses {:optional true}

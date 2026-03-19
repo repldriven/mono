@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.db.interface
-  (:require com.repldriven.mono.db.system
-            [com.repldriven.mono.db.core :as core]))
+  (:require
+    com.repldriven.mono.db.system
+    [com.repldriven.mono.db.core :as core]))
 
 (def as-unqualified-lower-maps core/as-unqualified-lower-maps)
 (def as-unqualified-kebab-maps core/as-unqualified-kebab-maps)

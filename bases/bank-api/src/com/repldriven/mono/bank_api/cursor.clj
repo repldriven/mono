@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.bank-api.cursor
-  (:import (java.util Base64)))
+  (:import
+    (java.util Base64)))
 
 (def ^:private prefix "v1:")
 

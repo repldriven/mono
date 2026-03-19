@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.encryption.interface
-  (:require [com.repldriven.mono.encryption.token :as token]
-            [com.repldriven.mono.encryption.bytes :as bytes]
-            [com.repldriven.mono.encryption.id :as id]
-            [com.repldriven.mono.encryption.rsa :as rsa]))
+  (:require
+    [com.repldriven.mono.encryption.token :as token]
+    [com.repldriven.mono.encryption.bytes :as bytes]
+    [com.repldriven.mono.encryption.id :as id]
+    [com.repldriven.mono.encryption.rsa :as rsa]))
 
 (defn create-key-pair [opts] (rsa/create-key-pair opts))
 

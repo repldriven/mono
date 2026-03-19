@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.cli.core
-  (:require [com.repldriven.mono.log.interface :as log]
-            [clojure.java.io :as io]
-            [clojure.string :as string]
-            [clojure.tools.cli :as cli]))
+  (:require
+    [com.repldriven.mono.log.interface :as log]
+    [clojure.java.io :as io]
+    [clojure.string :as string]
+    [clojure.tools.cli :as cli]))
 
 (def cli-options
   [["-c" "--config-file FILENAME" "Configuration filename" :default "env.edn"
@@ -29,10 +30,13 @@
   indicating the action the program should take and the options provided."
   [program-name args]
   (let [{:keys [options errors summary]} (cli/parse-opts args cli-options)]
-    (cond (:help options) {:exit-message (usage program-name summary),
-                           :ok? true}
-          errors {:exit-message (error-msg errors)}
-          :else {:options options})))
+    (cond (:help options)
+          {:exit-message (usage program-name summary)
+           :ok? true}
+          errors
+          {:exit-message (error-msg errors)}
+          :else
+          {:options options})))
 
 (defn exit
   [ok? msg]
@@ -41,4 +45,4 @@
 
 
 (comment
-  {:a "1", :b "2"})
+  {:a "1" :b "2"})

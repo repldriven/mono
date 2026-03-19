@@ -1,19 +1,24 @@
 (ns com.repldriven.mono.env.core
-  (:require aero.core
-            [com.repldriven.mono.env.reader.edn :as reader.edn]
-            [com.repldriven.mono.env.reader.yml :as reader.yml]
-            [com.repldriven.mono.error.interface :as error]
-            [clojure.string :as str]))
+  (:require
+    aero.core
+    [com.repldriven.mono.env.reader.edn :as reader.edn]
+    [com.repldriven.mono.env.reader.yml :as reader.yml]
+    [com.repldriven.mono.error.interface :as error]
+    [clojure.string :as str]))
 
 (def edn-reader reader.edn/edn-reader)
 (def yml-reader reader.yml/yml-reader)
 
 (defn- file-type->keyword
   [source]
-  (cond (str/ends-with? source ".edn") :edn
-        (str/ends-with? source ".yml") :yml
-        (str/ends-with? source ".yaml") :yml
-        :else (throw (ex-info "Unknown file type" {:source source}))))
+  (cond (str/ends-with? source ".edn")
+        :edn
+        (str/ends-with? source ".yml")
+        :yml
+        (str/ends-with? source ".yaml")
+        :yml
+        :else
+        (throw (ex-info "Unknown file type" {:source source}))))
 
 (defmulti file-type (fn [source] (type source)))
 (defmethod file-type java.net.URL

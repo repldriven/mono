@@ -1,12 +1,13 @@
 (ns com.repldriven.mono.service.main
-  (:require com.repldriven.mono.command-processor.interface
-            com.repldriven.mono.message-bus.interface
-            com.repldriven.mono.pulsar.interface
-            [com.repldriven.mono.cli.interface :as cli]
-            [com.repldriven.mono.env.interface :as env]
-            [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.log.interface :as log]
-            [com.repldriven.mono.system.interface :as system])
+  (:require
+    com.repldriven.mono.command-processor.interface
+    com.repldriven.mono.message-bus.interface
+    com.repldriven.mono.pulsar.interface
+    [com.repldriven.mono.cli.interface :as cli]
+    [com.repldriven.mono.env.interface :as env]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.system.interface :as system])
   (:gen-class))
 
 (defn start

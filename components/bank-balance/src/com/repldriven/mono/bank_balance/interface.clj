@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.bank-balance.interface
-  (:require [com.repldriven.mono.bank-balance.domain :as domain]
-            [com.repldriven.mono.bank-balance.store :as store]
-            [com.repldriven.mono.error.interface :as error]))
+  (:require
+    [com.repldriven.mono.bank-balance.domain :as domain]
+    [com.repldriven.mono.bank-balance.store :as store]
+    [com.repldriven.mono.error.interface :as error]))
 
 (defn new-balance
   "Creates a new balance. Returns the balance map or anomaly."

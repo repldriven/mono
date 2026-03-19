@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.cli.interface
-  (:require [com.repldriven.mono.cli.core :as core]))
+  (:require
+    [com.repldriven.mono.cli.core :as core]))
 
 (defn validate-args [program-name args] (core/validate-args program-name args))
 

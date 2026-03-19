@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.bank-party.watcher
-  (:require [com.repldriven.mono.bank-party.domain :as domain]
-            [com.repldriven.mono.fdb.interface :as fdb]
-            [com.repldriven.mono.bank-schema.interface :as schema]))
+  (:require
+    [com.repldriven.mono.bank-party.domain :as domain]
+    [com.repldriven.mono.fdb.interface :as fdb]
+    [com.repldriven.mono.bank-schema.interface :as schema]))
 
 (defn idv-changelog-handler
   "Returns a watcher handler that transitions parties from
@@ -14,12 +15,12 @@
         (let [idv-store (record-store ctx "idvs")
               org-id (:organization-id changelog)
               idv-record
-                (fdb/load-record idv-store org-id (:verification-id changelog))]
+              (fdb/load-record idv-store org-id (:verification-id changelog))]
           (when idv-record
             (let [idv (schema/pb->Idv idv-record)
                   party-store (record-store ctx "parties")
                   party-record
-                    (fdb/load-record party-store org-id (:party-id idv))]
+                  (fdb/load-record party-store org-id (:party-id idv))]
               (when party-record
                 (let [party (schema/pb->Party party-record)]
                   (when (= :party-status-pending (:status party))
@@ -30,9 +31,9 @@
                                            "parties"
                                            (:party-id activated)
                                            (schema/PartyChangelog->pb
-                                             {:organization-id org-id,
-                                              :party-id (:party-id activated),
-                                              :status-before
-                                                :party-status-pending,
-                                              :status-after
-                                                :party-status-active})))))))))))))
+                                            {:organization-id org-id
+                                             :party-id (:party-id activated)
+                                             :status-before
+                                             :party-status-pending
+                                             :status-after
+                                             :party-status-active})))))))))))))

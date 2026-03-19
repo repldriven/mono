@@ -1,10 +1,11 @@
 (ns com.repldriven.mono.mqtt.interface-test
-  (:require com.repldriven.mono.testcontainers.interface
-            [com.repldriven.mono.mqtt.interface :as SUT]
-            [com.repldriven.mono.system.interface :as system]
-            [com.repldriven.mono.test-system.interface :refer
-             [with-test-system]]
-            [clojure.test :refer [deftest is testing]]))
+  (:require
+    com.repldriven.mono.testcontainers.interface
+    [com.repldriven.mono.mqtt.interface :as SUT]
+    [com.repldriven.mono.system.interface :as system]
+    [com.repldriven.mono.test-system.interface :refer
+     [with-test-system]]
+    [clojure.test :refer [deftest is testing]]))
 
 (deftest mqtt-publish-subscribe-test
   (testing "MQTT client should publish and subscribe to messages"

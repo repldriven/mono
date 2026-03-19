@@ -1,11 +1,12 @@
 (ns ^:eftest/synchronized com.repldriven.mono.service.main-test
-  (:require com.repldriven.mono.test-schema.interface
-            com.repldriven.mono.message-bus.interface
-            com.repldriven.mono.testcontainers.interface
-            [com.repldriven.mono.service.main :as SUT]
-            [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.system.interface :as system]
-            [clojure.test :refer [deftest is testing]]))
+  (:require
+    com.repldriven.mono.test-schema.interface
+    com.repldriven.mono.message-bus.interface
+    com.repldriven.mono.testcontainers.interface
+    [com.repldriven.mono.service.main :as SUT]
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.system.interface :as system]
+    [clojure.test :refer [deftest is testing]]))
 
 (deftest main-test
   (testing "System should start and process commands"

@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.pulsar-vault-crypto.interface
-  (:require com.repldriven.mono.pulsar-vault-crypto.system
-            [com.repldriven.mono.pulsar-vault-crypto.core :as core]))
+  (:require
+    com.repldriven.mono.pulsar-vault-crypto.system
+    [com.repldriven.mono.pulsar-vault-crypto.core :as core]))
 
 (defn tenant-key-reader
   "Returns a CryptoKeyReader that reads tenant encryption keys from Vault on demand.

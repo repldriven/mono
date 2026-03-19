@@ -1,9 +1,10 @@
 (ns com.repldriven.mono.pulsar.core
   (:refer-clojure :exclude [read send])
-  (:require [com.repldriven.mono.pulsar.pulsar.admin :as admin]
-            [com.repldriven.mono.pulsar.pulsar.consumer :as consumer]
-            [com.repldriven.mono.pulsar.pulsar.producer :as producer]
-            [com.repldriven.mono.pulsar.pulsar.reader :as reader]))
+  (:require
+    [com.repldriven.mono.pulsar.pulsar.admin :as admin]
+    [com.repldriven.mono.pulsar.pulsar.consumer :as consumer]
+    [com.repldriven.mono.pulsar.pulsar.producer :as producer]
+    [com.repldriven.mono.pulsar.pulsar.reader :as reader]))
 
 ;;;; producer
 (defn send

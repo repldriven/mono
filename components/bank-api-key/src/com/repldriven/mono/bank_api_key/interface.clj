@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.bank-api-key.interface
-  (:require [com.repldriven.mono.bank-api-key.domain :as domain]
-            [com.repldriven.mono.bank-api-key.store :as store]))
+  (:require
+    [com.repldriven.mono.bank-api-key.domain :as domain]
+    [com.repldriven.mono.bank-api-key.store :as store]))
 
 (defn new-api-key
   "Creates a new ApiKey record map and its raw key.

@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.system.core
   (:refer-clojure :exclude [ref])
-  (:require [com.repldriven.mono.error.interface :as error]
-            [donut.system :as ds]
-            [donut.system.validation :as dsv]))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [donut.system :as ds]
+    [donut.system.validation :as dsv]))
 
 (def mono-system-ns "system")
 (def donut-system-ns "donut.system")
@@ -18,30 +19,38 @@
   (fn [to-ns-map]
     (let [args (reduce-kv (fn [m k v]
                             (assoc m
-                              (if (match-ns-keyword? k to-ns)
-                                (keyword from-ns (name k))
-                                k)
-                                v))
+                                   (if (match-ns-keyword? k to-ns)
+                                     (keyword from-ns (name k))
+                                     k)
+                                   v))
                           {}
                           to-ns-map)]
       (f args))))
 
 (defn- nsmap->nsmap
   [m from-ns to-ns]
-  (letfn [(walk [x]
-            (cond (map? x) (into {}
-                                 (map (fn [[k v]]
-                                        (let [k' (walk k)]
-                                          (if (schema-key-name? k')
-                                            [k' v]
-                                            [k' (walk v)]))))
-                                 x)
-                  (vector? x) (mapv walk x)
-                  (seq? x) (doall (map walk x))
-                  (set? x) (into #{} (map walk x))
-                  (match-ns-keyword? x from-ns) (keyword to-ns (name x))
-                  (fn? x) (wrap-fn x from-ns to-ns)
-                  :else x))]
+  (letfn
+    [(walk [x]
+       (cond (map? x)
+             (into {}
+                   (map (fn [[k v]]
+                          (let [k' (walk k)]
+                            (if (schema-key-name? k')
+                              [k' v]
+                              [k' (walk v)]))))
+                   x)
+             (vector? x)
+             (mapv walk x)
+             (seq? x)
+             (doall (map walk x))
+             (set? x)
+             (into #{} (map walk x))
+             (match-ns-keyword? x from-ns)
+             (keyword to-ns (name x))
+             (fn? x)
+             (wrap-fn x from-ns to-ns)
+             :else
+             x))]
     (walk m)))
 
 (def required-component ::ds/required-component)

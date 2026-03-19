@@ -2,12 +2,14 @@
   "Telemetry abstraction layer wrapping OpenTelemetry.
 
   Provides tracing and metrics without direct clj-otel coupling in domain code."
-  (:require [steffan-westcott.clj-otel.api.trace.span :as span]
-            [steffan-westcott.clj-otel.api.metrics.instrument :as instrument]
-            [steffan-westcott.clj-otel.api.otel :as otel]
-            [steffan-westcott.clj-otel.context :as context])
-  (:import (io.opentelemetry.api.trace Span)
-           (io.opentelemetry.context.propagation TextMapGetter)))
+  (:require
+    [steffan-westcott.clj-otel.api.trace.span :as span]
+    [steffan-westcott.clj-otel.api.metrics.instrument :as instrument]
+    [steffan-westcott.clj-otel.api.otel :as otel]
+    [steffan-westcott.clj-otel.context :as context])
+  (:import
+    (io.opentelemetry.api.trace Span)
+    (io.opentelemetry.context.propagation TextMapGetter)))
 
 (defmacro with-span
   "Add a span around code execution.
@@ -35,8 +37,8 @@
   Returns: Result of executing f"
   [name parent-ctx attrs f]
   (try (span/with-span!
-         {:name name, :parent parent-ctx, :kind :consumer, :attributes attrs}
-         (f))
+        {:name name :parent parent-ctx :kind :consumer :attributes attrs}
+        (f))
        (catch Exception _e
          ;; Gracefully degrade if OTel not configured
          (f))))
@@ -77,7 +79,7 @@
   Usage:
     (inc-counter! my-counter {:reason :validation-failed})"
   [counter attrs]
-  (instrument/add! counter {:value 1, :attributes attrs}))
+  (instrument/add! counter {:value 1 :attributes attrs}))
 
 (defn add-counter!
   "Add a value to a counter with attributes.
@@ -85,7 +87,7 @@
   Usage:
     (add-counter! my-counter 5 {:operation :batch-insert})"
   [counter value attrs]
-  (instrument/add! counter {:value value, :attributes attrs}))
+  (instrument/add! counter {:value value :attributes attrs}))
 
 (defn- traceparent-from-span-context
   [span-context]
@@ -107,9 +109,9 @@
 (def ^:private command-getter
   "TextMapGetter implementation for extracting trace context from command maps."
   (reify
-    TextMapGetter
-      (keys [_ _carrier] ["traceparent" "tracestate"])
-      (get [_ carrier key] (clojure.core/get carrier key))))
+   TextMapGetter
+     (keys [_ _carrier] ["traceparent" "tracestate"])
+     (get [_ carrier key] (clojure.core/get carrier key))))
 
 (defn extract-parent-context
   "Extract parent OpenTelemetry context from command with traceparent/tracestate.
@@ -120,8 +122,8 @@
   Returns: OpenTelemetry context with extracted trace information, or current context if extraction fails."
   [command]
   (try (let [propagator (.getTextMapPropagator (.getPropagators
-                                                 (otel/get-default-otel!)))
-             carrier {"traceparent" (:traceparent command),
+                                                (otel/get-default-otel!)))
+             carrier {"traceparent" (:traceparent command)
                       "tracestate" (:tracestate command)}]
          (.extract propagator (context/current) carrier command-getter))
        (catch Exception _e

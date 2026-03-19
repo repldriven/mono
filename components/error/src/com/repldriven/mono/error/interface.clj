@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.error.interface
-  (:require [de.otto.nom.core :as nom]))
+  (:require
+    [de.otto.nom.core :as nom]))
 
 (defn- error-anomaly? [x] (and (vector? x) (= :error/anomaly (first x))))
 (defn- rejection-anomaly?
@@ -28,10 +29,14 @@
 ;; Internal constructors
 (defn- anomaly
   [tag category & more]
-  (let [p (cond (map? (first more)) (first more)
-                (string? (first more)) {:message (first more)}
-                (seq more) (apply hash-map more)
-                :else {})]
+  (let [p (cond (map? (first more))
+                (first more)
+                (string? (first more))
+                {:message (first more)}
+                (seq more)
+                (apply hash-map more)
+                :else
+                {})]
     [tag category p]))
 
 ;; Public constructors
@@ -79,17 +84,16 @@
           (update (fail ~category ~message)
                   2 assoc
                   :exception e#
-                  :stack-trace (with-out-str (.printStackTrace
-                                               e#
-                                               (java.io.PrintWriter. *out*
-                                                                     true)))))))
+                  :stack-trace
+                  (with-out-str
+                    (.printStackTrace e# (java.io.PrintWriter. *out* true)))))))
 
 (defmacro try-nom-ex
   "Like try-nom but catches a specific exception type."
   [category exception-type message & body]
   `(try ~@body
         (catch ~exception-type e#
-          (fail ~category {:message ~message, :exception e#}))))
+          (fail ~category {:message ~message :exception e#}))))
 
 ;; Side-effect error handling
 (defmacro nom-do>

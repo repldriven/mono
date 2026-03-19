@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.bank-api.schema
-  (:require [com.repldriven.mono.utility.interface :refer [vname]]))
+  (:require
+    [com.repldriven.mono.utility.interface :refer [vname]]))
 
 (def Currency [:re #"^[A-Z]{3}$"])
 
@@ -18,11 +19,12 @@
 (defn ErrorResponse
   [examples]
   {:content {"application/json"
-               {:schema [:ref "ErrorResponse"],
-                :examples (reduce (fn [m v]
-                                    (let [v' (vname v)]
-                                      (assoc m
-                                        v' {"$ref" (str "#/components/examples/"
+             {:schema [:ref "ErrorResponse"]
+              :examples (reduce (fn [m v]
+                                  (let [v' (vname v)]
+                                    (assoc m
+                                           v'
+                                           {"$ref" (str "#/components/examples/"
                                                         v')})))
-                            {}
-                            examples)}}})
+                                {}
+                                examples)}}})

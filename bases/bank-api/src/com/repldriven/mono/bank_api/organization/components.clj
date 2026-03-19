@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.bank-api.organization.components
-  (:require [com.repldriven.mono.bank-api.organization.examples :as examples]
-            [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
+  (:require
+    [com.repldriven.mono.bank-api.organization.examples :as examples]
+    [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
 
 (def CreateOrganizationRequest
   [:map {:json-schema/example examples/CreateOrganizationRequest}

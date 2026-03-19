@@ -10,7 +10,7 @@
   [& [out-path]]
   (let [path (or out-path "docs/openapi.yaml")
         handler (api/app {:interceptors []})
-        body (-> {:request-method :get, :uri "/openapi.json"}
+        body (-> {:request-method :get :uri "/openapi.json"}
                  handler
                  :body)
         spec (json/read-str (slurp body) :key-fn keyword)]

@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.message-bus.core
   (:refer-clojure :exclude [send])
-  (:require [com.repldriven.mono.message-bus.protocol :as proto]))
+  (:require
+    [com.repldriven.mono.message-bus.protocol :as proto]))
 
 (defrecord Bus [producers consumers])
 

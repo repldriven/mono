@@ -1,2 +1,3 @@
 (ns com.repldriven.mono.bank-queenswood.interface
-  (:require com.repldriven.mono.bank-queenswood.system))
+  (:require
+    com.repldriven.mono.bank-queenswood.system))

@@ -48,59 +48,59 @@
   base-transformer with api-transformer."
   [base-transformer]
   (reify
-    malli-coercion/TransformationProvider
-      (-transformer [_ {:keys [strip-extra-keys default-values]}]
-        (mt/transformer (when strip-extra-keys
-                          (mt/strip-extra-keys-transformer))
-                        base-transformer
-                        api-transformer
-                        (when default-values (mt/default-value-transformer))))))
+   malli-coercion/TransformationProvider
+     (-transformer [_ {:keys [strip-extra-keys default-values]}]
+       (mt/transformer (when strip-extra-keys
+                         (mt/strip-extra-keys-transformer))
+                       base-transformer
+                       api-transformer
+                       (when default-values (mt/default-value-transformer))))))
 
 (def ^:private coercion
   (malli-coercion/create
-    {:transformers {:body {:default (->provider (mt/json-transformer))},
-                    :string {:default (->provider (mt/string-transformer))},
-                    :response {:default (->provider nil)}},
-     :options {:registry (merge (m/default-schemas)
-                                {"Currency" schema/Currency,
-                                 "ErrorResponse" schema/ErrorResponseSchema}
-                                balance.components/registry
-                                cash-account-product.components/registry
-                                cash-account.components/registry
-                                api-key.components/registry
-                                organization.components/registry
-                                party.components/registry)}}))
+   {:transformers {:body {:default (->provider (mt/json-transformer))}
+                   :string {:default (->provider (mt/string-transformer))}
+                   :response {:default (->provider nil)}}
+    :options {:registry (merge (m/default-schemas)
+                               {"Currency" schema/Currency
+                                "ErrorResponse" schema/ErrorResponseSchema}
+                               balance.components/registry
+                               cash-account-product.components/registry
+                               cash-account.components/registry
+                               api-key.components/registry
+                               organization.components/registry
+                               party.components/registry)}}))
 
 (defn- routes
   [ctx]
   [["/openapi.json"
-    {:get {:no-doc true,
-           :openapi {:info {:title "Queenswood",
-                            :description "Queenswood Banking API",
-                            :version "1.0.0"},
+    {:get {:no-doc true
+           :openapi {:info {:title "Queenswood"
+                            :description "Queenswood Banking API"
+                            :version "1.0.0"}
                      :components
-                       {:securitySchemes
-                          {"adminAuth" {:type :http,
-                                        :scheme :bearer,
-                                        :description "Admin API key"},
-                           "orgAuth" {:type :http,
-                                      :scheme :bearer,
-                                      :description "Organization API key"}},
-                        :examples (merge examples/registry
-                                         balance.examples/registry
-                                         cash-account-product.examples/registry
-                                         cash-account.examples/registry
-                                         api-key.examples/registry
-                                         organization.examples/registry
-                                         party.examples/registry)}},
+                     {:securitySchemes
+                      {"adminAuth" {:type :http
+                                    :scheme :bearer
+                                    :description "Admin API key"}
+                       "orgAuth" {:type :http
+                                  :scheme :bearer
+                                  :description "Organization API key"}}
+                      :examples (merge examples/registry
+                                       balance.examples/registry
+                                       cash-account-product.examples/registry
+                                       cash-account.examples/registry
+                                       api-key.examples/registry
+                                       organization.examples/registry
+                                       party.examples/registry)}}
            :handler (server/standard-openapi-handler)}}]
    (into ["/v1"
           {:interceptors (concat telemetry/trace-span
                                  (:interceptors ctx)
-                                 [auth/authenticate]),
-           :responses {400 (schema/ErrorResponse [#'examples/BadRequest]),
-                       401 (schema/ErrorResponse [#'examples/Unauthorized]),
-                       403 (schema/ErrorResponse [#'examples/Forbidden]),
+                                 [auth/authenticate])
+           :responses {400 (schema/ErrorResponse [#'examples/BadRequest])
+                       401 (schema/ErrorResponse [#'examples/Unauthorized])
+                       403 (schema/ErrorResponse [#'examples/Forbidden])
                        500 (schema/ErrorResponse [#'examples/InternalServerError
                                                   #'examples/BadResponse])}}]
          (concat balance/routes
@@ -114,8 +114,8 @@
   [ctx]
   (http/ring-handler (http/router (routes ctx)
                                   (assoc-in server/standard-router-data
-                                    [:data :coercion]
-                                    coercion))
+                                   [:data :coercion]
+                                   coercion))
                      (ring/routes (server/standard-openapi-ui-handler)
                                   (ring/create-default-handler))
                      server/standard-executor))

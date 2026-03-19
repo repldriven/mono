@@ -1,11 +1,13 @@
 (ns com.repldriven.mono.telemetry.span-tests
-  (:require [steffan-westcott.clj-otel.api.trace.span :as span]
-            [steffan-westcott.clj-otel.sdk.otel-sdk :as sdk]
-            [clojure.test :refer [is]])
-  (:import (io.opentelemetry.api GlobalOpenTelemetry)
-           (io.opentelemetry.api.trace Span)
-           (io.opentelemetry.sdk.testing.exporter InMemorySpanExporter)
-           (io.opentelemetry.sdk.trace.export SimpleSpanProcessor)))
+  (:require
+    [steffan-westcott.clj-otel.api.trace.span :as span]
+    [steffan-westcott.clj-otel.sdk.otel-sdk :as sdk]
+    [clojure.test :refer [is]])
+  (:import
+    (io.opentelemetry.api GlobalOpenTelemetry)
+    (io.opentelemetry.api.trace Span)
+    (io.opentelemetry.sdk.testing.exporter InMemorySpanExporter)
+    (io.opentelemetry.sdk.trace.export SimpleSpanProcessor)))
 
 (defonce shared-exporter (InMemorySpanExporter/create))
 
@@ -18,10 +20,10 @@
   []
   (GlobalOpenTelemetry/resetForTest)
   (sdk/init-otel-sdk! "test"
-                      {:register-shutdown-hook false,
+                      {:register-shutdown-hook false
                        :tracer-provider {:span-processors
-                                           [(SimpleSpanProcessor/create
-                                              shared-exporter)]}})
+                                         [(SimpleSpanProcessor/create
+                                           shared-exporter)]}})
   (span/set-default-tracer! (span/get-tracer)))
 
 (defmacro with-span-tests
@@ -48,12 +50,12 @@
      (locking sdk-lock (install-sdk!))
      (span/with-span! ["test-root" {}]
                       (reset! trace-id# (.getTraceId (.getSpanContext
-                                                       (Span/current))))
+                                                      (Span/current))))
                       ~@body)
      (let [tid# @trace-id#
            all-spans# (.getFinishedSpanItems shared-exporter)
            test-spans# (filter #(= tid# (.getTraceId (.getSpanContext %)))
-                         all-spans#)
+                               all-spans#)
            ~spans-sym (into {} (map (fn [s#] [(.getName s#) s#])) test-spans#)]
        (doseq [n# ~expected-names]
          (is (some? (get ~spans-sym n#)) (str "Should have span named: " n#)))

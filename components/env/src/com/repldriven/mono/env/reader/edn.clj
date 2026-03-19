@@ -1,7 +1,9 @@
 (ns com.repldriven.mono.env.reader.edn
-  (:require [com.repldriven.mono.utility.interface :as util]
-            [aero.core :as aero])
-  (:import (java.net ServerSocket)))
+  (:require
+    [com.repldriven.mono.utility.interface :as util]
+    [aero.core :as aero])
+  (:import
+    (java.net ServerSocket)))
 
 ;; edn-reader multimethod (extends aero/reader)
 (def edn-reader aero/reader)

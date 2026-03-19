@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.fdb.watcher
-  (:require [com.repldriven.mono.fdb.changelog :as changelog]))
+  (:require
+    [com.repldriven.mono.fdb.changelog :as changelog]))
 
 (defn start
   "Starts a daemon thread polling process-changelog with the

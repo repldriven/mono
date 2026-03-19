@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.encryption.rsa
-  (:import (java.security KeyFactory KeyPairGenerator PrivateKey PublicKey)
-           (java.security.spec PKCS8EncodedKeySpec X509EncodedKeySpec)
-           (java.util Base64)))
+  (:import
+    (java.security KeyFactory KeyPairGenerator PrivateKey PublicKey)
+    (java.security.spec PKCS8EncodedKeySpec X509EncodedKeySpec)
+    (java.util Base64)))
 
 (defonce ^:private ^KeyPairGenerator key-pair-gen-rsa-512
   (when-not *compile-files*
@@ -16,12 +17,12 @@
   "Generates an RSA key pair for the given opts."
   [opts]
   (case (select-keys opts [:algorithm :key-size])
-    {:algorithm "RSA", :key-size 512}
-      (when-let [key-pair (.generateKeyPair key-pair-gen-rsa-512)]
-        {:private-key (.getPrivate key-pair),
-         :public-key (.getPublic key-pair),
-         :algorithm "RSA",
-         :key-size 512})))
+    {:algorithm "RSA" :key-size 512}
+    (when-let [key-pair (.generateKeyPair key-pair-gen-rsa-512)]
+      {:private-key (.getPrivate key-pair)
+       :public-key (.getPublic key-pair)
+       :algorithm "RSA"
+       :key-size 512})))
 
 (defn pkcs8-encoded->private-key
   "Decodes a PKCS8-encoded byte array to an RSA private key."

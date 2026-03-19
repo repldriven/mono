@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.build.build-test
-  (:require [com.repldriven.mono.build.build :as SUT]
-            [org.corfield.build :as bb]
-            [clojure.test :as test :refer [deftest is testing]]
-            [clojure.tools.build.api :as b]))
+  (:require
+    [com.repldriven.mono.build.build :as SUT]
+    [org.corfield.build :as bb]
+    [clojure.test :as test :refer [deftest is testing]]
+    [clojure.tools.build.api :as b]))
 
 (deftest uber-version-test
   (testing "Version string with default major-minor"
@@ -26,7 +27,7 @@
     (with-redefs [b/git-count-revs (constantly "42")
                   bb/clean identity
                   bb/uber identity]
-      (let [result (SUT/uber {:major-minor-version "2.0", :snapshot true})]
+      (let [result (SUT/uber {:major-minor-version "2.0" :snapshot true})]
         (is (= "2.0.999-SNAPSHOT" (:version result)))))))
 
 (deftest uber-options-test
@@ -49,7 +50,7 @@
     (with-redefs [b/git-count-revs (constantly "42")
                   bb/clean identity
                   bb/uber identity]
-      (let [opts {:lib 'my.lib, :main 'my.main}
+      (let [opts {:lib 'my.lib :main 'my.main}
             result (SUT/uber opts)]
         (is (= 'my.lib (:lib result)))
         (is (= 'my.main (:main result))))))

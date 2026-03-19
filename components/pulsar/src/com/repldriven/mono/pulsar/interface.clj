@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.pulsar.interface
   (:refer-clojure :exclude [read send])
-  (:require com.repldriven.mono.pulsar.system.core
-            [com.repldriven.mono.pulsar.core :as core]))
+  (:require
+    com.repldriven.mono.pulsar.system.core
+    [com.repldriven.mono.pulsar.core :as core]))
 
 ;;;; producer
 (defn send

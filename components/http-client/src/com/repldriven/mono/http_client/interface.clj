@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.http-client.interface
-  (:require [com.repldriven.mono.http-client.core :as client]))
+  (:require
+    [com.repldriven.mono.http-client.core :as client]))
 
 (defn request [opts] (client/request opts))
 

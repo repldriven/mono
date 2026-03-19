@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.vault.core
-  (:require [com.repldriven.mono.vault.client :as client]))
+  (:require
+    [com.repldriven.mono.vault.client :as client]))
 
 (defn create-client [uri] (client/create uri))
 

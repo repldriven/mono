@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.server.interface
-  (:require com.repldriven.mono.server.system
-            [com.repldriven.mono.server.core :as core]))
+  (:require
+    com.repldriven.mono.server.system
+    [com.repldriven.mono.server.core :as core]))
 
 (def standard-router-data core/standard-router-data)
 (def standard-executor core/standard-executor)

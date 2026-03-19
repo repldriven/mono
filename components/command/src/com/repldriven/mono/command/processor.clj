@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.command.processor
-  (:require [com.repldriven.mono.command.response :as response]
-            [com.repldriven.mono.log.interface :as log]
-            [com.repldriven.mono.message-bus.interface :as message-bus]
-            [com.repldriven.mono.telemetry.interface :as telemetry]))
+  (:require
+    [com.repldriven.mono.command.response :as response]
+    [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.message-bus.interface :as message-bus]
+    [com.repldriven.mono.telemetry.interface :as telemetry]))
 
 (defn process
   "Process command envelopes via message-bus.
@@ -28,23 +29,23 @@
   Returns: {:stop (fn [])} — call stop to unsubscribe"
   ([bus process-fn] (process bus process-fn {}))
   ([bus process-fn opts]
-   (let [{:keys [command-channel command-response-channel],
-          :or {command-channel :command,
+   (let [{:keys [command-channel command-response-channel]
+          :or {command-channel :command
                command-response-channel :command-response}}
-           opts]
+         opts]
      (message-bus/subscribe
-       bus
-       command-channel
-       (fn [data]
-         (let [parent-ctx (telemetry/extract-parent-context data)]
-           (telemetry/with-span-parent
-             "process-command"
-             parent-ctx
-             (select-keys data [:id :command :correlation-id :causation-id])
-             (fn []
-               (let [resp (response/command-response data (process-fn data))]
-                 (log/debugf "command.processor/process: [data=%s, response=%s]"
-                             data
-                             resp)
-                 (message-bus/send bus command-response-channel resp)))))))
+      bus
+      command-channel
+      (fn [data]
+        (let [parent-ctx (telemetry/extract-parent-context data)]
+          (telemetry/with-span-parent
+           "process-command"
+           parent-ctx
+           (select-keys data [:id :command :correlation-id :causation-id])
+           (fn []
+             (let [resp (response/command-response data (process-fn data))]
+               (log/debugf "command.processor/process: [data=%s, response=%s]"
+                           data
+                           resp)
+               (message-bus/send bus command-response-channel resp)))))))
      {:stop (fn [] (message-bus/unsubscribe bus command-channel))})))

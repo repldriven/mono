@@ -1,10 +1,11 @@
 (ns com.repldriven.mono.env.reader.yml
-  (:require flatland.ordered.map
-            [com.repldriven.mono.env.reader.edn :as reader.edn]
-            [com.repldriven.mono.utility.interface :as util]
-            [clj-yaml.core :as yaml]
-            [clojure.java.io :as io]
-            [clojure.string :as str]))
+  (:require
+    flatland.ordered.map
+    [com.repldriven.mono.env.reader.edn :as reader.edn]
+    [com.repldriven.mono.utility.interface :as util]
+    [clj-yaml.core :as yaml]
+    [clojure.java.io :as io]
+    [clojure.string :as str]))
 
 (defmulti yml-reader (fn [m] (keyword (get m :tag))))
 
@@ -27,7 +28,7 @@
     (-> value
         io/resource
         io/reader
-        (yaml/parse-stream {:key-fn key-fn, :unknown-tag-fn yml-reader})
+        (yaml/parse-stream {:key-fn key-fn :unknown-tag-fn yml-reader})
         util/yaml-collections->edn-collections)))
 
 (defmethod yml-reader :!env [{:keys [value]}] (System/getenv (name value)))
@@ -48,7 +49,7 @@
   [source profile]
   (-> (util/resolve-source source)
       io/reader
-      (yaml/parse-stream {:key-fn key-fn, :unknown-tag-fn yml-reader})
+      (yaml/parse-stream {:key-fn key-fn :unknown-tag-fn yml-reader})
       util/yaml-collections->edn-collections
       str
       util/string->stream

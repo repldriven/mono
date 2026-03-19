@@ -8,7 +8,7 @@
 (defn- parse-response
   [res]
   (-> (.json res)
-      (.then (fn [body] #js {:http-status (.-status res), :body body}))))
+      (.then (fn [body] #js {:http-status (.-status res) :body body}))))
 
 (defn- load-keys
   "Loads the org-id->api-key map from localStorage."
@@ -32,10 +32,10 @@
 (defn create-organization
   [org-name]
   (-> (js/fetch "/v1/organizations"
-                #js {:method "POST",
-                     :headers #js {"Content-Type" "application/json",
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
                                    "Authorization" (str "Bearer "
-                                                        (admin-token))},
+                                                        (admin-token))}
                      :body (js/JSON.stringify #js {"name" org-name})})
       (.then parse-response)
       (.then (fn [res]
@@ -58,21 +58,23 @@
   [data]
   (let [{:strs [display-name given-name middle-names family-name date-of-birth
                 nationality national-identifier]}
-          (js->clj data)
-        body (cond-> {"type" "person",
-                      "display-name" display-name,
-                      "given-name" given-name,
-                      "family-name" family-name,
-                      "date-of-birth" date-of-birth,
+        (js->clj data)
+        body (cond-> {"type" "person"
+                      "display-name" display-name
+                      "given-name" given-name
+                      "family-name" family-name
+                      "date-of-birth" date-of-birth
                       "nationality" nationality}
-               middle-names (assoc "middle-names" middle-names)
-               national-identifier (assoc "national-identifier"
-                                     national-identifier))]
+                     middle-names
+                     (assoc "middle-names" middle-names)
+                     national-identifier
+                     (assoc "national-identifier"
+                            national-identifier))]
     (-> (js/fetch "/v1/parties"
-                  #js {:method "POST",
-                       :headers #js {"Content-Type" "application/json",
-                                     "Authorization" (str "Bearer " @api-key),
-                                     "Idempotency-Key" (str (random-uuid))},
+                  #js {:method "POST"
+                       :headers #js {"Content-Type" "application/json"
+                                     "Authorization" (str "Bearer " @api-key)
+                                     "Idempotency-Key" (str (random-uuid))}
                        :body (js/JSON.stringify (clj->js body))})
         (.then parse-response))))
 
@@ -87,22 +89,22 @@
   [data]
   (let [{:strs [party-id name currency product-id]} (js->clj data)]
     (-> (js/fetch "/v1/cash-accounts"
-                  #js {:method "POST",
-                       :headers #js {"Content-Type" "application/json",
-                                     "Authorization" (str "Bearer " @api-key),
-                                     "Idempotency-Key" (str (random-uuid))},
-                       :body (js/JSON.stringify #js {"party-id" party-id,
-                                                     "name" name,
-                                                     "currency" currency,
+                  #js {:method "POST"
+                       :headers #js {"Content-Type" "application/json"
+                                     "Authorization" (str "Bearer " @api-key)
+                                     "Idempotency-Key" (str (random-uuid))}
+                       :body (js/JSON.stringify #js {"party-id" party-id
+                                                     "name" name
+                                                     "currency" currency
                                                      "product-id" product-id})})
         (.then parse-response))))
 
 (defn close-cash-account
   [account-id]
   (-> (js/fetch (str "/v1/cash-accounts/" account-id "/close")
-                #js {:method "POST",
-                     :headers #js {"Content-Type" "application/json",
-                                   "Authorization" (str "Bearer " @api-key),
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
+                                   "Authorization" (str "Bearer " @api-key)
                                    "Idempotency-Key" (str (random-uuid))}})
       (.then parse-response)))
 
@@ -119,18 +121,20 @@
   [data]
   (let [{:strs [name account-type balance-sheet-side allowed-currencies
                 balance-products]}
-          (js->clj data)
-        body (cond-> {"name" name,
-                      "account-type" account-type,
+        (js->clj data)
+        body (cond-> {"name" name
+                      "account-type" account-type
                       "balance-sheet-side" balance-sheet-side}
-               (seq allowed-currencies) (assoc "allowed-currencies"
-                                          allowed-currencies)
-               (seq balance-products) (assoc "balance-products"
-                                        balance-products))]
+                     (seq allowed-currencies)
+                     (assoc "allowed-currencies"
+                            allowed-currencies)
+                     (seq balance-products)
+                     (assoc "balance-products"
+                            balance-products))]
     (-> (js/fetch "/v1/cash-account-products"
-                  #js {:method "POST",
-                       :headers #js {"Content-Type" "application/json",
-                                     "Authorization" (str "Bearer " @api-key)},
+                  #js {:method "POST"
+                       :headers #js {"Content-Type" "application/json"
+                                     "Authorization" (str "Bearer " @api-key)}
                        :body (js/JSON.stringify (clj->js body))})
         (.then parse-response))))
 
@@ -147,8 +151,8 @@
                      "/versions/"
                      version-id
                      "/publish")
-                #js {:method "POST",
-                     :headers #js {"Content-Type" "application/json",
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
                                    "Authorization" (str "Bearer " @api-key)}})
       (.then parse-response)))
 
@@ -156,18 +160,20 @@
   [product-id data]
   (let [{:strs [name account-type balance-sheet-side allowed-currencies
                 balance-products]}
-          (js->clj data)
-        body (cond-> {"name" name,
-                      "account-type" account-type,
+        (js->clj data)
+        body (cond-> {"name" name
+                      "account-type" account-type
                       "balance-sheet-side" balance-sheet-side}
-               (seq allowed-currencies) (assoc "allowed-currencies"
-                                          allowed-currencies)
-               (seq balance-products) (assoc "balance-products"
-                                        balance-products))]
+                     (seq allowed-currencies)
+                     (assoc "allowed-currencies"
+                            allowed-currencies)
+                     (seq balance-products)
+                     (assoc "balance-products"
+                            balance-products))]
     (-> (js/fetch (str "/v1/cash-account-products/" product-id "/versions")
-                  #js {:method "POST",
-                       :headers #js {"Content-Type" "application/json",
-                                     "Authorization" (str "Bearer " @api-key)},
+                  #js {:method "POST"
+                       :headers #js {"Content-Type" "application/json"
+                                     "Authorization" (str "Bearer " @api-key)}
                        :body (js/JSON.stringify (clj->js body))})
         (.then parse-response))))
 

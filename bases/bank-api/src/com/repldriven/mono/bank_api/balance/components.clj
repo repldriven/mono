@@ -1,24 +1,27 @@
 (ns com.repldriven.mono.bank-api.balance.components
-  (:require [com.repldriven.mono.bank-api.balance.coercion :as coercion]
-            [com.repldriven.mono.bank-api.balance.examples :as examples]
-            [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
+  (:require
+    [com.repldriven.mono.bank-api.balance.coercion :as coercion]
+    [com.repldriven.mono.bank-api.balance.examples :as examples]
+    [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
 
 (def BalanceType
-  [:enum {:title "BalanceType",
-          :json-schema/example "default",
-          :json-schema coercion/balance-type-json-schema,
-          :decode/api coercion/decode-balance-type,
-          :encode/api coercion/encode-balance-type}
+  [:enum
+   {:title "BalanceType"
+    :json-schema/example "default"
+    :json-schema coercion/balance-type-json-schema
+    :decode/api coercion/decode-balance-type
+    :encode/api coercion/encode-balance-type}
    :balance-type-unknown :balance-type-default
    :balance-type-interest-accrued :balance-type-interest-paid
    :balance-type-purchase :balance-type-cash])
 
 (def BalanceStatus
-  [:enum {:title "BalanceStatus",
-          :json-schema/example "posted",
-          :json-schema coercion/balance-status-json-schema,
-          :decode/api coercion/decode-balance-status,
-          :encode/api coercion/encode-balance-status}
+  [:enum
+   {:title "BalanceStatus"
+    :json-schema/example "posted"
+    :json-schema coercion/balance-status-json-schema
+    :decode/api coercion/decode-balance-status
+    :encode/api coercion/encode-balance-status}
    :balance-status-unknown :balance-status-posted
    :balance-status-pending-incoming :balance-status-pending-outgoing])
 
@@ -35,16 +38,20 @@
 
 (def CreateBalanceRequest
   [:map {:json-schema/example examples/CreateBalanceRequest}
-   [:balance-type [:enum {:json-schema coercion/balance-type-json-schema,
-                          :decode/api coercion/decode-balance-type}
-                   :balance-type-default :balance-type-interest-accrued
-                   :balance-type-interest-paid :balance-type-purchase
-                   :balance-type-cash]]
-   [:balance-status [:enum {:json-schema coercion/balance-status-json-schema,
-                            :decode/api coercion/decode-balance-status}
-                     :balance-status-posted
-                     :balance-status-pending-incoming
-                     :balance-status-pending-outgoing]]
+   [:balance-type
+    [:enum
+     {:json-schema coercion/balance-type-json-schema
+      :decode/api coercion/decode-balance-type}
+     :balance-type-default :balance-type-interest-accrued
+     :balance-type-interest-paid :balance-type-purchase
+     :balance-type-cash]]
+   [:balance-status
+    [:enum
+     {:json-schema coercion/balance-status-json-schema
+      :decode/api coercion/decode-balance-status}
+     :balance-status-posted
+     :balance-status-pending-incoming
+     :balance-status-pending-outgoing]]
    [:currency [:ref "Currency"]]])
 
 (def BalanceProduct
@@ -54,16 +61,20 @@
 
 (def BalanceProductRequest
   [:map {:json-schema/example examples/BalanceProduct}
-   [:balance-type [:enum {:json-schema coercion/balance-type-json-schema,
-                          :decode/api coercion/decode-balance-type}
-                   :balance-type-default :balance-type-interest-accrued
-                   :balance-type-interest-paid :balance-type-purchase
-                   :balance-type-cash]]
-   [:balance-status [:enum {:json-schema coercion/balance-status-json-schema,
-                            :decode/api coercion/decode-balance-status}
-                     :balance-status-posted
-                     :balance-status-pending-incoming
-                     :balance-status-pending-outgoing]]])
+   [:balance-type
+    [:enum
+     {:json-schema coercion/balance-type-json-schema
+      :decode/api coercion/decode-balance-type}
+     :balance-type-default :balance-type-interest-accrued
+     :balance-type-interest-paid :balance-type-purchase
+     :balance-type-cash]]
+   [:balance-status
+    [:enum
+     {:json-schema coercion/balance-status-json-schema
+      :decode/api coercion/decode-balance-status}
+     :balance-status-posted
+     :balance-status-pending-incoming
+     :balance-status-pending-outgoing]]])
 
 (def BalanceProductList
   [:map {:json-schema/example examples/BalanceProductList}

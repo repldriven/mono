@@ -1,10 +1,12 @@
 (ns com.repldriven.mono.pulsar.pulsar.namespaces
-  (:require [com.repldriven.mono.error.interface :as error]
-            [com.repldriven.mono.http-client.interface :as http]
-            [com.repldriven.mono.log.interface :as log]
-            [clojure.data.json :as json]
-            [clojure.string :as string])
-  (:import (org.apache.pulsar.client.admin PulsarAdmin Namespaces)))
+  (:require
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.http-client.interface :as http]
+    [com.repldriven.mono.log.interface :as log]
+    [clojure.data.json :as json]
+    [clojure.string :as string])
+  (:import
+    (org.apache.pulsar.client.admin PulsarAdmin Namespaces)))
 
 (defn- configure
   [^PulsarAdmin admin fully-qualified-namespace-name config]
@@ -18,7 +20,7 @@
               body (json/write-str v)
               headers {"Content-Type" "application/json"}
               res (http/request
-                    {:method method, :url url, :headers headers, :body body})]
+                   {:method method :url url :headers headers :body body})]
           (when (error/anomaly? res)
             (log/warnf "Failed to configure Pulsar namespace: %s - %s"
                        fully-qualified-namespace-name
@@ -40,5 +42,5 @@
   (log/info "Creating Pulsar namespaces:" (map :namespace namespaces))
   (error/try-nom :pulsar/namespaces-create
                  "Failed to create Pulsar namespaces"
-                 (doseq [{:keys [namespace], :as opts} namespaces]
+                 (doseq [{:keys [namespace] :as opts} namespaces]
                    (create admin namespace (dissoc opts :namespace)))))

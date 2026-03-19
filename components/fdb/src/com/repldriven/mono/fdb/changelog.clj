@@ -1,12 +1,13 @@
 (ns com.repldriven.mono.fdb.changelog
   (:refer-clojure :exclude [read])
-  (:import (com.apple.foundationdb KeySelector MutationType)
-           (com.apple.foundationdb.record.provider.foundationdb
-             FDBDatabase
-             FDBStoreTimer$Waits)
-           (com.apple.foundationdb.subspace Subspace)
-           (com.apple.foundationdb.tuple Tuple Versionstamp)
-           (java.util.function Function)))
+  (:import
+    (com.apple.foundationdb KeySelector MutationType)
+    (com.apple.foundationdb.record.provider.foundationdb
+     FDBDatabase
+     FDBStoreTimer$Waits)
+    (com.apple.foundationdb.subspace Subspace)
+    (com.apple.foundationdb.tuple Tuple Versionstamp)
+    (java.util.function Function)))
 
 (def ^:private root "mono")
 
@@ -68,8 +69,8 @@
     (.mutate tr
              MutationType/SET_VERSIONSTAMPED_KEY
              (.packWithVersionstamp
-               (changelog-subspace store-name)
-               (Tuple/from (object-array [(Versionstamp/incomplete user-ver)])))
+              (changelog-subspace store-name)
+              (Tuple/from (object-array [(Versionstamp/incomplete user-ver)])))
              (.pack (Tuple/from (object-array [record-id changelog-bytes]))))
     (.mutate tr
              MutationType/ADD
@@ -83,7 +84,7 @@
   (let [subspace (changelog-subspace store-name)
         begin (if from-vs
                 (KeySelector/firstGreaterThan
-                  (.pack subspace (Tuple/from (object-array [from-vs]))))
+                 (.pack subspace (Tuple/from (object-array [from-vs]))))
                 (KeySelector/firstGreaterOrEqual (.pack subspace)))
         end (KeySelector/firstGreaterOrEqual (-> subspace
                                                  .range
@@ -117,7 +118,7 @@
   ([^FDBDatabase record-db consumer-id store-name handler]
    (process record-db consumer-id store-name handler {}))
   ([^FDBDatabase record-db consumer-id store-name handler opts]
-   (let [{:keys [deduplicate?], :or {deduplicate? true}} opts]
+   (let [{:keys [deduplicate?] :or {deduplicate? true}} opts]
      (.run record-db
            ^Function
            (fn [ctx]
@@ -132,8 +133,8 @@
                      (handler ctx changelog-bytes)))
                  (let [subspace (changelog-subspace store-name)
                        last-vs (.getVersionstamp
-                                 (.unpack subspace (.getKey (last entries)))
-                                 0)]
+                                (.unpack subspace (.getKey (last entries)))
+                                0)]
                    (write-checkpoint tr
                                      (checkpoint-key consumer-id store-name)
                                      last-vs)))

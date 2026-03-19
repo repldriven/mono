@@ -1,10 +1,11 @@
 (ns com.repldriven.mono.command.interface
   (:refer-clojure :exclude [send])
-  (:require com.repldriven.mono.command.system
-            [com.repldriven.mono.command.dispatcher :as dispatcher]
-            [com.repldriven.mono.command.processor :as processor]
-            [com.repldriven.mono.command.request :as request]
-            [com.repldriven.mono.command.response :as response]))
+  (:require
+    com.repldriven.mono.command.system
+    [com.repldriven.mono.command.dispatcher :as dispatcher]
+    [com.repldriven.mono.command.processor :as processor]
+    [com.repldriven.mono.command.request :as request]
+    [com.repldriven.mono.command.response :as response]))
 
 (defn req->command-request
   "Build a command envelope from an HTTP request.
