@@ -14,4 +14,11 @@ message Organization {
   optional string status = 3;
   optional int64 created_at = 4;
   optional int64 updated_at = 5;
+  required OrganisationType type = 6;
+
+  enum OrganisationType {
+    ORGANISATION_TYPE_UNKNOWN   = 0;
+    ORGANISATION_TYPE_INTERNAL  = 1;
+    ORGANISATION_TYPE_CUSTOMER  = 2;
+  }
 }

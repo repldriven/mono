@@ -1,7 +1,7 @@
 <script>
-  import { list_cash_accounts, list_cash_account_products, close_cash_account, list_balances } from "./api.mjs";
+  import { list_cash_accounts, list_cash_account_products, close_cash_account, list_balances, simulate_inbound_transfer } from "./api.mjs";
   import { time_ago } from "./time.mjs";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
 
   let accounts = $state([]);
   let links = $state({});
@@ -12,6 +12,44 @@
   let expandedAccountId = $state(null);
   let balances = $state({});
   let loadingBalances = $state({});
+  let showFundDialog = $state(false);
+  let fundAccountId = $state(null);
+  let fundAmount = $state(100);
+  let fundCurrency = $state("GBP");
+  let fundSubmitting = $state(false);
+  let fundError = $state(null);
+
+  let { orgId } = $props();
+
+  function openFundDialog(acct) {
+    fundAmount = 100;
+    fundCurrency = acct.currency ?? "GBP";
+    fundAccountId = acct["account-id"];
+    fundError = null;
+    showFundDialog = true;
+  }
+
+  function closeFundDialog() {
+    showFundDialog = false;
+  }
+
+  async function submitFund() {
+    fundSubmitting = true;
+    fundError = null;
+    try {
+      const res = await simulate_inbound_transfer(orgId, fundAmount, fundCurrency);
+      if (res["http-status"] >= 200 && res["http-status"] < 300) {
+        showFundDialog = false;
+        load(currentQuery);
+      } else {
+        fundError = res.body?.detail ?? `HTTP ${res["http-status"]}`;
+      }
+    } catch (err) {
+      fundError = err.message;
+    } finally {
+      fundSubmitting = false;
+    }
+  }
 
   function queryFromLink(url) {
     const idx = url.indexOf("?");
@@ -48,6 +86,7 @@
       if (acctRes["http-status"] >= 200 && acctRes["http-status"] < 300) {
         accounts = acctRes.body["cash-accounts"] ?? [];
         links = acctRes.body.links ?? {};
+        balances = {};
       } else {
         error = acctRes.body?.error ?? `HTTP ${acctRes["http-status"]}`;
         accounts = [];
@@ -80,7 +119,7 @@
       return;
     }
     expandedAccountId = accountId;
-    if (!balances[accountId]) {
+    {
       loadingBalances[accountId] = true;
       try {
         const res = await list_balances(accountId);
@@ -162,7 +201,14 @@
           <td title={acct["created-at"]}>{time_ago(acct["created-at"])}</td>
           <td title={acct["updated-at"]}>{time_ago(acct["updated-at"])}</td>
           <td>
-            {#if acct["account-status"] === "opened"}
+            {#if acct["account-status"] === "opened" && productTypes[acct["product-id"]] === "settlement"}
+              <button
+                class="fund-btn"
+                onclick={(e) => { e.stopPropagation(); openFundDialog(acct); }}
+              >
+                Fund
+              </button>
+            {:else if acct["account-status"] === "opened" && productTypes[acct["product-id"]] !== "internal" && productTypes[acct["product-id"]] !== "settlement"}
               <button
                 class="close-btn"
                 disabled={closing[acct["account-id"]]}
@@ -219,6 +265,34 @@
       {/each}
     </tbody>
   </table>
+
+  {#if showFundDialog}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="dialog-overlay" onclick={closeFundDialog}>
+      <div class="dialog" onclick={(e) => e.stopPropagation()}>
+        <h3>Simulate Inbound Transfer</h3>
+        <p class="dialog-sub">Fund settlement account <span class="mono">{fundAccountId}</span></p>
+        {#if fundError}
+          <div class="error-msg">{fundError}</div>
+        {/if}
+        <label>
+          Amount (minor units)
+          <input type="number" bind:value={fundAmount} min="1" />
+        </label>
+        <label>
+          Currency
+          <input type="text" bind:value={fundCurrency} maxlength="3" />
+        </label>
+        <div class="dialog-actions">
+          <button class="cancel-btn" onclick={closeFundDialog} disabled={fundSubmitting}>Cancel</button>
+          <button class="submit-btn" onclick={submitFund} disabled={fundSubmitting || fundAmount < 1}>
+            {fundSubmitting ? "Submitting..." : "Submit"}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <div class="pagination">
     <button
@@ -430,5 +504,105 @@
     padding: 0.75rem 0;
     color: var(--text-faint);
     font-size: 0.85rem;
+  }
+
+  .fund-btn {
+    padding: 0.25rem 0.6rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .fund-btn:hover {
+    background: #1d4ed8;
+  }
+
+  .dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .dialog {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 360px;
+    max-width: 90vw;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .dialog h3 {
+    margin: 0 0 0.25rem;
+  }
+
+  .dialog-sub {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .dialog label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .dialog input {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: var(--bg-input);
+    color: var(--text);
+    box-sizing: border-box;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .cancel-btn {
+    padding: 0.4rem 0.8rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .submit-btn {
+    padding: 0.4rem 0.8rem;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .submit-btn:not(:disabled):hover {
+    background: #1d4ed8;
   }
 </style>

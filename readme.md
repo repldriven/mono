@@ -34,6 +34,10 @@ library composes into a production-shaped system.
    creates balances from the product's balance products.
 6. **Account lifecycle** — accounts move through `opening` → `opened` →
    `closing` → `closed`, driven by API calls and reactive watchers.
+7. **Fund an account** — simulate an inbound transfer to credit a customer
+   organisation's settlement account. This records a double-entry internal
+   transfer — debiting the internal org's suspense balance and crediting the
+   customer's default balance — via the transactions command processor.
 
 [![Account Opening Demo](thumbnail.png)](https://github.com/user-attachments/assets/60a15eea-263e-4ea0-ae60-093bffbbbde3)
 
@@ -149,6 +153,26 @@ bank-api                    command-processor         AccountProcessor
    │  └──────────────────────────────────────────────────────┘
 ```
 
+**Simulate inbound transfer** — `POST /v1/simulate/organizations/{org-id}/inbound-transfer`
+
+```
+bank-api                    command-processor         TransactionProcessor
+   │                              │                        │
+   ├── look up customer org's ────┤                        │
+   │   settlement account         │                        │
+   ├── serialize body ──────────► │                        │
+   │   (transactions-command)     ├── dispatch ──────────► │
+   │                              │   "record-transaction" ├── create transaction (posted)
+   │                              │                        ├── create debit leg
+   │                              │                        │   (internal suspense)
+   │                              │                        ├── create credit leg
+   │                              │                        │   (customer default)
+   │                              │                        ├── update balances
+   │                              │                        │   (FDB multi-store txn)
+   │  (transactions-cmd-response) │ ◄── ACCEPTED ──────────┤
+   ◄──────────────────────────────┤                        │
+```
+
 All commands are Avro-serialised. Responses use envelope statuses: `ACCEPTED`
 (2xx), `REJECTED` (4xx), or `FAILED` (5xx).
 
@@ -249,7 +273,7 @@ pipelines without defensive `try/catch` noise.
 | Component | Purpose                                                                               |
 | --------- | ------------------------------------------------------------------------------------- |
 | `avro`    | Apache Avro schema-based serialisation                                                |
-| `bank-schema` | Protobuf definitions (Person, Account, Organization, ApiKey, Balance, AccountProduct) |
+| `bank-schema` | Protobuf definitions (Person, Account, Organization, ApiKey, Balance, AccountProduct, Transaction) |
 | `json`    | JSON read/write with anomaly errors                                                   |
 
 ### Observability
@@ -268,7 +292,7 @@ pipelines without defensive `try/catch` noise.
 | `bank-organization`         | Organisation management — create org, API key generation and verification |
 | `bank-party`                | Party creation and management                                             |
 | `bank-idv`                  | Identity verification processing                                          |
-| `bank-queenswood`           | Queenswood bootstrap and seed data                                        |
+| `bank-bootstrap`            | Internal organization bootstrap and seed data                             |
 | `bank-transaction`          | Transaction recording with double-entry legs                              |
 
 ### Testing

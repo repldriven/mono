@@ -6,13 +6,13 @@
   [:given-name :middle-names :family-name :date-of-birth :nationality])
 
 (defn new-party
-  "Creates a new party map. Internal parties start active;
-  all others start pending."
+  "Creates a new party map. Person parties start pending;
+  internal and organization parties start active."
   [data]
   (let [now (System/currentTimeMillis)
-        status (if (= :party-type-internal (:type data))
-                 :party-status-active
-                 :party-status-pending)]
+        status (if (= :party-type-person (:type data))
+                 :party-status-pending
+                 :party-status-active)]
     (-> (apply dissoc data :national-identifier person-identification-keys)
         (assoc :party-id (encryption/generate-id "pty")
                :status status

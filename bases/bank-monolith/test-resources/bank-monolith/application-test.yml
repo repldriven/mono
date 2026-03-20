@@ -84,6 +84,12 @@ system:
         - topic: "persistent://tenant-1/namespace-1/topic-parties-command-response"
           partitions: 1
           schema: !keyword command-response
+        - topic: "persistent://tenant-1/namespace-1/topic-transactions-command"
+          partitions: 1
+          schema: !keyword command
+        - topic: "persistent://tenant-1/namespace-1/topic-transactions-command-response"
+          partitions: 1
+          schema: !keyword command-response
 
     producers: !system/component
       system/component-kind: pulsar/producers
@@ -118,6 +124,22 @@ system:
           accessMode: !pulsar/access-mode Shared
           schema: !keyword command-response
           topicName: "persistent://tenant-1/namespace-1/topic-parties-command-response"
+        schemas: !system/local-ref schemas
+      transactions-command:
+        _: !system/local-ref topics
+        client: !system/local-ref client
+        conf:
+          accessMode: !pulsar/access-mode Shared
+          schema: !keyword command
+          topicName: "persistent://tenant-1/namespace-1/topic-transactions-command"
+        schemas: !system/local-ref schemas
+      transactions-command-response:
+        _: !system/local-ref topics
+        client: !system/local-ref client
+        conf:
+          accessMode: !pulsar/access-mode Shared
+          schema: !keyword command-response
+          topicName: "persistent://tenant-1/namespace-1/topic-transactions-command-response"
         schemas: !system/local-ref schemas
 
     consumers: !system/component
@@ -166,6 +188,28 @@ system:
           topicNames:
             ["persistent://tenant-1/namespace-1/topic-parties-command-response"]
         schemas: !system/local-ref schemas
+      transactions-command:
+        _: !system/local-ref topics
+        client: !system/local-ref client
+        conf:
+          cryptoFailureAction: !pulsar/crypto-failure-action CONSUME
+          schema: !pulsar/schema AUTO_CONSUME
+          subscriptionName: bank-monolith-transactions-command
+          subscriptionType: !pulsar/subscription-type Shared
+          topicNames:
+            ["persistent://tenant-1/namespace-1/topic-transactions-command"]
+        schemas: !system/local-ref schemas
+      transactions-command-response:
+        _: !system/local-ref topics
+        client: !system/local-ref client
+        conf:
+          cryptoFailureAction: !pulsar/crypto-failure-action CONSUME
+          schema: !pulsar/schema AUTO_CONSUME
+          subscriptionName: bank-monolith-transactions-command-response
+          subscriptionType: !pulsar/subscription-type Shared
+          topicNames:
+            ["persistent://tenant-1/namespace-1/topic-transactions-command-response"]
+        schemas: !system/local-ref schemas
 
     message-bus-producers: !system/component
       system/component-kind: pulsar/message-bus-producers
@@ -177,6 +221,10 @@ system:
         producer: !system/local-ref producers.parties-command
       parties-command-response:
         producer: !system/local-ref producers.parties-command-response
+      transactions-command:
+        producer: !system/local-ref producers.transactions-command
+      transactions-command-response:
+        producer: !system/local-ref producers.transactions-command-response
 
     message-bus-consumers: !system/component
       system/component-kind: pulsar/message-bus-consumers
@@ -188,6 +236,10 @@ system:
         consumer: !system/local-ref consumers.parties-command
       parties-command-response:
         consumer: !system/local-ref consumers.parties-command-response
+      transactions-command:
+        consumer: !system/local-ref consumers.transactions-command
+      transactions-command-response:
+        consumer: !system/local-ref consumers.transactions-command-response
 
   message-bus:
     bus: !system/component
@@ -249,6 +301,23 @@ system:
       bus: !system/ref message-bus.bus
       command-channel: !keyword parties-command
       command-response-channel: !keyword parties-command-response
+  transactions:
+    processor: !system/component
+      system/component-kind: transactions/processor
+      record-db: !system/ref fdb.record-db
+      record-store: !system/ref fdb.store
+      schemas: !system/ref avro.serde
+    command-processor: !system/component
+      system/component-kind: command-processor/command-processor
+      bus: !system/ref message-bus.bus
+      processor: !system/local-ref processor
+      command-channel: !keyword transactions-command
+      command-response-channel: !keyword transactions-command-response
+    dispatcher: !system/component
+      system/component-kind: command/dispatcher
+      bus: !system/ref message-bus.bus
+      command-channel: !keyword transactions-command
+      command-response-channel: !keyword transactions-command-response
   idv:
     processor: !system/component
       system/component-kind: idv/processor
@@ -273,20 +342,7 @@ system:
       consumer-id: idv-watcher
       store-name: idvs
       handler: !system/local-ref watcher-handler
-  queenswood:
-    bootstrap: !system/component
-      system/component-kind: queenswood/bootstrap
-      record-db: !system/ref fdb.record-db
-      record-store: !system/ref fdb.store
-      organization-name: Queenswood
-      party-display-name: Queenswood
-      product-name: Internal Account
-      account-type: account-type-current
-      balance-sheet-side: balance-sheet-side-liability
-      currency: GBP
-      balance-products:
-        - balance-type: balance-type-default
-          balance-status: balance-status-posted
+  bootstrap: !include bank/bootstrap-internal-test.yml
   telemetry:
     otel-sdk: !profile
       dev: !system/component
@@ -298,10 +354,11 @@ system:
     interceptors: !system/component
       system/component-kind: server/interceptors
       admin-api-key: !env MONO_ADMIN_API_KEY
-      queenswood: !system/ref queenswood.bootstrap
+      bootstrap: !system/ref bootstrap.internal
       dispatchers:
         cash-accounts: !system/ref cash-accounts.dispatcher
         parties: !system/ref parties.dispatcher
+        transactions: !system/ref transactions.dispatcher
       avro: !system/ref avro.serde
       record-db: !system/ref fdb.record-db
       record-store: !system/ref fdb.store

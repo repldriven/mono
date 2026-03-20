@@ -1,9 +1,12 @@
 (ns ^:eftest/synchronized com.repldriven.mono.bank-transaction.interface-test
   (:require
+    com.repldriven.mono.bank-bootstrap.interface
     com.repldriven.mono.bank-transaction.interface
     com.repldriven.mono.testcontainers.interface
 
     [com.repldriven.mono.avro.interface :as avro]
+    [com.repldriven.mono.bank-balance.interface :as balances]
+    [com.repldriven.mono.bank-organization.interface :as organizations]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.processor.interface :as processor]
     [com.repldriven.mono.system.interface :as system]
@@ -11,6 +14,11 @@
      [with-test-system nom-test>]]
 
     [clojure.test :refer [deftest is testing]]))
+
+(defn- fdb-config
+  [sys]
+  {:record-db (system/instance sys [:fdb :record-db])
+   :record-store (system/instance sys [:fdb :store])})
 
 (defn- send-command
   [proc schemas command-name data]
@@ -32,7 +40,7 @@
   (testing "record-transaction creates transaction with legs"
     (let [data
           {:idempotency-key "idem-001"
-           :transaction-type :transaction-type-manual-transfer
+           :transaction-type :transaction-type-inbound-transfer
            :currency "GBP"
            :reference "Test transfer"
            :legs [{:account-id "acc_001"
@@ -57,7 +65,7 @@
          _ (is (some? (:transaction-id decoded)))
          _ (is (= :transaction-status-pending
                   (:status decoded)))
-         _ (is (= :transaction-type-manual-transfer
+         _ (is (= :transaction-type-inbound-transfer
                   (:transaction-type decoded)))
          _ (is (= "GBP" (:currency decoded)))
          _ (is (= "Test transfer" (:reference decoded)))
@@ -85,9 +93,69 @@
       (is (= :bank-transaction/unknown-command
              (error/kind result))))))
 
+(defn- test-simulate-inbound-transfer-customer-org
+  ;; Posts an INTERNAL_TRANSFER from internal org's suspense/posted
+  ;; to customer org's default/posted, simulating an inbound
+  ;; bank transfer funding the customer org's account
+  [sys fdb-config proc schemas]
+  (testing "simulate inbound transfer funding customer org account"
+    (let [internal (system/instance sys [:bootstrap :internal])
+          internal-account-id (:account-id internal)]
+      (nom-test>
+        [customer-org (organizations/new-organization
+                       fdb-config
+                       "Test Customer"
+                       :organisation-type-customer
+                       ["GBP"])
+         customer-account-id (get-in customer-org
+                                     [:organization :accounts
+                                      0 :account-id])
+         result (send-command
+                 proc
+                 schemas
+                 "record-transaction"
+                 {:idempotency-key "idem-transfer-001"
+                  :transaction-type
+                  :transaction-type-internal-transfer
+                  :currency "GBP"
+                  :reference "Internal to customer"
+                  :legs [{:account-id internal-account-id
+                          :balance-type :balance-type-suspense
+                          :balance-status :balance-status-posted
+                          :side :leg-side-debit
+                          :amount 100}
+                         {:account-id customer-account-id
+                          :balance-type :balance-type-default
+                          :balance-status :balance-status-posted
+                          :side :leg-side-credit
+                          :amount 100}]})
+         _ (is (= "ACCEPTED" (:status result)))
+         decoded (decode-payload schemas "transaction" result)
+         _ (is (= :transaction-status-posted
+                  (:status decoded)))
+         internal-suspense
+         (balances/get-balance fdb-config
+                               internal-account-id
+                               :balance-type-suspense
+                               "GBP"
+                               :balance-status-posted)
+         _ (is (= 0 (:credit internal-suspense)))
+         _ (is (= 100 (:debit internal-suspense)))
+         customer-default
+         (balances/get-balance fdb-config
+                               customer-account-id
+                               :balance-type-default
+                               "GBP"
+                               :balance-status-posted)
+         _ (is (= 100 (:credit customer-default)))
+         _ (is (= 0 (:debit customer-default)))]))))
+
 (deftest process-transaction-test
-  (with-test-system [sys "classpath:bank-transaction/application-test.yml"]
-                    (let [proc (system/instance sys [:transactions :processor])
-                          schemas (system/instance sys [:avro :serde])]
-                      (test-record-transaction proc schemas)
-                      (test-unknown-command proc schemas))))
+  (with-test-system
+   [sys "classpath:bank-transaction/application-test.yml"]
+   (let [proc (system/instance sys [:transactions :processor])
+         schemas (system/instance sys [:avro :serde])
+         config (fdb-config sys)]
+     (test-record-transaction proc schemas)
+     (test-unknown-command proc schemas)
+     (test-simulate-inbound-transfer-customer-org sys config proc schemas))))

@@ -19,23 +19,35 @@
    [sys "classpath:bank-api-key/application-test.yml"]
    (let [config (fdb-config sys)]
      (testing "finds key by hash"
-       (nom-test> [result (organizations/new-organization config "Hash Org")
-                   found (SUT/get-api-key config (:key-hash (:api-key result)))
+       (nom-test> [result (organizations/new-organization
+                           config
+                           "Hash Org"
+                           :organisation-type-customer
+                           ["GBP"])
+                   org-id (get-in result
+                                  [:organization
+                                   :organization-id])
+                   keys (SUT/get-api-keys config org-id)
+                   api-key (first keys)
+                   found (SUT/get-api-key config (:key-hash api-key))
                    _ (is (some? found))
-                   _ (is (= (:id (:api-key result)) (:id found)))
-                   _ (is (= (:organization-id (:organization result))
-                            (:organization-id found)))])))))
+                   _ (is (= (:id api-key) (:id found)))
+                   _ (is (= org-id (:organization-id found)))])))))
 
 (deftest get-api-keys-test
-  (with-test-system
-   [sys "classpath:bank-api-key/application-test.yml"]
-   (let [config (fdb-config sys)]
-     (testing "lists api keys for an organization"
-       (nom-test> [result (organizations/new-organization config "List Org")
-                   org-id (:organization-id (:organization result))
-                   keys (SUT/get-api-keys config org-id)
-                   _ (is (= 1 (count keys)))
-                   k (first keys)
-                   _ (is (= org-id (:organization-id k)))
-                   _ (is (= "default" (:name k)))
-                   _ (is (string? (:key-prefix k)))])))))
+  (with-test-system [sys "classpath:bank-api-key/application-test.yml"]
+                    (let [config (fdb-config sys)]
+                      (testing "lists api keys for an organization"
+                        (nom-test> [result (organizations/new-organization
+                                            config
+                                            "List Org"
+                                            :organisation-type-customer
+                                            ["GBP"])
+                                    org-id (:organization-id (:organization
+                                                              result))
+                                    keys (SUT/get-api-keys config org-id)
+                                    _ (is (= 1 (count keys)))
+                                    k (first keys)
+                                    _ (is (= org-id (:organization-id k)))
+                                    _ (is (= "default" (:name k)))
+                                    _ (is (string? (:key-prefix k)))])))))

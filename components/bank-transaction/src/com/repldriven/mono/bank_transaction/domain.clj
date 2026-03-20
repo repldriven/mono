@@ -2,13 +2,20 @@
   (:require
     [com.repldriven.mono.encryption.interface :as encryption]))
 
+(def ^:private type->status
+  {:transaction-type-internal-transfer :transaction-status-posted})
+
 (defn new-transaction
-  "Creates a new transaction map with status pending."
+  "Creates a new transaction map. Internal transfers are
+  posted immediately; all others start pending."
   [data]
-  (let [now (System/currentTimeMillis)]
+  (let [now (System/currentTimeMillis)
+        status (get type->status
+                    (:transaction-type data)
+                    :transaction-status-pending)]
     (-> (dissoc data :legs)
         (assoc :transaction-id (encryption/generate-id "txn")
-               :status :transaction-status-pending
+               :status status
                :created-at now
                :updated-at now))))
 

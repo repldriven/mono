@@ -43,8 +43,8 @@
 
 (def DraftCashAccountProductRequest
   {:name "Current Account"
-   :account-type "current"
-   :balance-sheet-side "liability"
+   :account-type :current
+   :balance-sheet-side :liability
    :allowed-currencies ["GBP" "EUR"]
    :balance-products [{:balance-type :default :balance-status :posted}]
    :valid-from "2025-01-01"
@@ -52,8 +52,8 @@
 
 (def DraftCashAccountProductVersionRequest
   {:name "Current Account"
-   :account-type "current"
-   :balance-sheet-side "liability"
+   :account-type :current
+   :balance-sheet-side :liability
    :allowed-currencies ["GBP" "EUR"]
    :balance-products [{:balance-type :default :balance-status :posted}]
    :valid-from "2025-01-01"

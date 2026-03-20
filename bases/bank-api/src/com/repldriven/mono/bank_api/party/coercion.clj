@@ -1,7 +1,9 @@
 (ns com.repldriven.mono.bank-api.party.coercion)
 
 (def ^:private party-types
-  {"person" :party-type-person "internal" :party-type-internal})
+  {"person" :party-type-person
+   "internal" :party-type-internal
+   "organization" :party-type-organization})
 
 (def ^:private party-statuses
   {"pending" :party-status-pending

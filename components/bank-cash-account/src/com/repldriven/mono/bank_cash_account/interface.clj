@@ -3,6 +3,7 @@
     com.repldriven.mono.bank-cash-account.system
 
     [com.repldriven.mono.bank-cash-account.commands :as commands]
+    [com.repldriven.mono.bank-cash-account.store :as store]
 
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.bank-schema.interface :as schema]))
@@ -13,3 +14,9 @@
   [config data]
   (error/let-nom> [pb (commands/open-account config data)]
     (schema/pb->CashAccount pb)))
+
+(defn get-accounts
+  "Lists cash accounts for an organization. Returns sequence
+  of account maps or anomaly."
+  [config org-id]
+  (store/get-accounts config org-id))

@@ -5,6 +5,8 @@
 
 (require '[zprint.core :as zp])
 
+(zp/set-options! {:search-config? true})
+
 (let [file (first *command-line-args*)]
   (when file
     (let [content (slurp file)

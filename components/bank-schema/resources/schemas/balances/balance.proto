@@ -25,6 +25,7 @@ message Balance {
     BALANCE_TYPE_INTEREST_PAID    = 3;
     BALANCE_TYPE_PURCHASE         = 4;
     BALANCE_TYPE_CASH             = 5;
+    BALANCE_TYPE_SUSPENSE         = 6;
   }
 
   enum BalanceStatus {

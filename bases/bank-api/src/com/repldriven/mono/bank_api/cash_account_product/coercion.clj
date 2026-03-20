@@ -1,7 +1,9 @@
 (ns com.repldriven.mono.bank-api.cash-account-product.coercion)
 
 (def ^:private account-types
-  {"current" :account-type-current
+  {"internal" :account-type-internal
+   "settlement" :account-type-settlement
+   "current" :account-type-current
    "savings" :account-type-savings
    "term-deposit" :account-type-term-deposit})
 

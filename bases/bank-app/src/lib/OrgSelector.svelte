@@ -9,7 +9,7 @@
     value={selectedOrgId}
     onchange={(e) => onSelect(e.target.value)}
   >
-    {#each organizations as org}
+    {#each organizations.filter(o => o.type !== "internal") as org}
       <option value={org["organization-id"]}>{org.name}</option>
     {/each}
   </select>

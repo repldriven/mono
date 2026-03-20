@@ -13,6 +13,7 @@
     [:enum
      {:json-schema coercion/account-type-json-schema
       :decode/api coercion/decode-account-type}
+     :account-type-internal :account-type-settlement
      :account-type-current :account-type-savings
      :account-type-term-deposit]]
    [:balance-sheet-side
@@ -37,6 +38,7 @@
       {:json-schema coercion/account-type-json-schema
        :decode/api coercion/decode-account-type
        :encode/api coercion/encode-account-type}
+      :account-type-internal :account-type-settlement
       :account-type-current :account-type-savings
       :account-type-term-deposit :account-type-unknown]]]
    [:balance-sheet-side {:optional true}
@@ -66,6 +68,7 @@
     [:enum
      {:json-schema coercion/account-type-json-schema
       :decode/api coercion/decode-account-type}
+     :account-type-internal :account-type-settlement
      :account-type-current :account-type-savings
      :account-type-term-deposit]]
    [:balance-sheet-side

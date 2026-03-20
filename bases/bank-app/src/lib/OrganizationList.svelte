@@ -12,6 +12,7 @@
 
   let modalOpen = $state(false);
   let orgName = $state("");
+  let currencies = $state("GBP");
   let creating = $state(false);
 
   function errorDetail(body) {
@@ -43,9 +44,11 @@
     if (!orgName.trim()) return;
     creating = true;
     try {
-      const res = await create_organization(orgName.trim());
+      const currencyList = currencies.split(",").map(c => c.trim().toUpperCase()).filter(c => c);
+      const res = await create_organization(orgName.trim(), currencyList);
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         orgName = "";
+        currencies = "GBP";
         modalOpen = false;
         showToast?.({ type: "success", message: "Organization created" });
         await load();
@@ -89,6 +92,16 @@
           disabled={creating}
         />
       </label>
+      <label>
+        Currencies
+        <input
+          type="text"
+          bind:value={currencies}
+          placeholder="GBP, USD"
+          required
+          disabled={creating}
+        />
+      </label>
       <button type="submit" disabled={creating || !orgName.trim()}>
         {creating ? "Creating..." : "Create Organization"}
       </button>
@@ -104,6 +117,7 @@
       <tr>
         <th>ID</th>
         <th>Name</th>
+        <th>Type</th>
         <th>Status</th>
         <th>Created</th>
         <th>Updated</th>
@@ -112,12 +126,17 @@
     </thead>
     <tbody>
       {#if organizations.length === 0 && !loading}
-        <tr><td colspan="6" class="empty">No organizations</td></tr>
+        <tr><td colspan="7" class="empty">No organizations</td></tr>
       {/if}
       {#each organizations as org}
         <tr>
           <td class="mono">{org["organization-id"]}</td>
           <td>{org.name}</td>
+          <td>
+            <span class="type-badge" class:internal={org.type === "internal"}>
+              {org.type}
+            </span>
+          </td>
           <td>
             <span class="status-badge"
                   class:active={org.status === "active"}>
@@ -129,7 +148,7 @@
           <td>
             {#if org["organization-id"] === selectedOrgId}
               <span class="default-badge">Default</span>
-            {:else}
+            {:else if org.type !== "internal"}
               <button
                 class="action-btn"
                 onclick={() => onSelectDefault(org["organization-id"])}
@@ -272,6 +291,21 @@
     text-align: center;
     color: var(--text-faint);
     padding: 1.5rem;
+  }
+
+  .type-badge {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+
+  .type-badge.internal {
+    background: #fef3c7;
+    color: #92400e;
   }
 
   .status-badge {

@@ -13,7 +13,8 @@
     :encode/api coercion/encode-balance-type}
    :balance-type-unknown :balance-type-default
    :balance-type-interest-accrued :balance-type-interest-paid
-   :balance-type-purchase :balance-type-cash])
+   :balance-type-purchase :balance-type-cash
+   :balance-type-suspense])
 
 (def BalanceStatus
   [:enum
@@ -44,7 +45,7 @@
       :decode/api coercion/decode-balance-type}
      :balance-type-default :balance-type-interest-accrued
      :balance-type-interest-paid :balance-type-purchase
-     :balance-type-cash]]
+     :balance-type-cash :balance-type-suspense]]
    [:balance-status
     [:enum
      {:json-schema coercion/balance-status-json-schema
@@ -67,7 +68,7 @@
       :decode/api coercion/decode-balance-type}
      :balance-type-default :balance-type-interest-accrued
      :balance-type-interest-paid :balance-type-purchase
-     :balance-type-cash]]
+     :balance-type-cash :balance-type-suspense]]
    [:balance-status
     [:enum
      {:json-schema coercion/balance-status-json-schema

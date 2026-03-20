@@ -21,6 +21,7 @@ message Party {
     PARTY_TYPE_UNKNOWN = 0;
     PARTY_TYPE_PERSON = 1;
     PARTY_TYPE_INTERNAL = 2;
+    PARTY_TYPE_ORGANIZATION = 3;
   }
 
   enum PartyStatus {

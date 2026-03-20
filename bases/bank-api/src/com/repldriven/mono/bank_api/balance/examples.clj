@@ -23,7 +23,7 @@
 (def BalanceList {:balances [Balance]})
 
 (def CreateBalanceRequest
-  {:balance-type "default" :balance-status "posted" :currency "GBP"})
+  {:balance-type :default :balance-status :posted :currency "GBP"})
 
 (def BalanceProduct {:balance-type :default :balance-status :posted})
 

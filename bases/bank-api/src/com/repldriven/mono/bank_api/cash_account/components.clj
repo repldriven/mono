@@ -31,6 +31,7 @@
      :cash-account-status-closing :cash-account-status-closed]]
    [:payment-addresses {:optional true}
     [:maybe [:vector [:ref "PaymentAddress"]]]]
+   [:balances {:optional true} [:maybe [:vector [:ref "Balance"]]]]
    [:created-at {:optional true} [:maybe string?]]
    [:updated-at {:optional true} [:maybe string?]]])
 

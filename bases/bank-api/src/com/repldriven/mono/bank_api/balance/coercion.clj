@@ -5,7 +5,8 @@
    "interest-accrued" :balance-type-interest-accrued
    "interest-paid" :balance-type-interest-paid
    "purchase" :balance-type-purchase
-   "cash" :balance-type-cash})
+   "cash" :balance-type-cash
+   "suspense" :balance-type-suspense})
 
 (def ^:private balance-statuses
   {"posted" :balance-status-posted

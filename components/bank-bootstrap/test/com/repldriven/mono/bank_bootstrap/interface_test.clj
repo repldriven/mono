@@ -1,10 +1,11 @@
-(ns ^:eftest/synchronized com.repldriven.mono.bank-queenswood.interface-test
+(ns ^:eftest/synchronized com.repldriven.mono.bank-bootstrap.interface-test
   (:require
-    com.repldriven.mono.bank-queenswood.interface
-
-    [com.repldriven.mono.bank-queenswood.core :as core]
+    com.repldriven.mono.bank-bootstrap.interface
     com.repldriven.mono.testcontainers.interface
 
+    [com.repldriven.mono.bank-bootstrap.core :as core]
+
+    [com.repldriven.mono.bank-balance.interface :as balances]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
@@ -14,13 +15,8 @@
 (defn- seed-config
   []
   {:organization-name "Queenswood"
-   :party-display-name "Queenswood"
-   :product-name "Internal Account"
-   :account-type :account-type-current
-   :balance-sheet-side :balance-sheet-side-liability
-   :currency "GBP"
-   :balance-products [{:balance-type :balance-type-default
-                       :balance-status :balance-status-posted}]})
+   :currencies ["GBP"]
+   :initial-balance 10000})
 
 (defn- fdb-config
   [sys]
@@ -29,8 +25,8 @@
 
 (deftest bootstrap-test
   (with-test-system
-   [sys "classpath:bank-queenswood/application-test.yml"]
-   (let [result (system/instance sys [:queenswood :bootstrap])]
+   [sys "classpath:bank-bootstrap/application-test.yml"]
+   (let [result (system/instance sys [:bootstrap :internal])]
      (testing "bootstrap returns map of IDs"
        (nom-test> [_ (is (map? result))
                    _ (is (string? (:organization-id result)))
@@ -38,6 +34,14 @@
                    _ (is (string? (:product-id result)))
                    _ (is (string? (:version-id result)))
                    _ (is (string? (:account-id result)))]))
+     (testing "initial balance is credited"
+       (let [config (fdb-config sys)]
+         (nom-test> [balance (balances/get-balance config
+                                                   (:account-id result)
+                                                   :balance-type-default
+                                                   "GBP"
+                                                   :balance-status-posted)
+                     _ (is (= 10000 (:credit balance)))])))
      (testing "bootstrap is idempotent on re-run"
        (let [config (fdb-config sys)
              seed (seed-config)]

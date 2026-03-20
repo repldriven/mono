@@ -30,20 +30,22 @@
   (reset! api-key (get (load-keys) org-id)))
 
 (defn create-organization
-  [org-name]
+  [org-name currencies]
   (-> (js/fetch "/v1/organizations"
                 #js {:method "POST"
                      :headers #js {"Content-Type" "application/json"
                                    "Authorization" (str "Bearer "
                                                         (admin-token))}
-                     :body (js/JSON.stringify #js {"name" org-name})})
+                     :body (js/JSON.stringify
+                            (clj->js {"name" org-name
+                                      "currencies" currencies}))})
       (.then parse-response)
       (.then (fn [res]
                (let [status (aget res "http-status")]
                  (when (and (>= status 200) (< status 300))
                    (let [body (.-body res)
-                         org-id (aget body "organization" "organization-id")
-                         raw-key (aget body "api-key" "raw-key")]
+                         org-id (aget body "organization-id")
+                         raw-key (aget body "api-key-secret")]
                      (save-key org-id raw-key))))
                res))))
 
@@ -181,6 +183,21 @@
   [account-id]
   (-> (js/fetch (str "/v1/cash-accounts/" account-id "/balances")
                 #js {:headers #js {"Authorization" (str "Bearer " @api-key)}})
+      (.then parse-response)))
+
+(defn simulate-inbound-transfer
+  [org-id amount currency]
+  (-> (js/fetch (str "/v1/simulate/organizations/"
+                     org-id
+                     "/inbound-transfer")
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
+                                   "Authorization" (str "Bearer "
+                                                        (admin-token))
+                                   "Idempotency-Key" (str (random-uuid))}
+                     :body (js/JSON.stringify
+                            #js {"amount" amount
+                                 "currency" currency})})
       (.then parse-response)))
 
 (defn list-api-keys

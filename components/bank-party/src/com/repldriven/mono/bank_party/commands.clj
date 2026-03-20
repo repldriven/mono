@@ -94,14 +94,15 @@
                                  :status-after (:status party)})))))
 
 (defn create
-  "Creates a party. Internal parties skip person-identification
-  and national-identifier. Returns protobuf party record or
-  anomaly."
+  "Creates a party. Person parties include
+  person-identification and optional national-identifier.
+  Internal and organization parties skip both. Returns
+  protobuf party record or anomaly."
   [config data]
   (let [{:keys [record-db record-store]} config
-        result (if (= :party-type-internal (:type data))
-                 (create-internal record-db record-store data)
-                 (create-person record-db record-store data))]
+        result (if (= :party-type-person (:type data))
+                 (create-person record-db record-store data)
+                 (create-internal record-db record-store data))]
     (if (uniqueness-violation? result)
       (error/reject :bank-party/duplicate-national-identifier
                     "National identifier already exists")

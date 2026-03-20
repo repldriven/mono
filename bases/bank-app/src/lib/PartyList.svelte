@@ -23,7 +23,9 @@
       const res = await list_cash_account_products();
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         const published = (res.body.versions ?? [])
-          .filter(v => v.status === "published");
+          .filter(v => v.status === "published"
+                    && v["account-type"] !== "internal"
+                    && v["account-type"] !== "settlement");
         const latestByProduct = new Map();
         for (const v of published) {
           const pid = v["product-id"];
@@ -166,7 +168,7 @@
           <td title={party["created-at"]}>{time_ago(party["created-at"])}</td>
           <td title={party["updated-at"]}>{time_ago(party["updated-at"])}</td>
           <td>
-            {#if party.status === "active"}
+            {#if party.type === "person" && party.status === "active"}
               {#if opening[party["party-id"]]}
                 <button class="action-btn" disabled>Opening...</button>
               {:else if publishedProducts.length === 0}

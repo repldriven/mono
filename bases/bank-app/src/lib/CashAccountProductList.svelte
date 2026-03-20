@@ -287,18 +287,20 @@
           <td>{(v["allowed-currencies"] ?? []).join(", ") || "Any"}</td>
           <td title={v["created-at"]}>{time_ago(v["created-at"])}</td>
           <td>
-            {#if v.status === "draft"}
-              <button
-                class="action-btn"
-                disabled={publishing[v["version-id"]]}
-                onclick={() => handlePublish(v)}
-              >
-                {publishing[v["version-id"]] ? "Publishing..." : "Publish"}
-              </button>
-            {:else if v.status === "published" && isLatestVersion(v)}
-              <button class="action-btn" onclick={() => openReviseModal(v)}>
-                Revise
-              </button>
+            {#if v["account-type"] !== "internal" && v["account-type"] !== "settlement"}
+              {#if v.status === "draft"}
+                <button
+                  class="action-btn"
+                  disabled={publishing[v["version-id"]]}
+                  onclick={() => handlePublish(v)}
+                >
+                  {publishing[v["version-id"]] ? "Publishing..." : "Publish"}
+                </button>
+              {:else if v.status === "published" && isLatestVersion(v)}
+                <button class="action-btn" onclick={() => openReviseModal(v)}>
+                  Revise
+                </button>
+              {/if}
             {/if}
           </td>
         </tr>

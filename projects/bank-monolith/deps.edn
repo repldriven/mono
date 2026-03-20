@@ -31,11 +31,12 @@
         component/bank-api-key {:local/root "../../components/bank-api-key"}
         component/bank-organization {:local/root "../../components/bank-organization"}
         component/bank-party {:local/root "../../components/bank-party"}
-        component/bank-queenswood {:local/root "../../components/bank-queenswood"}
+        component/bank-bootstrap {:local/root "../../components/bank-bootstrap"}
         component/message-bus {:local/root "../../components/message-bus"}
         component/processor {:local/root "../../components/processor"}
         component/pulsar {:local/root "../../components/pulsar"}
         component/bank-schema {:local/root "../../components/bank-schema"}
+        component/bank-transaction {:local/root "../../components/bank-transaction"}
         component/server {:local/root "../../components/server"}
         component/system {:local/root "../../components/system"}
         component/telemetry {:local/root "../../components/telemetry"}

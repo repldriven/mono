@@ -15,7 +15,8 @@
      {:json-schema coercion/party-type-json-schema
       :decode/api coercion/decode-party-type
       :encode/api coercion/encode-party-type}
-     :party-type-person :party-type-internal :party-type-unknown]]
+     :party-type-person :party-type-internal
+     :party-type-organization :party-type-unknown]]
    [:display-name string?]
    [:status
     [:enum

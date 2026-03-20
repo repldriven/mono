@@ -73,44 +73,39 @@
       [res (open-account-request "acc-test" "Test Account" "GBP" "prd_test_api")
        _ (is (= 200 (:status res)))
        body (http/res->edn res)
-       _
-       (is (= {:account-id "acc-test-id"
-               :party-id "acc-test"
-               :name "Test Account"
-               :currency "GBP"
-               :account-status "opened"}
-              (select-keys body
-                           [:account-id :party-id :name :currency
-                            :account-status])))])
+       _ (is (= {:account-id "acc-test-id"
+                 :party-id "acc-test"
+                 :name "Test Account"
+                 :currency "GBP"
+                 :account-status "opened"}
+                (select-keys body
+                             [:account-id :party-id :name :currency
+                              :account-status])))])
     (stop)))
 
 (defn- test-close-account
   [sys]
   (let [{:keys [stop]} (command-processor sys test-account-close)]
     (nom-test> [res (close-account-request "acc-test-id")
-                _
-                (is (= 200 (:status res)))
+                _ (is (= 200 (:status res)))
                 body (http/res->edn res)
-                _
-                (is (= {:account-id "acc-test-id"
-                        :party-id "acc-test"
-                        :name "Test Account"
-                        :currency "GBP"
-                        :account-status "closing"}
-                       (select-keys body
-                                    [:account-id :party-id :name :currency
-                                     :account-status])))])
+                _ (is (= {:account-id "acc-test-id"
+                          :party-id "acc-test"
+                          :name "Test Account"
+                          :currency "GBP"
+                          :account-status "closing"}
+                         (select-keys body
+                                      [:account-id :party-id :name :currency
+                                       :account-status])))])
     (stop)))
 
 (defn- test-open-api-spec
   []
   (nom-test>
     [res (http/request {:method :get :url (str *base-url* "/openapi.json")})
-     _
-     (is (= 200 (:status res)))
+     _ (is (= 200 (:status res)))
      spec (http/res->edn res)
-     _
-     (is (= "3.1.0" (:openapi spec)))]))
+     _ (is (= "3.1.0" (:openapi spec)))]))
 
 (deftest account-commands-test
   (with-test-system

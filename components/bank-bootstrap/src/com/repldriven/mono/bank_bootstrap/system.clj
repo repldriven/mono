@@ -1,9 +1,9 @@
-(ns com.repldriven.mono.bank-queenswood.system
+(ns com.repldriven.mono.bank-bootstrap.system
   (:require
-    [com.repldriven.mono.bank-queenswood.core :as core]
+    [com.repldriven.mono.bank-bootstrap.core :as core]
     [com.repldriven.mono.system.interface :as system]))
 
-(def ^:private bootstrap
+(def ^:private internal
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance
                        (core/bootstrap {:record-db (:record-db config)
@@ -13,4 +13,4 @@
                    :record-store system/required-component}
    :system/instance-schema map?})
 
-(system/defcomponents :queenswood {:bootstrap bootstrap})
+(system/defcomponents :bootstrap {:internal internal})

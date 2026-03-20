@@ -34,17 +34,23 @@
     apiKeyListRef?.load();
   }
 
+  function firstCustomerOrg(orgs) {
+    return orgs.find(o => o.type !== "internal");
+  }
+
   function handleOrgCreated(orgs) {
     organizations = orgs;
-    if (!selectedOrgId && orgs.length > 0) {
-      selectOrg(orgs[0]["organization-id"]);
+    if (!selectedOrgId) {
+      const org = firstCustomerOrg(orgs);
+      if (org) selectOrg(org["organization-id"]);
     }
   }
 
   function handleOrgsLoaded(orgs) {
     organizations = orgs;
-    if (!selectedOrgId && orgs.length > 0) {
-      selectOrg(orgs[0]["organization-id"]);
+    if (!selectedOrgId) {
+      const org = firstCustomerOrg(orgs);
+      if (org) selectOrg(org["organization-id"]);
     }
   }
 </script>
@@ -88,7 +94,7 @@
         {selectedOrgId}
         onSelect={(id) => selectOrg(id)}
       />
-      <CashAccountList bind:this={accountListRef} />
+      <CashAccountList bind:this={accountListRef} orgId={selectedOrgId} />
     {:else if currentPage === "products"}
       <OrgSelector
         {organizations}

@@ -31,13 +31,13 @@
 (def PartyList {:parties [Party]})
 
 (def CreatePartyRequest
-  {:type "person"
+  {:type :person
    :display-name "Jane Doe"
    :given-name "Jane"
    :family-name "Doe"
    :date-of-birth 19900115
    :nationality "GB"
    :national-identifier
-   {:type "national-insurance" :value "TN000001A" :issuing-country "GBR"}})
+   {:type :national-insurance :value "TN000001A" :issuing-country "GBR"}})
 
 (def CreatePartyResponse Party)

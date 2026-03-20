@@ -10,6 +10,11 @@
   (let [balance (domain/new-balance balance-data)]
     (error/let-nom> [_ (store/save config balance)] balance)))
 
+(defn save
+  "Persists a balance. Returns nil or anomaly."
+  [config balance]
+  (store/save config balance))
+
 (defn get-balance
   "Loads a balance by account-id, balance-type, currency,
   and balance-status. Returns the balance map, nil if not

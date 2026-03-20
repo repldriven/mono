@@ -91,7 +91,7 @@
     components/bank-idv {:local/root "components/bank-idv"}
     components/bank-organization {:local/root "components/bank-organization"}
     components/bank-party {:local/root "components/bank-party"}
-    components/bank-queenswood {:local/root "components/bank-queenswood"}
+    components/bank-bootstrap {:local/root "components/bank-bootstrap"}
     components/bank-schema {:local/root "components/bank-schema"}
     components/bank-transaction {:local/root "components/bank-transaction"}
     bases/bank-api {:local/root "bases/bank-api"}
@@ -110,8 +110,8 @@
                   "components/bank-organization/test-resources"
                   "components/bank-party/test"
                   "components/bank-party/test-resources"
-                  "components/bank-queenswood/test"
-                  "components/bank-queenswood/test-resources"
+                  "components/bank-bootstrap/test"
+                  "components/bank-bootstrap/test-resources"
                   "components/bank-schema/test-resources"
                   "components/bank-test-resources/test-resources"
                   "components/bank-transaction/test"

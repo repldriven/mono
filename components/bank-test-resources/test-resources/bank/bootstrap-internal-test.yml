@@ -1,0 +1,8 @@
+internal: !system/component
+  system/component-kind: bootstrap/internal
+  record-db: !system/ref fdb.record-db
+  record-store: !system/ref fdb.store
+  organization-name: Queenswood
+  currencies:
+    - GBP
+  initial-balance: 10000

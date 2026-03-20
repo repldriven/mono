@@ -1,10 +1,6 @@
-{:lint-as {com.repldriven.mono.error.interface/nom-do> clojure.core/->
-           com.repldriven.mono.error.interface/nom-let> clojure.core/let
-           com.repldriven.mono.telemetry.interface/with-span-tests
-           clojure.core/let}
- :output
- {:exclude-files
-  ["target/" ".clj-kondo/imports/"
-   "components/bank-schema/gen/com/repldriven/mono/schemas/*.*\\.cljc"
-   "components/test-schema/gen/com/repldriven/mono/test_schemas/*.*\\.cljc"
-   "components/.*/build\\.clj"]}}
+{:output
+   {:exclude-files
+      ["target/" ".clj-kondo/imports/"
+       "components/bank-schema/gen/com/repldriven/mono/schemas/*.*\\.cljc"
+       "components/test-schema/gen/com/repldriven/mono/test_schemas/*.*\\.cljc"
+       "components/.*/build\\.clj"]}}

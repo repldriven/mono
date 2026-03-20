@@ -26,7 +26,9 @@
         component/http-client {:local/root "../../components/http-client"}
         component/log {:local/root "../../components/log"}
         component/bank-api-key {:local/root "../../components/bank-api-key"}
+        component/bank-cash-account {:local/root "../../components/bank-cash-account"}
         component/bank-organization {:local/root "../../components/bank-organization"}
+        component/bank-party {:local/root "../../components/bank-party"}
         component/message-bus {:local/root "../../components/message-bus"}
         component/processor {:local/root "../../components/processor"}
         component/pulsar {:local/root "../../components/pulsar"}

@@ -10,9 +10,28 @@
 
 (defn- format-timestamps
   [m]
-  (-> m
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+  (cond-> m
+          (:created-at m)
+          (update :created-at millis->iso)
+          (:updated-at m)
+          (update :updated-at millis->iso)))
+
+(defn- format-rich-organization
+  "Formats timestamps on an organization and its nested
+  party, accounts (with balances), and api-key."
+  [org]
+  (-> org
+      format-timestamps
+      (update :party format-timestamps)
+      (update :accounts
+              #(mapv (fn [a]
+                       (-> a
+                           format-timestamps
+                           (update :balances
+                                   (partial mapv
+                                            format-timestamps))))
+                     %))
+      (update :api-key format-timestamps)))
 
 (defn create-organization
   [request]
@@ -31,19 +50,18 @@
      {:status 403 :body (error-response 403 result)})
    :else
    (let [{:keys [record-db record-store]} request
-         {:keys [name]} (get-in request [:parameters :body])
+         {:keys [name currencies]} (get-in request
+                                           [:parameters :body])
+         config {:record-db record-db :record-store record-store}
          result (organizations/new-organization
-                 {:record-db record-db :record-store record-store}
-                 name)]
+                 config
+                 name
+                 :organisation-type-customer
+                 currencies)]
      (if (error/anomaly? result)
        {:status 500 :body (error-response 500 result)}
-       (let [api-key (:api-key result)]
-         {:status 201
-          :body {:organization (format-timestamps (:organization
-                                                   result))
-                 :api-key {:id (:id api-key)
-                           :key-prefix (:key-prefix api-key)
-                           :name (:name api-key)
-                           :raw-key (:raw-key result)
-                           :created-at (millis->iso (:created-at
-                                                     api-key))}}})))))
+       {:status 201
+        :body (-> (:organization result)
+                  format-rich-organization
+                  (assoc :api-key-secret
+                         (:raw-key result)))}))))

@@ -82,6 +82,7 @@
    Usage:
      (with-span-tests [_ [\"process-command\"]]
        (do-work))"
+  {:clj-kondo/lint-as 'clojure.core/let}
   [[spans-sym expected-names] & body]
   `(span-tests/with-span-tests [~spans-sym ~expected-names] ~@body))
 

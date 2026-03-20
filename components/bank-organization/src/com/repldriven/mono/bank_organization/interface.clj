@@ -1,24 +1,24 @@
 (ns com.repldriven.mono.bank-organization.interface
   (:require
-    [com.repldriven.mono.bank-organization.domain :as domain]
-    [com.repldriven.mono.bank-organization.store :as store]
-    [com.repldriven.mono.bank-api-key.interface :as bank-api-key]
-    [com.repldriven.mono.error.interface :as error]))
+    [com.repldriven.mono.bank-organization.core :as core]))
 
 (defn new-organization
-  "Creates an organization and its initial API key atomically.
-  Returns {:organization <map> :api-key <map> :raw-key <string>}
-  or anomaly. The raw-key is only available at creation time."
-  [config org-name]
-  (let [org (domain/new-organization org-name)
-        {:keys [api-key raw-key]} (bank-api-key/new-api-key (:organization-id
-                                                             org)
-                                                            "default")]
-    (error/let-nom> [_ (store/create config org api-key)]
-      {:organization org :api-key api-key :raw-key raw-key})))
+  "Creates an organization with API key, internal party,
+  product, and one cash account per currency. Returns map
+  or anomaly."
+  [config org-name org-type currencies]
+  (core/new-organization config org-name org-type currencies))
+
+(defn get-organization
+  "Enriches a flat organization map with party, accounts
+  (with balances), and api-key. Returns rich organization
+  map or anomaly."
+  [config org]
+  (core/get-organization config org))
 
 (defn get-organizations
-  "Lists organizations. Returns a sequence of organization
-  maps or anomaly."
+  "Lists organizations enriched with party, accounts, and
+  api-key. Returns a sequence of rich organization maps or
+  anomaly."
   [config]
-  (store/get-organizations config))
+  (core/get-organizations config))
