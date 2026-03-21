@@ -4,17 +4,7 @@
     [com.repldriven.mono.bank-balance.interface :as balances]
     [com.repldriven.mono.bank-cash-account-product.interface :as
      cash-account-products]
-    [com.repldriven.mono.error.interface :as error])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-balance
-  [balance]
-  (-> balance
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.error.interface :as error]))
 
 (defn list-balances
   [request]
@@ -25,7 +15,7 @@
                                       account-id)]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      {:status 200 :body {:balances (mapv format-balance result)}})))
+      {:status 200 :body {:balances result}})))
 
 (defn get-balance
   [request]
@@ -47,7 +37,7 @@
                                  "balances/not-found"
                                  "Balance not found")}
           :else
-          {:status 200 :body (format-balance result)})))
+          {:status 200 :body result})))
 
 (defn list-balance-products
   [request]

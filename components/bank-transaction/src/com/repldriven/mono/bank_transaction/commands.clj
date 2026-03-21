@@ -1,16 +1,18 @@
 (ns com.repldriven.mono.bank-transaction.commands
   (:require
     [com.repldriven.mono.bank-transaction.domain :as domain]
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn- save-transaction
   "Saves transaction to store, returns protobuf record or
   anomaly."
   [store transaction]
-  (error/let-nom>
+  (let-nom>
     [_ (fdb/save-record store (schema/Transaction->java transaction))]
     (schema/Transaction->pb transaction)))
 
@@ -55,23 +57,24 @@
      record-db
      record-store
      (fn [open-store]
-       (let [txn (domain/new-transaction data)
+       (let [{:keys [legs]} data
+             txn (domain/new-transaction data)
              txn-id (:transaction-id txn)
              currency (:currency txn)
-             legs (mapv #(domain/new-leg % txn-id currency) (:legs data))
+             legs (mapv (fn [leg] (domain/new-leg leg txn-id currency))
+                        legs)
              txn-store (open-store "transactions")
              leg-store (open-store "transaction-legs")
              balance-store (open-store "balances")]
-         (error/let-nom>
-           [pb (save-transaction txn-store txn)
-            _
-            (reduce (fn [_ leg]
-                      (let [result (save-leg leg-store leg)]
-                        (if (error/anomaly? result) (reduced result) result)))
-                    nil
-                    legs)
+         (let-nom>
+           [transaction (save-transaction txn-store txn)
+            _ (reduce (fn [_ leg]
+                        (let [result (save-leg leg-store leg)]
+                          (if (error/anomaly? result) (reduced result) result)))
+                      nil
+                      legs)
             _ (update-balances balance-store legs)]
-           {:pb pb :legs legs}))))))
+           {:transaction transaction :legs legs}))))))
 
 (defn- ->response
   "Converts a protobuf record to an ACCEPTED response.
@@ -80,11 +83,11 @@
   (if (error/anomaly? result)
     result
     (let [{:keys [schemas]} config
-          {:keys [pb legs]} result
-          txn (schema/pb->Transaction pb)]
-      (error/let-nom> [payload
-                       (avro/serialize (schemas "transaction")
-                                       (assoc txn :legs legs))]
+          {:keys [transaction legs]} result
+          txn (schema/pb->Transaction transaction)]
+      (let-nom> [payload
+                 (avro/serialize (schemas "transaction")
+                                 (assoc txn :legs legs))]
         {:status "ACCEPTED" :payload payload}))))
 
 (defn record-transaction

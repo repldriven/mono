@@ -1,8 +1,10 @@
 (ns com.repldriven.mono.bank-idv.watcher
   (:require
     [com.repldriven.mono.bank-idv.domain :as domain]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn party-changelog-handler
   "Returns a watcher handler that initiates IDV when a party

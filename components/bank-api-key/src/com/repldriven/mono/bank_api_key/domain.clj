@@ -6,14 +6,14 @@
 (def ^:private api-key-display-prefix-len 12)
 
 (defn new-api-key
-  "Creates a new ApiKey record map and its raw key.
-  Returns {:api-key <map> :raw-key <string>}. The raw-key
-  is only available at creation time."
+  "Creates a new ApiKey record map and its key secret.
+  Returns {:api-key <map> :key-secret <string>}. The
+  key-secret is only available at creation time."
   [org-id key-name]
-  (let [raw-key (encryption/generate-token api-key-prefix)
-        key-hash (encryption/hash-token raw-key)
+  (let [key-secret (encryption/generate-token api-key-prefix)
+        key-hash (encryption/hash-token key-secret)
         key-prefix
-        (subs raw-key 0 (min api-key-display-prefix-len (count raw-key)))
+        (subs key-secret 0 (min api-key-display-prefix-len (count key-secret)))
         now (System/currentTimeMillis)]
     {:api-key {:id (encryption/generate-id "sk")
                :organization-id org-id
@@ -21,4 +21,4 @@
                :key-prefix key-prefix
                :name key-name
                :created-at now}
-     :raw-key raw-key}))
+     :key-secret key-secret}))

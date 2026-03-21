@@ -5,33 +5,21 @@
     [com.repldriven.mono.bank-api.schema :refer [components-registry]]))
 
 (def BalanceType
-  [:enum
-   {:title "BalanceType"
-    :json-schema/example "default"
-    :json-schema coercion/balance-type-json-schema
-    :decode/api coercion/decode-balance-type
-    :encode/api coercion/encode-balance-type}
-   :balance-type-unknown :balance-type-default
-   :balance-type-interest-accrued :balance-type-interest-paid
-   :balance-type-purchase :balance-type-cash
-   :balance-type-suspense])
+  (coercion/balance-type-enum-schema {:json-schema/example "default"}))
 
 (def BalanceStatus
-  [:enum
-   {:title "BalanceStatus"
-    :json-schema/example "posted"
-    :json-schema coercion/balance-status-json-schema
-    :decode/api coercion/decode-balance-status
-    :encode/api coercion/encode-balance-status}
-   :balance-status-unknown :balance-status-posted
-   :balance-status-pending-incoming :balance-status-pending-outgoing])
+  (coercion/balance-status-enum-schema {:json-schema/example "posted"}))
 
 (def Balance
-  [:map {:json-schema/example examples/Balance} [:account-id string?]
-   [:balance-type [:ref "BalanceType"]] [:balance-status [:ref "BalanceStatus"]]
-   [:currency [:ref "Currency"]] [:credit int?] [:debit int?]
-   [:created-at {:optional true} [:maybe string?]]
-   [:updated-at {:optional true} [:maybe string?]]])
+  [:map {:json-schema/example examples/Balance}
+   [:account-id string?]
+   [:balance-type [:ref "BalanceType"]]
+   [:balance-status [:ref "BalanceStatus"]]
+   [:currency [:ref "Currency"]]
+   [:credit int?]
+   [:debit int?]
+   [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]
+   [:updated-at {:optional true} [:maybe [:ref "Timestamp"]]]])
 
 (def BalanceList
   [:map {:json-schema/example examples/BalanceList}
@@ -39,49 +27,28 @@
 
 (def CreateBalanceRequest
   [:map {:json-schema/example examples/CreateBalanceRequest}
-   [:balance-type
-    [:enum
-     {:json-schema coercion/balance-type-json-schema
-      :decode/api coercion/decode-balance-type}
-     :balance-type-default :balance-type-interest-accrued
-     :balance-type-interest-paid :balance-type-purchase
-     :balance-type-cash :balance-type-suspense]]
-   [:balance-status
-    [:enum
-     {:json-schema coercion/balance-status-json-schema
-      :decode/api coercion/decode-balance-status}
-     :balance-status-posted
-     :balance-status-pending-incoming
-     :balance-status-pending-outgoing]]
+   [:balance-type [:ref "BalanceType"]]
+   [:balance-status [:ref "BalanceStatus"]]
    [:currency [:ref "Currency"]]])
+
+(def CreateBalanceResponse [:ref "Balance"])
 
 (def BalanceProduct
   [:map {:json-schema/example examples/BalanceProduct}
    [:balance-type [:ref "BalanceType"]]
    [:balance-status [:ref "BalanceStatus"]]])
 
-(def BalanceProductRequest
-  [:map {:json-schema/example examples/BalanceProduct}
-   [:balance-type
-    [:enum
-     {:json-schema coercion/balance-type-json-schema
-      :decode/api coercion/decode-balance-type}
-     :balance-type-default :balance-type-interest-accrued
-     :balance-type-interest-paid :balance-type-purchase
-     :balance-type-cash :balance-type-suspense]]
-   [:balance-status
-    [:enum
-     {:json-schema coercion/balance-status-json-schema
-      :decode/api coercion/decode-balance-status}
-     :balance-status-posted
-     :balance-status-pending-incoming
-     :balance-status-pending-outgoing]]])
-
 (def BalanceProductList
   [:map {:json-schema/example examples/BalanceProductList}
    [:balance-products [:vector [:ref "BalanceProduct"]]]])
 
+(def BalanceProductRequest
+  [:map {:json-schema/example examples/BalanceProduct}
+   [:balance-type [:ref "BalanceType"]]
+   [:balance-status [:ref "BalanceStatus"]]])
+
 (def registry
   (components-registry [#'BalanceType #'BalanceStatus #'Balance #'BalanceList
-                        #'CreateBalanceRequest #'BalanceProduct
-                        #'BalanceProductRequest #'BalanceProductList]))
+                        #'CreateBalanceRequest #'CreateBalanceResponse
+                        #'BalanceProduct #'BalanceProductList
+                        #'BalanceProductRequest]))

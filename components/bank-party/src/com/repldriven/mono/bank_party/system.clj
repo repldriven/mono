@@ -2,6 +2,7 @@
   (:require
     [com.repldriven.mono.bank-party.core :as core]
     [com.repldriven.mono.bank-party.watcher :as watcher]
+
     [com.repldriven.mono.system.interface :as system]))
 
 (def ^:private processor

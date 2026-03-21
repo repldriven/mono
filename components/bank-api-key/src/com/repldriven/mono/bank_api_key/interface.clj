@@ -4,9 +4,9 @@
     [com.repldriven.mono.bank-api-key.store :as store]))
 
 (defn new-api-key
-  "Creates a new ApiKey record map and its raw key.
-  Returns {:api-key <map> :raw-key <string>}. The raw-key
-  is only available at creation time."
+  "Creates a new ApiKey record map and its key secret.
+  Returns {:api-key <map> :key-secret <string>}. The
+  key-secret is only available at creation time."
   [org-id key-name]
   (domain/new-api-key org-id key-name))
 

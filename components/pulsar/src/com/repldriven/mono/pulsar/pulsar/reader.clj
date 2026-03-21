@@ -3,7 +3,7 @@
   (:require
     [com.repldriven.mono.pulsar.pulsar.schemas :as schemas]
     [com.repldriven.mono.pulsar.pulsar.message :as message]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom-ex]]
     [com.repldriven.mono.log.interface :as log]
     [clojure.core.async :as async]
     [clojure.java.data :as j])
@@ -21,7 +21,7 @@
 (defn create
   ^Reader [{:keys [^PulsarClient client conf schemas] :as opts}]
   (log/info "Creating Pulsar reader:" (:name opts))
-  (error/try-nom-ex
+  (try-nom-ex
    :pulsar/reader-create PulsarClientException
    "Failed to create Pulsar reader"
    (let [{:keys [cryptoKeyReader schema startMessageId]} conf
@@ -85,5 +85,5 @@
 
 (defn close
   [^Reader reader]
-  (error/try-nom-ex :pulsar/reader-close PulsarClientException
-                    "Failed to close Pulsar reader connection" (.close reader)))
+  (try-nom-ex :pulsar/reader-close PulsarClientException
+              "Failed to close Pulsar reader connection" (.close reader)))

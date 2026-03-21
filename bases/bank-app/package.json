@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "cljs:compile": "npx cherry compile src/lib/api.cljs --output-dir src --extension mjs",
+    "cljs:compile": "npx cherry compile src/lib/api.cljs src/lib/time.cljs --output-dir src --extension mjs",
     "dev": "npm run cljs:compile && vite",
     "build": "npm run cljs:compile && vite build",
     "preview": "vite preview"

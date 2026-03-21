@@ -1,7 +1,7 @@
 (ns com.repldriven.mono.system.core
   (:refer-clojure :exclude [ref])
   (:require
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [donut.system :as ds]
     [donut.system.validation :as dsv]))
 
@@ -65,26 +65,26 @@
 
 (defn start
   ([config-name]
-   (error/try-nom :system/start
-                  "System START threw an exception"
-                  (ds/start (-> config-name
-                                (nsmap->nsmap mono-system-ns donut-system-ns)
-                                with-validation))))
+   (try-nom :system/start
+            "System START threw an exception"
+            (ds/start (-> config-name
+                          (nsmap->nsmap mono-system-ns donut-system-ns)
+                          with-validation))))
   ([config-name custom-config]
-   (error/try-nom :system/start
-                  "System START threw an exception"
-                  (ds/start (-> config-name
-                                (nsmap->nsmap mono-system-ns donut-system-ns)
-                                with-validation)
-                            custom-config)))
+   (try-nom :system/start
+            "System START threw an exception"
+            (ds/start (-> config-name
+                          (nsmap->nsmap mono-system-ns donut-system-ns)
+                          with-validation)
+                      custom-config)))
   ([config-name custom-config component-ids]
-   (error/try-nom :system/start
-                  "System START threw an exception"
-                  (ds/start (-> config-name
-                                (nsmap->nsmap mono-system-ns donut-system-ns)
-                                with-validation)
-                            custom-config
-                            component-ids))))
+   (try-nom :system/start
+            "System START threw an exception"
+            (ds/start (-> config-name
+                          (nsmap->nsmap mono-system-ns donut-system-ns)
+                          with-validation)
+                      custom-config
+                      component-ids))))
 
 (defn instance [system kws] (get-in system (vec (cons ::ds/instances kws))))
 
@@ -94,9 +94,9 @@
 
 (defn stop
   [system]
-  (error/try-nom :system/stop
-                 "System STOP threw an exception"
-                 (ds/stop system)))
+  (try-nom :system/stop
+           "System STOP threw an exception"
+           (ds/stop system)))
 
 (defmacro with-system
   {:clj-kondo/lint-as 'clojure.core/let}

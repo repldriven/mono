@@ -1,9 +1,10 @@
 (ns com.repldriven.mono.bank-party.core
   (:require
     [com.repldriven.mono.bank-party.commands :as commands]
+
     [com.repldriven.mono.processor.interface :as processor]
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]))
 
 (defn- dispatch
   [config message]
@@ -11,12 +12,12 @@
         {:keys [schemas]} config
         schema (get schemas command)]
     (if-not schema
-      (error/fail :bank-party/process-command
+      (error/fail :party/process-command
                   {:message "No schema found for command" :command command})
-      (error/let-nom> [data (avro/deserialize-same schema payload)]
+      (let-nom> [data (avro/deserialize-same schema payload)]
         (case command
           "create-party" (commands/create-party config data)
-          (error/reject :bank-party/unknown-command
+          (error/reject :party/unknown-command
                         (str "Unknown command: " command)))))))
 
 (defrecord PartyProcessor [config]

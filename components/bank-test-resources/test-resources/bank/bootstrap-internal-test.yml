@@ -5,4 +5,9 @@ internal: !system/component
   organization-name: Queenswood
   currencies:
     - GBP
-  initial-balance: 10000
+  balances:
+    - balance-type: !keyword balance-type-default
+      balance-status: !keyword balance-status-posted
+      currency: GBP
+      credit: 10000
+      debit: 0

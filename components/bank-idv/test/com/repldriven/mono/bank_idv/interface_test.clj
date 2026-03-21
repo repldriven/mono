@@ -89,7 +89,7 @@
                                {:organization-id test-org-id
                                 :party-id "pty.x"})]
       (is (error/rejection? result))
-      (is (= :bank-idv/unknown-command (error/kind result))))))
+      (is (= :idv/unknown-command (error/kind result))))))
 
 (deftest process-idv-test
   (with-test-system [sys "classpath:bank-idv/application-test.yml"]

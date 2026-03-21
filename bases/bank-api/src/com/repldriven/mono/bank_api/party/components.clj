@@ -6,41 +6,28 @@
 
 (def PartyId [:string {:title "PartyId" :json-schema/example examples/PartyId}])
 
+(def PartyType
+  (coercion/party-type-enum-schema {:json-schema/example "person"}))
+
+(def PartyStatus
+  (coercion/party-status-enum-schema {:json-schema/example "active"}))
+
+(def IdentifierType
+  (coercion/identifier-type-enum-schema {:json-schema/example "passport"}))
+
 (def Party
   [:map {:json-schema/example examples/Party}
    [:organization-id {:optional true} [:maybe string?]]
    [:party-id [:ref "PartyId"]]
-   [:type
-    [:enum
-     {:json-schema coercion/party-type-json-schema
-      :decode/api coercion/decode-party-type
-      :encode/api coercion/encode-party-type}
-     :party-type-person :party-type-internal
-     :party-type-organization :party-type-unknown]]
+   [:type [:ref "PartyType"]]
    [:display-name string?]
-   [:status
-    [:enum
-     {:json-schema coercion/party-status-json-schema
-      :decode/api coercion/decode-party-status
-      :encode/api coercion/encode-party-status}
-     :party-status-pending :party-status-active
-     :party-status-suspended :party-status-closed
-     :party-status-unknown]]
-   [:created-at {:optional true} [:maybe string?]]
-   [:updated-at {:optional true} [:maybe string?]]])
+   [:status [:ref "PartyStatus"]]
+   [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]
+   [:updated-at {:optional true} [:maybe [:ref "Timestamp"]]]])
 
 (def NationalIdentifier
   [:map
-   [:type
-    [:enum
-     {:json-schema coercion/identifier-type-json-schema
-      :decode/api coercion/decode-identifier-type
-      :encode/api coercion/encode-identifier-type}
-     :identifier-type-national-insurance
-     :identifier-type-passport
-     :identifier-type-driving-licence
-     :identifier-type-national-id-card
-     :identifier-type-tax-id]]
+   [:type [:ref "IdentifierType"]]
    [:value string?]
    [:issuing-country string?]])
 
@@ -50,9 +37,10 @@
     [:enum
      {:json-schema coercion/party-type-json-schema
       :decode/api coercion/decode-party-type}
-     :party-type-person :party-type-internal]]
+     :party-type-person]]
    [:display-name string?] [:given-name string?]
-   [:middle-names {:optional true} [:maybe string?]] [:family-name string?]
+   [:middle-names {:optional true} [:maybe string?]]
+   [:family-name string?]
    [:date-of-birth int?] [:nationality string?]
    [:national-identifier {:optional true}
     [:maybe [:ref "NationalIdentifier"]]]])
@@ -63,9 +51,11 @@
   [:map {:json-schema/example examples/PartyList}
    [:parties [:vector [:ref "Party"]]]
    [:links {:optional true}
-    [:map [:next {:optional true} string?] [:prev {:optional true} string?]]]])
+    [:map
+     [:next {:optional true} string?]
+     [:prev {:optional true} string?]]]])
 
 (def registry
-  (components-registry [#'PartyId #'Party #'NationalIdentifier
-                        #'CreatePartyRequest #'CreatePartyResponse
-                        #'PartyList]))
+  (components-registry [#'PartyId #'PartyType #'PartyStatus #'IdentifierType
+                        #'Party #'NationalIdentifier #'CreatePartyRequest
+                        #'CreatePartyResponse #'PartyList]))

@@ -5,13 +5,13 @@
     [com.repldriven.mono.bank-party.commands :as commands]
     [com.repldriven.mono.bank-party.store :as store]
 
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [let-nom>]]
     [com.repldriven.mono.bank-schema.interface :as schema]))
 
-(defn create
+(defn new-party
   "Creates a party. Returns party map or anomaly."
   [config data]
-  (error/let-nom> [pb (commands/create config data)]
+  (let-nom> [pb (commands/new-party config data)]
     (schema/pb->Party pb)))
 
 (defn get-parties

@@ -15,8 +15,8 @@
           (as-> parts (when (= "Bearer" (first parts)) (second parts)))))
 
 (defn- verify-org-key
-  [request raw-key]
-  (let [key-hash (encryption/hash-token raw-key)
+  [request key-secret]
+  (let [key-hash (encryption/hash-token key-secret)
         {:keys [record-db record-store]} request
         api-key (cache/lookup api-key-cache
                               key-hash
@@ -31,14 +31,14 @@
   {:name ::authenticate
    :enter (fn [ctx]
             (let [request (:request ctx)
-                  raw-key (extract-bearer request)
+                  key-secret (extract-bearer request)
                   admin-api-key (:admin-api-key request)]
-              (cond (nil? raw-key)
+              (cond (nil? key-secret)
                     ctx
-                    (encryption/bytes-equals? (util/str->bytes raw-key)
+                    (encryption/bytes-equals? (util/str->bytes key-secret)
                                               (util/str->bytes admin-api-key))
                     (assoc-in ctx [:request :auth] {:role :admin})
                     :else
-                    (if-let [auth (verify-org-key request raw-key)]
+                    (if-let [auth (verify-org-key request key-secret)]
                       (assoc-in ctx [:request :auth] auth)
                       ctx))))})

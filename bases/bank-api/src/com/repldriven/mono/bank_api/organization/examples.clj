@@ -30,4 +30,5 @@
 (def CreateOrganizationRequest {:name "Acme Corp" :currencies ["GBP"]})
 
 (def CreateOrganizationResponse
-  (assoc Organization :api-key-secret "sk_live_abc123def456"))
+  (assoc Organization :api-key-secret api-key-examples/ApiKeySecret))
+

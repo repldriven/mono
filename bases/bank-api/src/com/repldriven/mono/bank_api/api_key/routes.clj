@@ -8,4 +8,4 @@
      {:get {:summary "Retrieve API keys"
             :openapi {:operationId "RetrieveApiKeys"}
             :responses {200 {:body [:ref "ApiKeyList"]}}
-            :handler queries/list-api-keys}}]]])
+            :handler queries/get-api-keys}}]]])

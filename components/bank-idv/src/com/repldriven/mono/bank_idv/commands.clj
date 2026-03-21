@@ -2,10 +2,12 @@
   (:refer-clojure :exclude [get read])
   (:require
     [com.repldriven.mono.bank-idv.domain :as domain]
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn- idv-pb->avro
   "Converts protobuf Idv to Avro-compatible map. Proto
@@ -18,16 +20,15 @@
   serialized changelog proto, returns protobuf record or
   anomaly."
   [store idv changelog]
-  (error/let-nom> [_ (fdb/save-record store (schema/Idv->java idv))
-                   _
-                   (fdb/write-changelog store
-                                        "idvs"
-                                        (:verification-id idv)
-                                        (schema/IdvChangelog->pb
-                                         (assoc changelog
-                                                :organization-id
-                                                (:organization-id
-                                                 idv))))]
+  (let-nom> [_ (fdb/save-record store (schema/Idv->java idv))
+             _ (fdb/write-changelog store
+                                    "idvs"
+                                    (:verification-id idv)
+                                    (schema/IdvChangelog->pb
+                                     (assoc changelog
+                                            :organization-id
+                                            (:organization-id
+                                             idv))))]
     (schema/Idv->pb idv)))
 
 (defn- create
@@ -39,7 +40,7 @@
                   record-store
                   "idvs"
                   (fn [store]
-                    (error/let-nom> [idv (domain/new-idv data)]
+                    (let-nom> [idv (domain/new-idv data)]
                       (save store
                             idv
                             {:verification-id (:verification-id
@@ -65,7 +66,7 @@
                   "idvs"
                   (fn [store]
                     (or (fdb/load-record store organization-id verification-id)
-                        (error/reject :bank-idv/not-found "IDV not found"))))))
+                        (error/reject :idv/not-found "IDV not found"))))))
 
 (defn initiate
   "Initiates a new IDV."

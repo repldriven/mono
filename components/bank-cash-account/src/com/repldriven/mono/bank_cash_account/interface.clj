@@ -2,18 +2,14 @@
   (:require
     com.repldriven.mono.bank-cash-account.system
 
-    [com.repldriven.mono.bank-cash-account.commands :as commands]
-    [com.repldriven.mono.bank-cash-account.store :as store]
+    [com.repldriven.mono.bank-cash-account.core :as core]
+    [com.repldriven.mono.bank-cash-account.store :as store]))
 
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
-
-(defn open
+(defn new-account
   "Opens a cash account with balances. Returns account map or
   anomaly."
   [config data]
-  (error/let-nom> [pb (commands/open-account config data)]
-    (schema/pb->CashAccount pb)))
+  (core/new-account config data))
 
 (defn get-accounts
   "Lists cash accounts for an organization. Returns sequence

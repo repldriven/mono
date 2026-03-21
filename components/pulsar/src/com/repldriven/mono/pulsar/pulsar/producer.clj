@@ -4,7 +4,7 @@
     [com.repldriven.mono.pulsar.pulsar.generic-record :as
      generic-record]
     [com.repldriven.mono.pulsar.pulsar.schemas :as schemas]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom-ex]]
     [com.repldriven.mono.log.interface :as log]
     [clojure.data.json :as json]
     [clojure.java.data :as j])
@@ -43,7 +43,7 @@
 (defn create
   [{:keys [^PulsarClient client conf schemas] :as opts}]
   (log/info "Creating Pulsar producer:" (:name opts))
-  (error/try-nom-ex
+  (try-nom-ex
    :pulsar/producer-create PulsarClientException
    "Failed to create Pulsar producer"
    (let [{:keys [cryptoKeyReader encryptionKeys schema]} conf
@@ -72,43 +72,43 @@
 (defn send
   ([producer data]
    (log/debugf "pulsar.pulsar.producer: [producer=%s, data=%s]" producer data)
-   (error/try-nom-ex :pulsar/producer-send PulsarClientException
-                     "Failed to send message to Pulsar"
-                     (let [{:keys [^Producer instance]} producer]
-                       (.send instance (serialize producer data)))))
+   (try-nom-ex :pulsar/producer-send PulsarClientException
+               "Failed to send message to Pulsar"
+               (let [{:keys [^Producer instance]} producer]
+                 (.send instance (serialize producer data)))))
   ([producer data opts]
    (log/debugf "pulsar.pulsar.producer: [producer=%s, data=%s, opts=%s]"
                producer
                data
                opts)
-   (error/try-nom-ex :pulsar/producer-send PulsarClientException
-                     "Failed to send message to Pulsar"
-                     (let [{:keys [^Producer instance]} producer]
-                       (.. instance
-                           newMessage
-                           (loadConf opts)
-                           (value (serialize producer data))
-                           send)))))
+   (try-nom-ex :pulsar/producer-send PulsarClientException
+               "Failed to send message to Pulsar"
+               (let [{:keys [^Producer instance]} producer]
+                 (.. instance
+                     newMessage
+                     (loadConf opts)
+                     (value (serialize producer data))
+                     send)))))
 
 (defn send-async
   ([producer data]
-   (error/try-nom-ex :pulsar/producer-send-async PulsarClientException
-                     "Failed to send async message to Pulsar"
-                     (let [{:keys [^Producer instance]} producer]
-                       (.sendAsync instance (serialize producer data)))))
+   (try-nom-ex :pulsar/producer-send-async PulsarClientException
+               "Failed to send async message to Pulsar"
+               (let [{:keys [^Producer instance]} producer]
+                 (.sendAsync instance (serialize producer data)))))
   ([producer data opts]
-   (error/try-nom-ex :pulsar/producer-send-async PulsarClientException
-                     "Failed to send async message to Pulsar"
-                     (let [{:keys [^Producer instance]} producer]
-                       (.. instance
-                           newMessage
-                           (loadConf opts)
-                           (value (serialize producer data))
-                           sendAsync)))))
+   (try-nom-ex :pulsar/producer-send-async PulsarClientException
+               "Failed to send async message to Pulsar"
+               (let [{:keys [^Producer instance]} producer]
+                 (.. instance
+                     newMessage
+                     (loadConf opts)
+                     (value (serialize producer data))
+                     sendAsync)))))
 
 (defn close
   [producer]
-  (error/try-nom-ex :pulsar/producer-close PulsarClientException
-                    "Failed to close Pulsar producer connection"
-                    (let [{:keys [^Producer instance]} producer]
-                      (.close instance))))
+  (try-nom-ex :pulsar/producer-close PulsarClientException
+              "Failed to close Pulsar producer connection"
+              (let [{:keys [^Producer instance]} producer]
+                (.close instance))))

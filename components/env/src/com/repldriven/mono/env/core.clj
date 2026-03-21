@@ -3,7 +3,7 @@
     aero.core
     [com.repldriven.mono.env.reader.edn :as reader.edn]
     [com.repldriven.mono.env.reader.yml :as reader.yml]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom]]
     [clojure.string :as str]))
 
 (def edn-reader reader.edn/edn-reader)
@@ -38,15 +38,15 @@
 
 (defn config
   ([]
-   (error/try-nom :env/config
-                  "Failed to load config"
-                  (read-config "classpath:application.edn" :default)))
+   (try-nom :env/config
+            "Failed to load config"
+            (read-config "classpath:application.edn" :default)))
   ([source]
-   (error/try-nom :env/config
-                  "Failed to load config"
-                  (read-config source :default)))
+   (try-nom :env/config
+            "Failed to load config"
+            (read-config source :default)))
   ([source profile]
-   (error/try-nom :env/config
-                  "Failed to load config"
-                  (read-config source profile))))
+   (try-nom :env/config
+            "Failed to load config"
+            (read-config source profile))))
 

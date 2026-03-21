@@ -2,10 +2,11 @@
   (:require
     [com.repldriven.mono.bank-cash-account-product.domain :as domain]
 
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
     [com.repldriven.mono.encryption.interface :as encryption]
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn new-product
   "Creates a cash account product as an initial draft v1.
@@ -13,15 +14,15 @@
   [{:keys [record-db record-store]} org-id version-data]
   (let [product-id (encryption/generate-id "prd")
         version (domain/new-version org-id product-id 1 version-data)]
-    (error/let-nom> [_
-                     (fdb/transact record-db
-                                   record-store
-                                   "cash-account-product-versions"
-                                   (fn [store]
-                                     (fdb/save-record
-                                      store
-                                      (schema/CashAccountProductVersion->java
-                                       version))))]
+    (let-nom> [_
+               (fdb/transact record-db
+                             record-store
+                             "cash-account-product-versions"
+                             (fn [store]
+                               (fdb/save-record
+                                store
+                                (schema/CashAccountProductVersion->java
+                                 version))))]
       {:version version})))
 
 (defn new-version
@@ -44,7 +45,7 @@
                        last)]
        (if (and latest (= "draft" (:status latest)))
          (error/reject
-          :bank-cash-account-product/draft-exists
+          :cash-account-product/draft-exists
           {:message
            "Cannot create a new version while the latest version is still a draft"})
          (let [next-num (inc (count records))
@@ -58,13 +59,13 @@
   "Loads a version by org-id, product-id, and version-id.
   Returns the version map, nil if not found, or anomaly."
   [{:keys [record-db record-store]} org-id product-id version-id]
-  (error/let-nom> [result
-                   (fdb/transact
-                    record-db
-                    record-store
-                    "cash-account-product-versions"
-                    (fn [store]
-                      (fdb/load-record store org-id product-id version-id)))]
+  (let-nom> [result
+             (fdb/transact
+              record-db
+              record-store
+              "cash-account-product-versions"
+              (fn [store]
+                (fdb/load-record store org-id product-id version-id)))]
     (when result (schema/pb->CashAccountProductVersion result))))
 
 (defn get-versions
@@ -72,7 +73,7 @@
   without, scans all products for the org. Returns
   {:versions [<map> ...]} or anomaly."
   ([{:keys [record-db record-store]} org-id]
-   (error/let-nom>
+   (let-nom>
      [result
       (fdb/transact
        record-db
@@ -81,7 +82,7 @@
        (fn [store] (fdb/scan-records store {:prefix [org-id] :limit 1000})))]
      {:versions (mapv schema/pb->CashAccountProductVersion (:records result))}))
   ([{:keys [record-db record-store]} org-id product-id]
-   (error/let-nom>
+   (let-nom>
      [result
       (fdb/transact
        record-db
@@ -97,7 +98,7 @@
   a product, or nil if none published. Returns anomaly on
   error."
   [{:keys [record-db record-store]} org-id product-id]
-  (error/let-nom>
+  (let-nom>
     [result
      (fdb/transact
       record-db
@@ -123,13 +124,13 @@
      (let [bytes (fdb/load-record store org-id product-id version-id)]
        (cond (nil? bytes)
              (error/reject
-              :bank-cash-account-product/version-not-found
+              :cash-account-product/version-not-found
               {:message "Version not found"})
              :else
              (let [version (schema/pb->CashAccountProductVersion bytes)]
                (if-not (= "draft" (:status version))
                  (error/reject
-                  :bank-cash-account-product/not-draft
+                  :cash-account-product/not-draft
                   {:message "Only draft versions can be published"})
                  (let [published (domain/publish version)]
                    (fdb/save-record

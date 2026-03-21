@@ -3,17 +3,7 @@
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
     [com.repldriven.mono.bank-cash-account-product.interface :as
      cash-account-products]
-    [com.repldriven.mono.error.interface :as error])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-version
-  [version]
-  (-> version
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.error.interface :as error]))
 
 (defn list-all-versions
   [request]
@@ -25,7 +15,7 @@
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
       {:status 200
-       :body {:versions (mapv format-version (:versions result))}})))
+       :body {:versions (:versions result)}})))
 
 (defn get-published-version
   [request]
@@ -46,7 +36,7 @@
                   "cash-account-products/no-published-version"
                   "No published version found")}
           :else
-          {:status 200 :body (format-version result)})))
+          {:status 200 :body result})))
 
 (defn list-versions
   [request]
@@ -60,7 +50,7 @@
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
       {:status 200
-       :body {:versions (mapv format-version (:versions result))}})))
+       :body {:versions (:versions result)}})))
 
 (defn get-version
   [request]
@@ -82,4 +72,4 @@
                   "cash-account-products/version-not-found"
                   "Version not found")}
           :else
-          {:status 200 :body (format-version result)})))
+          {:status 200 :body result})))

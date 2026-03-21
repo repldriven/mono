@@ -1,3 +1,10 @@
+_record-types: &record-types !strs
+  pets:
+    record-type: Pet
+    indexes:
+      - name: species_idx
+        field: species
+
 container: !system/component
   system/component-kind: fdb/container
 
@@ -17,21 +24,11 @@ record-db: !system/component
 pet-store: !system/component
   system/component-kind: fdb/store
   descriptor: com.repldriven.mono.test_schemas.schemas.TestSchemaProto
-  record-types: !strs
-    pets:
-      record-type: Pet
-      indexes:
-        - name: species_idx
-          field: species
+  record-types: *record-types
 
 pet-meta-store: !system/component
   system/component-kind: fdb/meta-store
   record-db: !system/local-ref record-db
   path: pet-meta
   descriptor: com.repldriven.mono.test_schemas.schemas.TestSchemaProto
-  record-types: !strs
-    pets:
-      record-type: Pet
-      indexes:
-        - name: species_idx
-          field: species
+  record-types: *record-types

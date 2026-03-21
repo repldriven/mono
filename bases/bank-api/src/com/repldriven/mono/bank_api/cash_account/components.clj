@@ -8,36 +8,43 @@
   [:string
    {:title "CashAccountId" :json-schema/example examples/CashAccountId}])
 
-(def ScanAddress [:map [:sort-code string?] [:account-number string?]])
+(def ScanAddress
+  [:map
+   [:sort-code string?]
+   [:account-number string?]])
 
 (def PaymentAddress
   [:map [:scheme string?]
    [:identifier {:optional true}
     [:maybe
-     [:map [:scan {:optional true} [:maybe [:ref "ScanAddress"]]]
+     [:map
+      [:scan {:optional true} [:maybe [:ref "ScanAddress"]]]
       [:value {:optional true} [:maybe string?]]]]]])
+
+(def CashAccountStatus
+  (coercion/cash-account-status-enum-schema {:json-schema/example "opened"}))
 
 (def CashAccount
   [:map {:json-schema/example examples/CashAccount}
    [:organization-id {:optional true} [:maybe string?]]
-   [:account-id [:ref "CashAccountId"]] [:party-id string?] [:name string?]
-   [:currency [:ref "Currency"]] [:product-id string?] [:version-id string?]
-   [:account-status
-    [:enum
-     {:json-schema coercion/cash-account-status-json-schema
-      :decode/api coercion/decode-cash-account-status
-      :encode/api coercion/encode-cash-account-status}
-     :cash-account-status-opening :cash-account-status-opened
-     :cash-account-status-closing :cash-account-status-closed]]
+   [:account-id [:ref "CashAccountId"]]
+   [:party-id string?]
+   [:name string?]
+   [:currency [:ref "Currency"]]
+   [:product-id string?]
+   [:version-id string?]
+   [:account-status [:ref "CashAccountStatus"]]
    [:payment-addresses {:optional true}
     [:maybe [:vector [:ref "PaymentAddress"]]]]
    [:balances {:optional true} [:maybe [:vector [:ref "Balance"]]]]
-   [:created-at {:optional true} [:maybe string?]]
-   [:updated-at {:optional true} [:maybe string?]]])
+   [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]
+   [:updated-at {:optional true} [:maybe [:ref "Timestamp"]]]])
 
 (def CreateCashAccountRequest
   [:map {:json-schema/example examples/CreateCashAccountRequest}
-   [:party-id string?] [:name string?] [:currency [:ref "Currency"]]
+   [:party-id string?]
+   [:name string?]
+   [:currency [:ref "Currency"]]
    [:product-id string?]])
 
 (def CreateCashAccountResponse [:ref "CashAccount"])
@@ -46,12 +53,14 @@
   [:map {:json-schema/example examples/CashAccountList}
    [:cash-accounts [:vector [:ref "CashAccount"]]]
    [:links {:optional true}
-    [:map [:next {:optional true} string?] [:prev {:optional true} string?]]]])
+    [:map
+     [:next {:optional true} string?]
+     [:prev {:optional true} string?]]]])
 
 (def CloseCashAccountResponse [:ref "CashAccount"])
 
 (def registry
   (components-registry [#'CashAccountId #'ScanAddress #'PaymentAddress
-                        #'CashAccount #'CreateCashAccountRequest
-                        #'CreateCashAccountResponse #'CashAccountList
-                        #'CloseCashAccountResponse]))
+                        #'CashAccountStatus #'CashAccount
+                        #'CreateCashAccountRequest #'CreateCashAccountResponse
+                        #'CashAccountList #'CloseCashAccountResponse]))

@@ -90,7 +90,7 @@
                     :side :leg-side-debit
                     :amount 100}]})]
       (is (error/rejection? result))
-      (is (= :bank-transaction/unknown-command
+      (is (= :transaction/unknown-command
              (error/kind result))))))
 
 (defn- test-simulate-inbound-transfer-customer-org

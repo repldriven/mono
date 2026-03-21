@@ -4,17 +4,7 @@
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-timestamps
-  [party]
-  (-> party
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.bank-schema.interface :as schema]))
 
 (def ^:private default-page-size 20)
 (def ^:private max-page-size 100)
@@ -67,8 +57,7 @@
                                                   :limit size})))]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      (let [parties (mapv (comp format-timestamps schema/pb->Party)
-                          (:records result))
+      (let [parties (mapv schema/pb->Party (:records result))
             links (when (seq parties)
                     (build-links {:parties parties
                                   :has-more (:has-more result)
@@ -97,4 +86,4 @@
                                  "Party not found")}
           :else
           {:status 200
-           :body (format-timestamps (schema/pb->Party result))})))
+           :body (schema/pb->Party result)})))

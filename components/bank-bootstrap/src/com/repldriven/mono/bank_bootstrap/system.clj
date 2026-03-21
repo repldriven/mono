@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.bank-bootstrap.system
   (:require
     [com.repldriven.mono.bank-bootstrap.core :as core]
+
     [com.repldriven.mono.system.interface :as system]))
 
 (def ^:private internal

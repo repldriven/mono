@@ -6,7 +6,7 @@
     [com.repldriven.mono.bank-api.api :as api]
     [com.repldriven.mono.cli.interface :as cli]
     [com.repldriven.mono.env.interface :as env]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [nom->]]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system]
     [clojure.core :as c])
@@ -14,10 +14,10 @@
 
 (defn start
   [config-file profile]
-  (error/nom-> (env/config config-file profile)
-               system/defs
-               (assoc-in [:system/defs :server :handler] api/app)
-               system/start))
+  (nom-> (env/config config-file profile)
+         system/defs
+         (assoc-in [:system/defs :server :handler] api/app)
+         system/start))
 
 (defn stop [system] (system/stop system))
 

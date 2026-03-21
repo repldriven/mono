@@ -2,10 +2,12 @@
   (:refer-clojure :exclude [get load read update])
   (:require
     [com.repldriven.mono.bank-cash-account.domain :as domain]
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom> nom->>]]
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn- payment-address-pb->avro
   "Flattens protojure oneof :identifier wrapper to flat
@@ -38,19 +40,29 @@
   not found."
   [store organization-id account-id]
   (or (fdb/load-record store organization-id account-id)
-      (error/reject :bank-cash-account/not-found "Account not found")))
+      (error/reject :cash-account/not-found "Account not found")))
+
+(defn- load-party
+  "Loads a party by composite PK from the store. Returns
+  the party map or a rejection anomaly if not found."
+  [store organization-id party-id]
+  (let-nom> [record (or (fdb/load-record store organization-id party-id)
+                        (error/reject :cash-account/party-unknown
+                                      "Party not found"))]
+    (schema/pb->Party record)))
 
 (defn- load-party-accounts
   "Returns the existing accounts for a party."
   [store party-id]
-  (fdb/load-records store "CashAccount" "party_id" party-id))
+  (mapv schema/pb->CashAccount
+        (fdb/load-records store "CashAccount" "party_id" party-id)))
 
 (defn- save
   "Saves account to store, writes changelog entry with
   serialized changelog proto, returns protobuf record or
   anomaly."
   [store account changelog]
-  (error/let-nom>
+  (let-nom>
     [_ (fdb/save-record store (schema/CashAccount->java account))
      _
      (fdb/write-changelog store
@@ -62,7 +74,7 @@
                                   (:organization-id account))))]
     (schema/CashAccount->pb account)))
 
-(defn- resolve-published-version
+(defn- load-published-version
   "Returns the latest published version for the given
   product, or a rejection anomaly if none found."
   [store organization-id product-id]
@@ -74,26 +86,8 @@
                       (filter #(= "published" (:status %)))
                       (sort-by :version-number))]
     (or (last versions)
-        (error/reject :bank-cash-account/product-not-published
+        (error/reject :cash-account/product-not-published
                       "No published product version found"))))
-
-(defn- validate-currency
-  "Validates currency against version's allowed-currencies.
-  Returns nil on success, rejection anomaly on failure."
-  [currency version]
-  (let [allowed (:allowed-currencies version)]
-    (when (and (seq allowed) (not (some #{currency} allowed)))
-      (error/reject :bank-cash-account/invalid-currency
-                    "Currency not allowed for this product"))))
-
-(defn- party-status->rejection
-  "Returns a rejection anomaly for the given party status,
-  or nil if the party is active."
-  [status]
-  (when (not= :party-status-active status)
-    (let [s (subs (name status) (count "party-status-"))]
-      (error/reject (keyword "bank-cash-account" (str "party-" s))
-                    (str "Party is " s)))))
 
 (defn- save-balances
   "Saves balance records for an account's balance-products."
@@ -115,33 +109,24 @@
      record-db
      record-store
      (fn [open-store]
-       (error/let-nom>
+       (let-nom>
          [version-store (open-store "cash-account-product-versions")
           version
-          (resolve-published-version version-store organization-id product-id)
-          _ (validate-currency currency version)
-          party-store
-          (open-store "parties")
-          party-rec
-          (or (fdb/load-record party-store organization-id party-id)
-              (error/reject :bank-cash-account/party-unknown "Party not found"))
-          party (schema/pb->Party party-rec)
-          _
-          (party-status->rejection (:status party))
-          acct-store
-          (open-store "cash-accounts")
-          existing
-          (->> (load-party-accounts acct-store party-id)
-               (map schema/pb->CashAccount))
-          account
-          (domain/open-account acct-store
-                               (assoc data :version-id (:version-id version))
-                               existing)
-          result
-          (save acct-store
-                account
-                {:account-id (:account-id account)
-                 :status-after (:account-status account)})]
+          (load-published-version version-store organization-id product-id)
+          party-store (open-store "parties")
+          party (load-party party-store organization-id party-id)
+          account-store (open-store "cash-accounts")
+          accounts (load-party-accounts account-store party-id)
+          account (domain/new-account
+                   account-store
+                   data
+                   version
+                   party
+                   accounts)
+          result (save account-store
+                       account
+                       {:account-id (:account-id account)
+                        :status-after (:account-status account)})]
          (when (seq (:balance-products version))
            (save-balances (open-store "balances")
                           (:account-id account)
@@ -167,18 +152,17 @@
                   record-store
                   "cash-accounts"
                   (fn [store]
-                    (error/let-nom>
-                      [loaded
-                       (error/nom->> (load store organization-id account-id)
-                                     schema/pb->CashAccount)
-                       updated (f loaded)]
+                    (let-nom> [loaded (nom->>
+                                       (load store organization-id account-id)
+                                       schema/pb->CashAccount)
+                               updated (f loaded)]
                       (save store
                             updated
                             {:account-id account-id
                              :status-before (:account-status loaded)
                              :status-after (:account-status updated)}))))))
 
-(defn open
+(defn new-account
   "Opens a new account."
   [config data]
   (->response config (open-account config data)))

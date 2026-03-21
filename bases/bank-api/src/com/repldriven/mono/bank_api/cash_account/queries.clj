@@ -4,17 +4,7 @@
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-timestamps
-  [account]
-  (-> account
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.bank-schema.interface :as schema]))
 
 (def ^:private default-page-size 20)
 (def ^:private max-page-size 100)
@@ -67,7 +57,7 @@
                                                   :limit size})))]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      (let [accounts (mapv (comp format-timestamps schema/pb->CashAccount)
+      (let [accounts (mapv schema/pb->CashAccount
                            (:records result))
             links (when (seq accounts)
                     (build-links {:accounts accounts
@@ -99,5 +89,4 @@
                                  "Cash account not found")}
           :else
           {:status 200
-           :body {:cash-account (format-timestamps (schema/pb->CashAccount
-                                                    result))}})))
+           :body (schema/pb->CashAccount result)})))

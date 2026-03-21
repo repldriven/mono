@@ -3,7 +3,7 @@
     [com.repldriven.mono.test_schemas.pets :as pets]
 
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
     [com.repldriven.mono.fdb.interface :as fdb]
     [com.repldriven.mono.processor.interface :as processor]
 
@@ -34,7 +34,7 @@
      record-store
      "pets"
      (fn [store]
-       (error/let-nom>
+       (let-nom>
          [_ (fdb/save-record store
                              (Pet->java {:pet-id pet-id
                                          :name name
@@ -54,7 +54,7 @@
       (error/fail :test-schema/process-command
                   {:message "No schema found for command"
                    :command command})
-      (error/let-nom>
+      (let-nom>
         [data (avro/deserialize-same schema payload)]
         (case command
           "create-pet" (->response config (create config data))

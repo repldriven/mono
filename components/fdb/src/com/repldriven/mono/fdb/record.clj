@@ -1,7 +1,7 @@
 (ns com.repldriven.mono.fdb.record
   (:refer-clojure :exclude [load])
   (:require
-    [com.repldriven.mono.error.interface :as error])
+    [com.repldriven.mono.error.interface :refer [try-nom]])
   (:import
     (com.apple.foundationdb.record EndpointType
                                    ExecuteProperties
@@ -75,12 +75,12 @@
              :fdb/transact
              "Failed to execute transaction"))
   ([^FDBDatabase record-db open-store-fn store-name f category message]
-   (error/try-nom category
-                  message
-                  (.run record-db
-                        ^Function
-                        (fn [ctx]
-                          (f (open-store open-store-fn ctx store-name)))))))
+   (try-nom category
+            message
+            (.run record-db
+                  ^Function
+                  (fn [ctx]
+                    (f (open-store open-store-fn ctx store-name)))))))
 
 (defn transact-multi
   "Runs f within a single FDB transaction, passing a function
@@ -94,13 +94,13 @@
                    :fdb/transact
                    "Failed to execute transaction"))
   ([^FDBDatabase record-db open-store-fn f category message]
-   (error/try-nom category
-                  message
-                  (.run record-db
-                        ^Function
-                        (fn [ctx]
-                          (f (fn [store-name]
-                               (open-store open-store-fn ctx store-name))))))))
+   (try-nom category
+            message
+            (.run record-db
+                  ^Function
+                  (fn [ctx]
+                    (f (fn [store-name]
+                         (open-store open-store-fn ctx store-name))))))))
 
 (defn- prefix-range
   "Returns a TupleRange scoped to a prefix tuple."

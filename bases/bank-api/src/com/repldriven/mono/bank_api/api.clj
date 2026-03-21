@@ -3,6 +3,8 @@
     [com.repldriven.mono.bank-api.balance.components :as balance.components]
     [com.repldriven.mono.bank-api.balance.examples :as balance.examples]
     [com.repldriven.mono.bank-api.balance.routes :as balance]
+    [com.repldriven.mono.bank-api.currency.components :as
+     currency.components]
     [com.repldriven.mono.bank-api.cash-account-product.components :as
      cash-account-product.components]
     [com.repldriven.mono.bank-api.cash-account-product.examples :as
@@ -67,8 +69,9 @@
                    :string {:default (->provider (mt/string-transformer))}
                    :response {:default (->provider nil)}}
     :options {:registry (merge (m/default-schemas)
-                               {"Currency" schema/Currency
+                               {"Timestamp" schema/Timestamp
                                 "ErrorResponse" schema/ErrorResponseSchema}
+                               currency.components/registry
                                balance.components/registry
                                cash-account-product.components/registry
                                cash-account.components/registry

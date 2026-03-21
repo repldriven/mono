@@ -183,7 +183,7 @@
                                   :currency "USD"
                                   :product-id test-product-id})]
         (is (error/rejection? result))
-        (is (= :bank-cash-account/party-pending (error/kind result)))))))
+        (is (= :cash-account/party-pending (error/kind result)))))))
 
 (defn- test-open-account-party-not-found
   [proc schemas]
@@ -197,7 +197,7 @@
                                 :currency "USD"
                                 :product-id test-product-id})]
       (is (error/rejection? result))
-      (is (= :bank-cash-account/party-unknown (error/kind result))))))
+      (is (= :cash-account/party-unknown (error/kind result))))))
 
 (defn- test-close-account
   [proc schemas record-db store-fn]
@@ -285,7 +285,7 @@
                                {:organization-id test-org-id
                                 :account-id "missing-id"})]
       (is (error/rejection? result))
-      (is (= :bank-cash-account/not-found (error/kind result))))))
+      (is (= :cash-account/not-found (error/kind result))))))
 
 (defn- test-open-multiple-accounts
   [proc schemas record-db store-fn]
@@ -330,7 +330,7 @@
                                 :currency "USD"
                                 :product-id "prd_no_versions"})]
       (is (error/rejection? result))
-      (is (= :bank-cash-account/product-not-published (error/kind result))))))
+      (is (= :cash-account/product-not-published (error/kind result))))))
 
 (defn- test-open-account-invalid-currency
   [proc schemas record-db store-fn]
@@ -349,7 +349,7 @@
                                   :currency "USD"
                                   :product-id product-id})]
         (is (error/rejection? result))
-        (is (= :bank-cash-account/invalid-currency (error/kind result)))))))
+        (is (= :cash-account/invalid-currency (error/kind result)))))))
 
 (defn- test-unknown-command
   [proc schemas]
@@ -360,7 +360,7 @@
                                {:organization-id test-org-id
                                 :account-id "acc-8"})]
       (is (error/rejection? result))
-      (is (= :bank-cash-account/unknown-command (error/kind result))))))
+      (is (= :cash-account/unknown-command (error/kind result))))))
 
 (deftest process-cash-accounts-test
   (with-test-system

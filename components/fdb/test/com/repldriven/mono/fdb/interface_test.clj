@@ -2,7 +2,7 @@
   (:require
     com.repldriven.mono.testcontainers.interface
     [com.repldriven.mono.fdb.interface :as SUT]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [nom->]]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-schema.interface :as test-schema]
     [com.repldriven.mono.test-system.interface :refer
@@ -28,7 +28,7 @@
     (testing "can store and retrieve Pet records as raw KV"
       (nom-test> [_ (SUT/set-bytes db "pet/1" (test-schema/Pet->pb whiskers))
                   retrieved
-                  (error/nom-> (SUT/get-bytes db "pet/1") test-schema/pb->Pet)
+                  (nom-> (SUT/get-bytes db "pet/1") test-schema/pb->Pet)
                   _
                   (is (= whiskers (utility/record->map retrieved)))]))))
 
@@ -46,12 +46,12 @@
                    (fn [store]
                      (SUT/save-record store (test-schema/Pet->java whiskers))))
                   retrieved
-                  (error/nom-> (SUT/transact record-db
-                                             pet-store
-                                             "pets"
-                                             (fn [store]
-                                               (SUT/load-record store "pet-1")))
-                               test-schema/pb->Pet)
+                  (nom-> (SUT/transact record-db
+                                       pet-store
+                                       "pets"
+                                       (fn [store]
+                                         (SUT/load-record store "pet-1")))
+                         test-schema/pb->Pet)
                   _
                   (is (= whiskers (utility/record->map retrieved)))]))))
 
@@ -122,7 +122,7 @@
          _
          (is (= 1 (count results)))
          retrieved
-         (error/nom-> (first results) test-schema/pb->Pet)
+         (nom-> (first results) test-schema/pb->Pet)
          _
          (is (= whiskers (utility/record->map retrieved)))]))))
 

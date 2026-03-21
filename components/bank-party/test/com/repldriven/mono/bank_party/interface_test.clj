@@ -125,7 +125,7 @@
                                         :display-name "Second"
                                         :given-name "Second"))]
         (is (error/rejection? result))
-        (is (= :bank-party/duplicate-national-identifier
+        (is (= :party/duplicate-national-identifier
                (error/kind result)))))))
 
 (defn- test-watcher-transitions
@@ -166,7 +166,7 @@
                                 :date-of-birth 20000101
                                 :nationality "US"})]
       (is (error/rejection? result))
-      (is (= :bank-party/unknown-command (error/kind result))))))
+      (is (= :party/unknown-command (error/kind result))))))
 
 (deftest process-party-test
   (with-test-system [sys "classpath:bank-party/application-test.yml"]

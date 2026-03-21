@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.bank-api-key.store
   (:require
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
+    [com.repldriven.mono.error.interface :refer [try-nom]]
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn get-api-key
   "Looks up an API key by its hash. Returns the ApiKey map
@@ -20,8 +21,8 @@
   "Lists all API keys for a given organization. Returns a
   sequence of ApiKey maps."
   [{:keys [record-db record-store]} org-id]
-  (error/try-nom
-   :bank-api-key/list
+  (try-nom
+   :api-key/list
    "Failed to list API keys"
    (fdb/transact
     record-db

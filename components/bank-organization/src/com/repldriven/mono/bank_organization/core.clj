@@ -5,12 +5,13 @@
 
     [com.repldriven.mono.bank-api-key.interface :as bank-api-key]
     [com.repldriven.mono.bank-balance.interface :as balances]
-    [com.repldriven.mono.bank-cash-account-product.interface
-     :as products]
     [com.repldriven.mono.bank-cash-account.interface
      :as cash-accounts]
+    [com.repldriven.mono.bank-cash-account-product.interface
+     :as products]
     [com.repldriven.mono.bank-party.interface :as party]
-    [com.repldriven.mono.error.interface :as error]))
+
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]))
 
 (def ^:private org-type->party-type
   {:organisation-type-internal :party-type-internal
@@ -35,13 +36,14 @@
 (defn- open-accounts
   "Opens one cash account per currency. Returns vector of
   accounts or anomaly."
-  [config org-id party-id product-id currencies]
+  [config org-id party-id product-id product-name currencies]
   (reduce (fn [acc currency]
-            (let [result (cash-accounts/open
+            (let [result (cash-accounts/new-account
                           config
                           {:organization-id org-id
                            :party-id party-id
                            :product-id product-id
+                           :name product-name
                            :currency currency})]
               (if (error/anomaly? result)
                 (reduced result)
@@ -65,16 +67,16 @@
 
 (def ^:private api-key-response-keys [:id :key-prefix :name :created-at])
 
-(defn get-organization
+(defn- get-organization
   "Enriches a flat organization map with party, accounts
-  (with balances), and api-key. When raw-key is provided
+  (with balances), and api-key. When key-secret is provided
   it is included in the result for one-time use at creation.
   Returns rich organization map or anomaly."
   ([config org]
    (get-organization config org nil))
-  ([config org raw-key]
+  ([config org key-secret]
    (let [org-id (:organization-id org)]
-     (error/let-nom>
+     (let-nom>
        [parties (party/get-parties config org-id)
         accounts (cash-accounts/get-accounts config org-id)
         enriched (enrich-accounts config accounts)
@@ -85,15 +87,15 @@
                        :accounts enriched
                        :api-key (select-keys (first api-keys)
                                              api-key-response-keys))}
-               raw-key
-               (assoc :raw-key raw-key))))))
+               key-secret
+               (assoc :key-secret key-secret))))))
 
 (defn get-organizations
   "Lists organizations enriched with party, accounts, and
   api-key. Returns sequence of rich organization maps or
   anomaly."
   [config]
-  (error/let-nom> [orgs (store/get-organizations config)]
+  (let-nom> [orgs (store/get-organizations config)]
     (reduce (fn [acc org]
               (let [result (get-organization config org)]
                 (if (error/anomaly? result)
@@ -108,13 +110,13 @@
   or anomaly."
   [config org-name org-type currencies]
   (let [org (domain/new-organization org-name org-type)
-        {:keys [api-key raw-key]} (bank-api-key/new-api-key
-                                   (:organization-id org)
-                                   "default")]
-    (error/let-nom>
+        {:keys [api-key key-secret]} (bank-api-key/new-api-key
+                                      (:organization-id org)
+                                      "default")]
+    (let-nom>
       [_ (store/create config org api-key)
        org-id (:organization-id org)
-       created-party (party/create
+       created-party (party/new-party
                       config
                       {:organization-id org-id
                        :type (org-type->party-type org-type)
@@ -136,5 +138,6 @@
                         org-id
                         (:party-id created-party)
                         product-id
+                        (org-type->product-name org-type)
                         currencies)]
-      (get-organization config org raw-key))))
+      (get-organization config org key-secret))))

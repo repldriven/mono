@@ -1,3 +1,61 @@
+_record-types: &record-types !strs
+  api-keys:
+    record-type: ApiKey
+    indexes:
+      - name: ApiKey_by_org
+        field: organization_id
+      - name: ApiKey_by_hash
+        field: key_hash
+  balances:
+    record-type: Balance
+    primary-key: [account_id, balance_type, currency, balance_status]
+    indexes: []
+  cash-account-product-versions:
+    record-type: CashAccountProductVersion
+    primary-key: [organization_id, product_id, version_id]
+    indexes:
+      - name: CashAccountProductVersion_by_org
+        field: organization_id
+  cash-accounts:
+    record-type: CashAccount
+    primary-key: [organization_id, account_id]
+    indexes:
+      - name: party_id_idx
+        field: party_id
+  idvs:
+    record-type: Idv
+    primary-key: [organization_id, verification_id]
+    indexes: []
+  organizations:
+    record-type: Organization
+    indexes: []
+  parties:
+    record-type: Party
+    primary-key: [organization_id, party_id]
+    indexes: []
+  party-national-identifiers:
+    record-type: PartyNationalIdentifier
+    primary-key: [party_id, type]
+    indexes:
+      - name: org_type_value_unique_idx
+        fields: [organization_id, type, value]
+        unique: true
+  person-identifications:
+    record-type: PersonIdentification
+    indexes: []
+  transaction-legs:
+    record-type: TransactionLeg
+    primary-key: [transaction_id, leg_id]
+    indexes:
+      - name: TransactionLeg_by_account
+        field: account_id
+  transactions:
+    record-type: Transaction
+    indexes:
+      - name: Transaction_by_idempotency_key
+        field: idempotency_key
+        unique: true
+
 container: !system/component
   system/component-kind: fdb/container
 
@@ -17,123 +75,11 @@ record-db: !system/component
 store: !system/component
   system/component-kind: fdb/store
   descriptor: com.repldriven.mono.schemas.schemas.SchemaProto
-  record-types: !strs
-    balances:
-      record-type: Balance
-      primary-key: [account_id, balance_type, currency, balance_status]
-      indexes: []
-    cash-accounts:
-      record-type: CashAccount
-      primary-key: [organization_id, account_id]
-      indexes:
-        - name: party_id_idx
-          field: party_id
-    organizations:
-      record-type: Organization
-      indexes: []
-    parties:
-      record-type: Party
-      primary-key: [organization_id, party_id]
-      indexes: []
-    party-national-identifiers:
-      record-type: PartyNationalIdentifier
-      primary-key: [party_id, type]
-      indexes:
-        - name: org_type_value_unique_idx
-          fields: [organization_id, type, value]
-          unique: true
-    person-identifications:
-      record-type: PersonIdentification
-      indexes: []
-    idvs:
-      record-type: Idv
-      primary-key: [organization_id, verification_id]
-      indexes: []
-    api-keys:
-      record-type: ApiKey
-      indexes:
-        - name: ApiKey_by_org
-          field: organization_id
-        - name: ApiKey_by_hash
-          field: key_hash
-    cash-account-product-versions:
-      record-type: CashAccountProductVersion
-      primary-key: [organization_id, product_id, version_id]
-      indexes:
-        - name: CashAccountProductVersion_by_org
-          field: organization_id
-    transactions:
-      record-type: Transaction
-      indexes:
-        - name: Transaction_by_idempotency_key
-          field: idempotency_key
-          unique: true
-    transaction-legs:
-      record-type: TransactionLeg
-      primary-key: [transaction_id, leg_id]
-      indexes:
-        - name: TransactionLeg_by_account
-          field: account_id
+  record-types: *record-types
 
 meta-store: !system/component
   system/component-kind: fdb/meta-store
   record-db: !system/local-ref record-db
   path: meta
   descriptor: com.repldriven.mono.schemas.schemas.SchemaProto
-  record-types: !strs
-    balances:
-      record-type: Balance
-      primary-key: [account_id, balance_type, currency, balance_status]
-      indexes: []
-    cash-accounts:
-      record-type: CashAccount
-      primary-key: [organization_id, account_id]
-      indexes:
-        - name: party_id_idx
-          field: party_id
-    organizations:
-      record-type: Organization
-      indexes: []
-    parties:
-      record-type: Party
-      primary-key: [organization_id, party_id]
-      indexes: []
-    party-national-identifiers:
-      record-type: PartyNationalIdentifier
-      primary-key: [party_id, type]
-      indexes:
-        - name: org_type_value_unique_idx
-          fields: [organization_id, type, value]
-          unique: true
-    person-identifications:
-      record-type: PersonIdentification
-      indexes: []
-    idvs:
-      record-type: Idv
-      primary-key: [organization_id, verification_id]
-      indexes: []
-    api-keys:
-      record-type: ApiKey
-      indexes:
-        - name: ApiKey_by_org
-          field: organization_id
-        - name: ApiKey_by_hash
-          field: key_hash
-    cash-account-product-versions:
-      record-type: CashAccountProductVersion
-      primary-key: [organization_id, product_id, version_id]
-      indexes:
-        - name: CashAccountProductVersion_by_org
-          field: organization_id
-    transactions:
-      record-type: Transaction
-      indexes:
-        - name: Transaction_by_idempotency_key
-          field: idempotency_key
-          unique: true
-    transaction-legs:
-      record-type: TransactionLeg
-      primary-key: [transaction_id, leg_id]
-      indexes:
-        - name: TransactionLeg_by_account
-          field: account_id
+  record-types: *record-types

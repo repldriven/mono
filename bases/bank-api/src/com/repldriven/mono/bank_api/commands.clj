@@ -4,12 +4,12 @@
     [com.repldriven.mono.bank-api.errors :as errors]
     [com.repldriven.mono.avro.interface :as avro]
     [com.repldriven.mono.command.interface :as command]
-    [com.repldriven.mono.error.interface :as error]))
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]))
 
 (defn- get-schema
   [schemas command-name]
   (or (get schemas command-name)
-      (error/fail :bank-api/unknown-command
+      (error/fail :api/unknown-command
                   {:message "Unknown command" :command command-name})))
 
 (defn- decode-payload
@@ -23,7 +23,7 @@
   [dispatcher request command-name response-schema data]
   (let [schemas (:avro request)
         envelope (command/req->command-request request command-name)
-        result (error/let-nom>
+        result (let-nom>
                  [schema (get-schema schemas command-name)
                   payload
                   (avro/serialize schema data)]

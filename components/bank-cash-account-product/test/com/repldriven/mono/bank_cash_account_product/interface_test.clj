@@ -88,7 +88,7 @@
                                       :balance-sheet-side
                                       :balance-sheet-side-asset})]
                        (is (error/anomaly? rejected))
-                       (is (= :bank-cash-account-product/draft-exists
+                       (is (= :cash-account-product/draft-exists
                               (error/kind rejected))))]))
      (testing "get and list versions"
        (nom-test> [result (SUT/new-product config

@@ -2,6 +2,7 @@
   (:require
     [com.repldriven.mono.bank-idv.core :as core]
     [com.repldriven.mono.bank-idv.watcher :as watcher]
+
     [com.repldriven.mono.system.interface :as system]))
 
 (def ^:private processor

@@ -1,12 +1,8 @@
 (ns com.repldriven.mono.bank-api.schema
   (:require
-    [com.repldriven.mono.utility.interface :refer [vname]]))
-
-(def Currency [:re #"^[A-Z]{3}$"])
-
-(def ErrorResponseSchema
-  [:map [:title string?] [:type string?] [:status int?]
-   [:detail {:optional true} string?]])
+    [com.repldriven.mono.utility.interface :refer [vname]])
+  (:import
+    (java.time Instant)))
 
 (defn components-registry
   [vars]
@@ -15,6 +11,13 @@
 (defn examples-registry
   [examples]
   (reduce (fn [m v] (assoc m (vname v) @v)) {} examples))
+
+(def ErrorResponseSchema
+  [:map
+   [:title string?]
+   [:type string?]
+   [:status int?]
+   [:detail {:optional true} string?]])
 
 (defn ErrorResponse
   [examples]
@@ -28,3 +31,10 @@
                                                         v')})))
                                 {}
                                 examples)}}})
+
+(def Timestamp
+  [:int
+   {:encode/api (fn [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
+    :json-schema {:type "string" :format "date-time"}}])
+
+

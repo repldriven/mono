@@ -1,10 +1,12 @@
 (ns com.repldriven.mono.bank-party.commands
   (:require
     [com.repldriven.mono.bank-party.domain :as domain]
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema])
+    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.fdb.interface :as fdb])
   (:import
     (com.apple.foundationdb.record RecordIndexUniquenessViolation)))
 
@@ -13,12 +15,11 @@
   serialized changelog proto, returns protobuf record or
   anomaly."
   [store party changelog]
-  (error/let-nom> [_ (fdb/save-record store (schema/Party->java party))
-                   _
-                   (fdb/write-changelog store
-                                        "parties"
-                                        (:party-id party)
-                                        (schema/PartyChangelog->pb changelog))]
+  (let-nom> [_ (fdb/save-record store (schema/Party->java party))
+             _ (fdb/write-changelog store
+                                    "parties"
+                                    (:party-id party)
+                                    (schema/PartyChangelog->pb changelog))]
     (schema/Party->pb party)))
 
 (defn- save-person-identification
@@ -37,12 +38,15 @@
   [anomaly]
   (when (error/anomaly? anomaly)
     (loop [ex (:exception (error/payload anomaly))]
-      (cond (nil? ex)
-            false
-            (instance? RecordIndexUniquenessViolation ex)
-            true
-            :else
-            (recur (.getCause ex))))))
+      (cond
+       (nil? ex)
+       false
+
+       (instance? RecordIndexUniquenessViolation ex)
+       true
+
+       :else
+       (recur (.getCause ex))))))
 
 (defn- create-person
   "Creates a person party with person-identification and
@@ -59,23 +63,20 @@
            party-store (open-store "parties")
            pid-store (open-store "person-identifications")
            ni (:national-identifier data)]
-       (error/let-nom>
+       (let-nom>
          [_ (save-person-identification pid-store person-id)
-          _
-          (if ni
-            (save-party-national-identifier
-             (open-store "party-national-identifiers")
-             (domain/new-party-national-identifier
-              ni
-              (:organization-id party)
-              party-id))
-            nil)
-          result
-          (save-party party-store
-                      party
-                      {:organization-id (:organization-id party)
-                       :party-id party-id
-                       :status-after (:status party)})]
+          _ (when ni
+              (save-party-national-identifier
+               (open-store "party-national-identifiers")
+               (domain/new-party-national-identifier
+                ni
+                (:organization-id party)
+                party-id)))
+          result (save-party party-store
+                             party
+                             {:organization-id (:organization-id party)
+                              :party-id party-id
+                              :status-after (:status party)})]
          result)))))
 
 (defn- create-internal
@@ -93,7 +94,7 @@
                                  :party-id (:party-id party)
                                  :status-after (:status party)})))))
 
-(defn create
+(defn new-party
   "Creates a party. Person parties include
   person-identification and optional national-identifier.
   Internal and organization parties skip both. Returns
@@ -104,7 +105,7 @@
                  (create-person record-db record-store data)
                  (create-internal record-db record-store data))]
     (if (uniqueness-violation? result)
-      (error/reject :bank-party/duplicate-national-identifier
+      (error/reject :party/duplicate-national-identifier
                     "National identifier already exists")
       result)))
 
@@ -121,4 +122,4 @@
 (defn create-party
   "Creates a new party."
   [config data]
-  (->response config (create config data)))
+  (->response config (new-party config data)))

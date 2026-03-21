@@ -5,14 +5,14 @@
     com.repldriven.mono.pulsar.interface
     [com.repldriven.mono.cli.interface :as cli]
     [com.repldriven.mono.env.interface :as env]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [nom->]]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system])
   (:gen-class))
 
 (defn start
   [config-file profile]
-  (error/nom-> (env/config config-file profile) system/defs system/start))
+  (nom-> (env/config config-file profile) system/defs system/start))
 
 (defn -main
   [& args]

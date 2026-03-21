@@ -1,6 +1,5 @@
 (ns com.repldriven.mono.bank-api.balance.routes
   (:require
-    [com.repldriven.mono.bank-api.balance.coercion :as coercion]
     [com.repldriven.mono.bank-api.balance.handlers :as handlers]
     [com.repldriven.mono.bank-api.balance.queries :as queries]
     [com.repldriven.mono.bank-api.balance.examples :refer
@@ -19,28 +18,14 @@
       :post {:summary "Create a balance"
              :openapi {:operationId "CreateBalance"}
              :parameters {:body [:ref "CreateBalanceRequest"]}
-             :responses {201 {:body [:ref "Balance"]}}
+             :responses {201 {:body [:ref "CreateBalanceResponse"]}}
              :handler handlers/create-balance}}]
     ["/{balance-type}/{currency}/{balance-status}"
      {:get {:summary "Retrieve a balance"
             :openapi {:operationId "RetrieveBalance"}
-            :parameters
-            {:path
-             {:balance-type [:enum
-                             {:json-schema coercion/balance-type-json-schema
-                              :decode/api coercion/decode-balance-type}
-                             :balance-type-default
-                             :balance-type-interest-accrued
-                             :balance-type-interest-paid
-                             :balance-type-purchase
-                             :balance-type-cash]
-              :currency string?
-              :balance-status [:enum
-                               {:json-schema coercion/balance-status-json-schema
-                                :decode/api coercion/decode-balance-status}
-                               :balance-status-posted
-                               :balance-status-pending-incoming
-                               :balance-status-pending-outgoing]}}
+            :parameters {:path {:balance-type [:ref "BalanceType"]
+                                :currency string?
+                                :balance-status [:ref "BalanceStatus"]}}
             :responses {200 {:body [:ref "Balance"]}
                         404 (ErrorResponse [#'BalanceNotFound])}
             :handler queries/get-balance}}]]

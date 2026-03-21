@@ -3,7 +3,7 @@
     [com.repldriven.mono.pulsar.pulsar.schemas :as schemas]
     [com.repldriven.mono.pulsar.pulsar.message :as message]
     [com.repldriven.mono.log.interface :as log]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom-ex]]
     [clojure.core.async :as async]
     [clojure.java.data :as j])
   (:import
@@ -20,7 +20,7 @@
 (defn create
   ^Consumer [{:keys [^PulsarClient client conf schemas] :as opts}]
   (log/info "Creating Pulsar consumer:" (:name opts))
-  (error/try-nom-ex
+  (try-nom-ex
    :pulsar/consumer-create PulsarClientException
    "Failed to create Pulsar consumer"
    (let [{:keys [cryptoKeyReader schema]} conf
@@ -84,12 +84,12 @@
 (defn acknowledge
   "Acknowledge a message. Returns nil on success or an anomaly on failure."
   [^Consumer consumer ^Message message]
-  (error/try-nom-ex :pulsar/consumer-acknowledge PulsarClientException
-                    "Failed to acknowledge Pulsar consumer message"
-                    (do (.acknowledge consumer message) nil)))
+  (try-nom-ex :pulsar/consumer-acknowledge PulsarClientException
+              "Failed to acknowledge Pulsar consumer message"
+              (do (.acknowledge consumer message) nil)))
 
 (defn close
   [^Consumer consumer]
-  (error/try-nom-ex :pulsar/consumer-close PulsarClientException
-                    "Failed to close Pulsar consumer connection" (.close
-                                                                  consumer)))
+  (try-nom-ex :pulsar/consumer-close PulsarClientException
+              "Failed to close Pulsar consumer connection" (.close
+                                                            consumer)))

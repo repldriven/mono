@@ -3,17 +3,7 @@
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
     [com.repldriven.mono.bank-cash-account-product.interface :as
      cash-account-products]
-    [com.repldriven.mono.error.interface :as error])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-version
-  [version]
-  (-> version
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.error.interface :as error]))
 
 (defn create-product
   [request]
@@ -26,7 +16,7 @@
                                                   body)]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      {:status 201 :body (format-version (:version result))})))
+      {:status 201 :body (:version result)})))
 
 (defn create-version
   [request]
@@ -44,7 +34,7 @@
             {:status 409 :body (error-response 409 result)}
             {:status 500 :body (error-response 500 result)})
           :else
-          {:status 201 :body (format-version (:version result))})))
+          {:status 201 :body (:version result)})))
 
 (defn publish-version
   [request]
@@ -65,4 +55,4 @@
                   :else
                   {:status 500 :body (error-response 500 result)}))
           :else
-          {:status 200 :body (format-version result)})))
+          {:status 200 :body result})))

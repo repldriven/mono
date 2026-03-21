@@ -31,7 +31,7 @@
                              :type :organisation-type-customer
                              :status "active"}
                             (select-keys org [:name :type :status])))
-                   _ (is (.startsWith ^String (:raw-key result) "sk_live_"))
+                   _ (is (.startsWith ^String (:key-secret result) "sk_live_"))
                    _ (is (= {:type :party-type-organization
                              :status :party-status-active}
                             (select-keys (:party org) [:type :status])))

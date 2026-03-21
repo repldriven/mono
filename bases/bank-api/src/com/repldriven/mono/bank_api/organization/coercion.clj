@@ -1,21 +1,10 @@
-(ns com.repldriven.mono.bank-api.organization.coercion)
+(ns com.repldriven.mono.bank-api.organization.coercion
+  (:require
+    [com.repldriven.mono.bank-api.coercion :as coercion]))
 
-(def ^:private organisation-types
-  {"internal" :organisation-type-internal
-   "customer" :organisation-type-customer})
+(def ^:private organisation-type-enum
+  (coercion/enum-coercion {"internal" :organisation-type-internal
+                           "customer" :organisation-type-customer}
+                          :organisation-type-unknown))
 
-(def decode-organisation-type
-  (let [m (merge organisation-types
-                 (zipmap (map keyword (keys organisation-types))
-                         (vals organisation-types)))]
-    (fn [v] (get m v v))))
-
-(def encode-organisation-type
-  (let [m (assoc (zipmap (vals organisation-types)
-                         (map keyword (keys organisation-types)))
-                 :organisation-type-unknown
-                 :unknown)]
-    (fn [v] (get m v v))))
-
-(def organisation-type-json-schema
-  {:type "string" :enum (vec (keys organisation-types))})
+(def organisation-type-enum-schema (:enum-schema organisation-type-enum))

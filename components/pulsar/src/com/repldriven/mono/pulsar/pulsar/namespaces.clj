@@ -1,6 +1,6 @@
 (ns com.repldriven.mono.pulsar.pulsar.namespaces
   (:require
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.http-client.interface :as http]
     [com.repldriven.mono.log.interface :as log]
     [clojure.data.json :as json]
@@ -40,7 +40,7 @@
 (defn create-namespaces
   [{:keys [^PulsarAdmin admin namespaces]}]
   (log/info "Creating Pulsar namespaces:" (map :namespace namespaces))
-  (error/try-nom :pulsar/namespaces-create
-                 "Failed to create Pulsar namespaces"
-                 (doseq [{:keys [namespace] :as opts} namespaces]
-                   (create admin namespace (dissoc opts :namespace)))))
+  (try-nom :pulsar/namespaces-create
+           "Failed to create Pulsar namespaces"
+           (doseq [{:keys [namespace] :as opts} namespaces]
+             (create admin namespace (dissoc opts :namespace)))))

@@ -1,8 +1,10 @@
 (ns com.repldriven.mono.bank-cash-account.watcher
   (:require
     [com.repldriven.mono.bank-cash-account.domain :as domain]
-    [com.repldriven.mono.fdb.interface :as fdb]
-    [com.repldriven.mono.bank-schema.interface :as schema]))
+
+    [com.repldriven.mono.bank-schema.interface :as schema]
+
+    [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn cash-account-changelog-handler
   "Returns a watcher handler that transitions closing

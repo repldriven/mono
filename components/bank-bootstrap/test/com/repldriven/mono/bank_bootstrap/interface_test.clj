@@ -16,7 +16,11 @@
   []
   {:organization-name "Queenswood"
    :currencies ["GBP"]
-   :initial-balance 10000})
+   :balances [{:balance-type :balance-type-default
+               :balance-status :balance-status-posted
+               :currency "GBP"
+               :credit 10000
+               :debit 0}]})
 
 (defn- fdb-config
   [sys]

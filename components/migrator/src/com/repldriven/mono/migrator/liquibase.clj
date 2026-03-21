@@ -1,7 +1,7 @@
 (ns com.repldriven.mono.migrator.liquibase
   (:require
     [com.repldriven.mono.db.interface :as sql]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom]]
     [clojure.java.io :as io])
   (:import
     (liquibase Contexts LabelExpression Liquibase)
@@ -21,7 +21,7 @@
 
 (defn migrate
   [db-spec resource-path]
-  (error/try-nom
+  (try-nom
    :migrator/migration-failed
    "Failed to run database migrations"
    (with-open [conn (sql/get-connection db-spec)]

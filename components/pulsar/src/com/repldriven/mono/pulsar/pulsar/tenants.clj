@@ -1,6 +1,6 @@
 (ns com.repldriven.mono.pulsar.pulsar.tenants
   (:require
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log])
   (:import
     (org.apache.pulsar.client.admin PulsarAdmin Tenants)
@@ -20,8 +20,8 @@
 (defn create-tenants
   [{:keys [^PulsarAdmin admin tenants]}]
   (log/info "Creating Pulsar tenants:" (map :tenant tenants))
-  (error/try-nom :pulsar/tenants-create
-                 "Failed to create Pulsar tenant(s)"
-                 (doall (mapv (fn [{:keys [tenant] :as opts}]
-                                (create admin tenant (dissoc opts :tenant)))
-                              tenants))))
+  (try-nom :pulsar/tenants-create
+           "Failed to create Pulsar tenant(s)"
+           (doall (mapv (fn [{:keys [tenant] :as opts}]
+                          (create admin tenant (dissoc opts :tenant)))
+                        tenants))))

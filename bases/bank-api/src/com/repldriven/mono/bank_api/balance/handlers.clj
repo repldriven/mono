@@ -2,17 +2,7 @@
   (:require
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
     [com.repldriven.mono.bank-balance.interface :as balances]
-    [com.repldriven.mono.error.interface :as error])
-  (:import
-    (java.time Instant)))
-
-(defn- millis->iso [ms] (when (pos? ms) (str (Instant/ofEpochMilli ms))))
-
-(defn- format-balance
-  [balance]
-  (-> balance
-      (update :created-at millis->iso)
-      (update :updated-at millis->iso)))
+    [com.repldriven.mono.error.interface :as error]))
 
 (defn create-balance
   [request]
@@ -24,4 +14,4 @@
                                      (assoc body :account-id account-id))]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      {:status 201 :body (format-balance result)})))
+      {:status 201 :body result})))

@@ -1,6 +1,6 @@
 (ns com.repldriven.mono.error.interface-test
   (:require
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [try-nom try-nom-ex]]
     [clojure.test :refer [deftest is testing]]))
 
 (deftest fail-test
@@ -33,22 +33,21 @@
 
 (deftest try-nom-test
   (testing "returns value on success"
-    (is (= 42 (error/try-nom :foo/bar "failed" 42))))
+    (is (= 42 (try-nom :foo/bar "failed" 42))))
   (testing "catches exception and returns anomaly"
-    (let [result (error/try-nom :foo/bar "failed" (throw (ex-info "boom" {})))]
+    (let [result (try-nom :foo/bar "failed" (throw (ex-info "boom" {})))]
       (is (error/anomaly? result))
       (is (= :foo/bar (error/kind result)))
       (is (= "failed" (:message (error/payload result)))))))
 
 (deftest try-nom-ex-test
   (testing "catches specified exception type"
-    (let [result (error/try-nom-ex :foo/bar IllegalArgumentException
-                                   "bad arg" (throw (IllegalArgumentException.
-                                                     "boom")))]
+    (let [result (try-nom-ex :foo/bar IllegalArgumentException
+                             "bad arg" (throw (IllegalArgumentException.
+                                               "boom")))]
       (is (error/anomaly? result))
       (is (= :foo/bar (error/kind result)))))
   (testing "does not catch other exception types"
     (is (thrown? RuntimeException
-                 (error/try-nom-ex :foo/bar IllegalArgumentException
-                                   "bad arg" (throw (RuntimeException.
-                                                     "boom")))))))
+                 (try-nom-ex :foo/bar IllegalArgumentException
+                             "bad arg" (throw (RuntimeException. "boom")))))))

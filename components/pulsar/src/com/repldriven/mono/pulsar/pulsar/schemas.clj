@@ -5,7 +5,7 @@
     [clojure.java.data :as j]
     [clojure.java.io :as io]
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log])
   (:import
     (java.util Map)
@@ -94,29 +94,29 @@
 (defn create-schemas
   [coll]
   (log/info "Creating Pulsar schemas:" (keys coll))
-  (error/try-nom :pulsar/schemas-create
-                 "Failed to create Pulsar schemas"
-                 (into {}
-                       (doall (reduce-kv
-                               (fn [m k {:keys [type schema properties]}]
-                                 (assoc m
-                                        k
-                                        (create-schema-entry type
-                                                             (read-schema
-                                                              schema)
-                                                             properties)))
-                               {}
-                               coll)))))
+  (try-nom :pulsar/schemas-create
+           "Failed to create Pulsar schemas"
+           (into {}
+                 (doall (reduce-kv
+                         (fn [m k {:keys [type schema properties]}]
+                           (assoc m
+                                  k
+                                  (create-schema-entry type
+                                                       (read-schema
+                                                        schema)
+                                                       properties)))
+                         {}
+                         coll)))))
 
 (defn resolve
   [schemas s]
   (cond (keyword? s)
         (get-in schemas [s :schema])
         (map? s)
-        (error/try-nom :pulsar/schema-resolve
-                       "Failed to resolve Pulsar schema"
-                       (let [{:keys [type schema properties]} s]
-                         (create-schema type schema properties)))
+        (try-nom :pulsar/schema-resolve
+                 "Failed to resolve Pulsar schema"
+                 (let [{:keys [type schema properties]} s]
+                   (create-schema type schema properties)))
         :else
         s))
 
@@ -125,10 +125,10 @@
   (cond (keyword? s)
         (get-in schemas [s :payload])
         (map? s)
-        (error/try-nom :pulsar/schema-resolve-payload
-                       "Failed to resolve Pulsar schema payload"
-                       (let [{:keys [type schema properties]} s]
-                         (create-payload type schema properties)))
+        (try-nom :pulsar/schema-resolve-payload
+                 "Failed to resolve Pulsar schema payload"
+                 (let [{:keys [type schema properties]} s]
+                   (create-payload type schema properties)))
         :else
         (error/fail :pulsar/schema-resolve-payload-invalid
                     (format "Invalid value for schema payload: %s" s))))

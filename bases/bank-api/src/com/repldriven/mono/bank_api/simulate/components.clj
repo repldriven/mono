@@ -12,7 +12,7 @@
    [:account-id string?] [:balance-type string?]
    [:balance-status string?] [:side string?] [:amount int?]
    [:currency string?]
-   [:created-at {:optional true} [:maybe string?]]])
+   [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]])
 
 (def SimulateInboundTransferResponse
   [:map {:json-schema/example examples/SimulateInboundTransferResponse}
@@ -20,8 +20,8 @@
    [:status string?] [:transaction-type string?]
    [:currency string?]
    [:reference {:optional true} [:maybe string?]]
-   [:created-at {:optional true} [:maybe string?]]
-   [:updated-at {:optional true} [:maybe string?]]
+   [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]
+   [:updated-at {:optional true} [:maybe [:ref "Timestamp"]]]
    [:legs [:vector [:ref "TransactionLeg"]]]])
 
 (def registry

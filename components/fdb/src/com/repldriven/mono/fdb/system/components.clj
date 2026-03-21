@@ -2,7 +2,7 @@
   (:require
     [com.repldriven.mono.fdb.keyspace :as keyspace]
     [com.repldriven.mono.fdb.watcher :as watcher]
-    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.error.interface :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system])
   (:import
@@ -49,15 +49,15 @@
                      (log/info "FDB database start called, instance:" instance
                                "config:" config)
                      (or instance
-                         (error/try-nom
-                          :fdb/create-db
-                          {:message "Failed to create FDB database"
-                           :cluster-file-path cluster-file-path}
-                          (let [fdb (FDB/selectAPIVersion api-version)
-                                db (.open fdb cluster-file-path)]
-                            (log/info "Opened FDB database with cluster file:"
-                                      cluster-file-path)
-                            db)))))
+                         (try-nom :fdb/create-db
+                                  {:message "Failed to create FDB database"
+                                   :cluster-file-path cluster-file-path}
+                                  (let [fdb (FDB/selectAPIVersion api-version)
+                                        db (.open fdb cluster-file-path)]
+                                    (log/info
+                                     "Opened FDB database with cluster file:"
+                                     cluster-file-path)
+                                    db)))))
    :system/stop (fn [{:system/keys [instance]}]
                   (when (some? instance)
                     (log/info "Closing FDB database")
@@ -74,7 +74,7 @@
 (def record-db
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance
-                       (error/try-nom
+                       (try-nom
                         :fdb/create-record-db
                         {:message "Failed to create FDB Record Layer database"}
                         (let [{:keys [cluster-file-path]} config]
