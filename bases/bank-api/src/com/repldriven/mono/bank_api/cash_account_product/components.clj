@@ -25,6 +25,7 @@
     [:maybe [:vector [:ref "BalanceProductRequest"]]]]
    [:allowed-payment-address-schemes {:optional true}
     [:maybe [:vector [:ref "PaymentAddressScheme"]]]]
+   [:interest-rate-bps {:optional true} [:maybe int?]]
    [:valid-from {:optional true} [:maybe [:ref "Timestamp"]]]
    [:valid-to {:optional true} [:maybe [:ref "Timestamp"]]]])
 
@@ -43,6 +44,7 @@
     [:maybe [:vector [:ref "BalanceProduct"]]]]
    [:allowed-payment-address-schemes {:optional true}
     [:maybe [:vector [:ref "PaymentAddressScheme"]]]]
+   [:interest-rate-bps {:optional true} [:maybe int?]]
    [:valid-from {:optional true} [:maybe string?]]
    [:valid-to {:optional true} [:maybe string?]]
    [:created-at {:optional true} [:maybe [:ref "Timestamp"]]]
@@ -62,6 +64,7 @@
     [:maybe [:vector [:ref "BalanceProductRequest"]]]]
    [:allowed-payment-address-schemes {:optional true}
     [:maybe [:vector [:ref "PaymentAddressScheme"]]]]
+   [:interest-rate-bps {:optional true} [:maybe int?]]
    [:valid-from {:optional true} [:maybe [:ref "Timestamp"]]]
    [:valid-to {:optional true} [:maybe [:ref "Timestamp"]]]])
 

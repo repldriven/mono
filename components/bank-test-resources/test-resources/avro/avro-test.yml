@@ -20,6 +20,11 @@ serde: !system/component
     record-transaction: schemas/transactions/record-transaction.avsc.json
     unknown-transaction-command: schemas/transactions/record-transaction.avsc.json
 
+    interest-result: schemas/interest/interest-result.avsc.json
+    accrue-daily-interest: schemas/interest/accrue-daily-interest.avsc.json
+    capitalize-monthly-interest: schemas/interest/capitalize-monthly-interest.avsc.json
+    unknown-interest-command: schemas/interest/accrue-daily-interest.avsc.json
+
     internal-payment: schemas/payments/internal-payment.avsc.json
     submit-internal-payment: schemas/payments/submit-internal-payment.avsc.json
     unknown-payment-command: schemas/payments/submit-internal-payment.avsc.json

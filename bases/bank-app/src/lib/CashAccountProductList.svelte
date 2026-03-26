@@ -15,6 +15,7 @@
   let accountType = $state("current");
   let balanceSheetSide = $state("liability");
   let allowedCurrencies = $state("GBP");
+  let interestRateBps = $state(0);
   let creating = $state(false);
 
   const defaultBalanceProducts = [
@@ -51,6 +52,7 @@
   let reviseAllowedCurrencies = $state("");
   let reviseSelectedBalanceProducts = $state(defaultBalanceProducts.map(() => true));
   let reviseSelectedSchemes = $state(paymentAddressSchemes.map(() => true));
+  let reviseInterestRateBps = $state(0);
   let revising = $state(false);
 
   function openReviseModal(v) {
@@ -67,6 +69,7 @@
     const existingSchemes = v["allowed-payment-address-schemes"] ?? [];
     reviseSelectedSchemes = paymentAddressSchemes.map(s =>
       existingSchemes.includes(s.scheme));
+    reviseInterestRateBps = v["interest-rate-bps"] ?? 0;
     reviseModalOpen = true;
   }
 
@@ -88,6 +91,7 @@
         "allowed-currencies": currencies.length > 0 ? currencies : undefined,
         "balance-products": bps.length > 0 ? bps : undefined,
         "allowed-payment-address-schemes": schemes.length > 0 ? schemes : undefined,
+        "interest-rate-bps": reviseInterestRateBps,
       });
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         reviseModalOpen = false;
@@ -146,6 +150,7 @@
         "allowed-currencies": currencies.length > 0 ? currencies : undefined,
         "balance-products": bps.length > 0 ? bps : undefined,
         "allowed-payment-address-schemes": schemes.length > 0 ? schemes : undefined,
+        "interest-rate-bps": interestRateBps,
       });
       if (res["http-status"] >= 200 && res["http-status"] < 300) {
         modalOpen = false;
@@ -229,6 +234,10 @@
         {/each}
       </fieldset>
       <label>
+        Interest Rate (Basis Points)
+        <input type="number" bind:value={interestRateBps} min="0" disabled={creating} />
+      </label>
+      <label>
         Allowed Currencies
         <input type="text" bind:value={allowedCurrencies} placeholder="e.g. GBP,EUR" disabled={creating} />
       </label>
@@ -277,6 +286,10 @@
           </label>
         {/each}
       </fieldset>
+      <label>
+        Interest Rate (Basis Points)
+        <input type="number" bind:value={reviseInterestRateBps} min="0" disabled={revising} />
+      </label>
       <label>
         Allowed Currencies
         <input type="text" bind:value={reviseAllowedCurrencies} placeholder="e.g. GBP,EUR" disabled={revising} />

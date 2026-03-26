@@ -75,6 +75,16 @@ Interactive OpenAPI documentation is also served locally at
 8. **Internal Payments** - reward customers from the organization's
    settlement account, and internally transfer money between accounts
    of a customer.
+9. **Accrue / Capitalize Interest** — simulate daily interest accrual
+   and monthly capitalisation for a customer organisation. Accrual
+   calculates interest on each account's default balance using the
+   product's rate (in basis points), posting legs that debit the
+   settlement account's interest-payable and credit the customer's
+   interest-accrued. Capitalisation moves accrued interest into the
+   customer's default balance and clears the corresponding payable
+   on the settlement account. Fractional interest below one minor
+   unit is carried forward in a micro-unit accumulator on the
+   balance record.
 
 ### Demo
 
@@ -119,52 +129,50 @@ just start-bank-app
 
 ### Architecture
 
-```
-                              ┌─────────────────────┐
-                              │      bank-app       │
-                              │      (Svelte)       │
-                              └─────────┬───────────┘
-                                     HTTP API
-                              ┌─────────▼───────────┐
-                              │      bank-api       │
-                              │   (Reitit + Malli)  │
-                              └──┬───────────────┬──┘
-                     ┌───────────┘               └───────────┐
-      sync direct (create/update/query)     async message-bus (create/update)
-                     │                                       │
-    ┌────────────────▼─────────────────┐    ┌────────────────▼──────────────┐
-    │         create/update            │    │     ┌─────────────────────┐   │
-    │  organization                    │    │     │  command-processor  │   │
-    │  api-key                         │    │     │       (Avro)        │   │
-    │  cash-account-product            │    │     └────────┬────────────┘   │
-    │                                  │    │              │                │
-    │         query                    │    │    ┌─────────┼──────────┐     │
-    │  *                               │    │    ▼         ▼          ▼     │
-    └────────────────┬─────────────────┘    │  party     cash-    payment   │
-                     │                      │           account             │
-                     │                      └────┬───────┬──────────┬───────┘
-                     │                           │       │          │
-                     │    ┌──────────────────┐   │       │          │
-                     │    │     Watchers     │   │       │          │
-                     │    │  (FDB changelog) │   │       │          │
-                     │    │                  │   │       │          │
-                     │    │  idv:            │◄──│       │          │
-                     │    │    → accepted    │   │       │          │
-                     │    │  party:          │◄──│       │          │
-                     │    │    → active      │   │       │          │
-                     │    │  cash-account:   │◄──┤───────│          │
-                     │    │    → opened      │   │       │          │
-                     │    │    → closed      │   │       │          │
-                     │    └────────┬─────────┘   │       │          │
-                     │             │             │       │          │
-              ┌──────▼─────────────▼─────────────▼───────▼──────────▼──┐
-              │                   FoundationDB                         │
-              │                  (Record Layer)                        │
-              │                                                        │
-              │  organizations  api-keys  parties  idvs                │
-              │  cash-account-products  cash-accounts                  │
-              │  payments  transactions  balances                      │
-              └────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    APP["bank-app<br/>(Svelte)"]
+    API["bank-api<br/>(Reitit + Malli)"]
+    APP -->|HTTP API| API
+
+    subgraph sync ["Sync Direct (create/update/query)"]
+        SYNC_CU["organization<br/>api-key<br/>cash-account-product"]
+        SYNC_Q["query: *"]
+    end
+
+    subgraph async ["Async Message-Bus (create/update/simulate)"]
+        CP["command-processor<br/>(Avro)"]
+        CP --> PARTY[party]
+        CP --> CASH[cash-account]
+        CP --> PAY[payment]
+        CP --> INT[interest]
+        CP --> TXN[transaction]
+    end
+
+    API --> sync
+    API --> async
+
+    subgraph watchers ["Watchers (FDB changelog)"]
+        W1["idv: → accepted"]
+        W2["party: → active"]
+        W3["cash-account: → opened / closed"]
+    end
+
+    PARTY --> W1
+    PARTY --> W2
+    CASH --> W3
+
+    subgraph fdb ["FoundationDB (Record Layer)"]
+        STORES["organizations · api-keys · parties · idvs<br/>cash-account-products · cash-accounts<br/>internal-payments · transactions · balances"]
+    end
+
+    sync --> fdb
+    watchers --> fdb
+    PARTY --> fdb
+    CASH --> fdb
+    PAY --> fdb
+    INT --> fdb
+    TXN --> fdb
 ```
 
 **Sync path** — low-volume activity, concerning organisations, products and

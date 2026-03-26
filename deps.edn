@@ -89,6 +89,7 @@
     components/bank-cash-account-product {:local/root "components/bank-cash-account-product"}
     components/bank-cash-account {:local/root "components/bank-cash-account"}
     components/bank-idv {:local/root "components/bank-idv"}
+    components/bank-interest {:local/root "components/bank-interest"}
     components/bank-organization {:local/root "components/bank-organization"}
     components/bank-party {:local/root "components/bank-party"}
     components/bank-bootstrap {:local/root "components/bank-bootstrap"}
@@ -107,6 +108,8 @@
                   "components/bank-cash-account/test-resources"
                   "components/bank-idv/test"
                   "components/bank-idv/test-resources"
+                  "components/bank-interest/test"
+                  "components/bank-interest/test-resources"
                   "components/bank-organization/test"
                   "components/bank-organization/test-resources"
                   "components/bank-party/test"

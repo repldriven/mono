@@ -33,6 +33,17 @@
    [:updated-at {:optional true} [:maybe [:ref "Timestamp"]]]
    [:legs [:vector [:ref "TransactionLeg"]]]])
 
+(def SimulateInterestRequest
+  [:map {:json-schema/example examples/SimulateInterestRequest}
+   [:as-of-date int?]])
+
+(def SimulateInterestResponse
+  [:map {:json-schema/example examples/SimulateInterestResponse}
+   [:organization-id string?]
+   [:as-of-date int?]
+   [:accounts-processed int?]])
+
 (def registry
   (components-registry [#'SimulateInboundTransferRequest #'TransactionLeg
-                        #'SimulateInboundTransferResponse]))
+                        #'SimulateInboundTransferResponse
+                        #'SimulateInterestRequest #'SimulateInterestResponse]))

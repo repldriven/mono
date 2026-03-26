@@ -19,4 +19,10 @@ system:
       bus: !system/ref message-bus.bus
       command-channel: !keyword payments-command
       command-response-channel: !keyword payments-command-response
+  interest:
+    dispatcher: !system/component
+      system/component-kind: command/dispatcher
+      bus: !system/ref message-bus.bus
+      command-channel: !keyword interest-command
+      command-response-channel: !keyword interest-command-response
   server: !include bank-api/server-test.yml

@@ -114,64 +114,97 @@
   (let [parts (into (vec prefix) [cursor])]
     (Tuple/from (into-array Object parts))))
 
+(defn- cursor
+  "Extracts the cursor element from a record's primary
+  key at the given position."
+  [r position]
+  (.get (.getPrimaryKey r) (int position)))
+
 (defn scan
   "Scans records by primary key order. Returns
-  {:records [bytes ...] :has-more boolean}.
+  {:records [bytes ...] :before cursor|nil :after cursor|nil}.
+
+  :after is the cursor for the next forward page (nil when
+  no more records). :before is the first record's cursor
+  (nil when empty).
 
   opts:
     :prefix  vector of leading PK parts to scope the scan
-    :after   cursor string, exclusive lower bound (forward)
-    :before  cursor string, exclusive upper bound (reverse)
+    :after   cursor, exclusive lower bound (forward)
+    :before  cursor, exclusive upper bound (reverse)
     :limit   int, page size
 
   When :prefix is given, the scan is constrained to records
-  whose PK starts with those values. :after/:before cursors
-  operate within that prefix scope."
+  whose PK starts with those values. Cursors are the PK
+  element at the position after the prefix."
   [store {:keys [prefix after before limit]}]
   (let [reverse? (some? before)
-        prefix-tuple (when (seq prefix) (Tuple/from (into-array Object prefix)))
-        base-range (when prefix-tuple (prefix-range prefix-tuple))
-        range (cond (and prefix-tuple after)
-                    (TupleRange. (cursor-tuple prefix after)
-                                 (.getHigh ^TupleRange base-range)
-                                 EndpointType/RANGE_EXCLUSIVE
-                                 (.getHighEndpoint ^TupleRange base-range))
-                    (and prefix-tuple before)
-                    (TupleRange. (.getLow ^TupleRange base-range)
-                                 (cursor-tuple prefix before)
-                                 (.getLowEndpoint ^TupleRange base-range)
-                                 EndpointType/RANGE_EXCLUSIVE)
-                    prefix-tuple
-                    base-range
-                    after
-                    (TupleRange. (Tuple/from (into-array Object [after]))
-                                 nil
-                                 EndpointType/RANGE_EXCLUSIVE
-                                 EndpointType/TREE_END)
-                    before
-                    (TupleRange. nil
-                                 (Tuple/from (into-array Object
-                                                         [before]))
-                                 EndpointType/TREE_START
-                                 EndpointType/RANGE_EXCLUSIVE)
-                    :else
-                    TupleRange/ALL)
+        prefix-size (count (or prefix []))
+        prefix-tuple (when (seq prefix)
+                       (Tuple/from (into-array Object prefix)))
+        base-range (when prefix-tuple
+                     (prefix-range prefix-tuple))
+        range (cond
+               (and prefix-tuple after)
+               (TupleRange.
+                (cursor-tuple prefix after)
+                (.getHigh ^TupleRange base-range)
+                EndpointType/RANGE_EXCLUSIVE
+                (.getHighEndpoint ^TupleRange
+                                  base-range))
+
+               (and prefix-tuple before)
+               (TupleRange.
+                (.getLow ^TupleRange base-range)
+                (cursor-tuple prefix before)
+                (.getLowEndpoint ^TupleRange
+                                 base-range)
+                EndpointType/RANGE_EXCLUSIVE)
+
+               prefix-tuple
+               base-range
+
+               after
+               (TupleRange.
+                (Tuple/from (into-array Object [after]))
+                nil
+                EndpointType/RANGE_EXCLUSIVE
+                EndpointType/TREE_END)
+
+               before
+               (TupleRange.
+                nil
+                (Tuple/from (into-array Object [before]))
+                EndpointType/TREE_START
+                EndpointType/RANGE_EXCLUSIVE)
+
+               :else
+               TupleRange/ALL)
         execute-props (-> (ExecuteProperties/newBuilder)
                           (.setReturnedRowLimit (inc limit))
                           .build)
         scan-props (ScanProperties. execute-props reverse?)
-        records (->> (.scanRecords store
-                                   ^TupleRange range
-                                   nil
-                                   ^ScanProperties scan-props)
-                     .asList
-                     (.asyncToSync (.getContext store)
-                                   FDBStoreTimer$Waits/WAIT_SCAN_RECORDS)
-                     (mapv record->bytes))
-        has-more (> (count records) limit)
-        page (cond-> (if has-more (subvec records 0 limit) records)
-                     reverse?
-                     rseq
-                     reverse?
-                     vec)]
-    {:records page :has-more has-more}))
+        raw (->> (.scanRecords store
+                               ^TupleRange range
+                               nil
+                               ^ScanProperties scan-props)
+                 .asList
+                 (.asyncToSync
+                  (.getContext store)
+                  FDBStoreTimer$Waits/WAIT_SCAN_RECORDS)
+                 vec)
+        more? (> (count raw) limit)
+        page (cond->
+              raw
+
+              more?
+              (subvec 0 limit)
+
+              reverse?
+              (-> rseq
+                  vec))]
+    {:records (mapv record->bytes page)
+     :before (when (seq page)
+               (cursor (first page) prefix-size))
+     :after (when more?
+              (cursor (peek page) prefix-size))}))

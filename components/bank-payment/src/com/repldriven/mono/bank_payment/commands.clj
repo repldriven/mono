@@ -2,16 +2,17 @@
   (:require
     [com.repldriven.mono.bank-payment.domain :as domain]
 
+    [com.repldriven.mono.bank-balance.interface :as balances]
     [com.repldriven.mono.bank-schema.interface :as schema]
-    [com.repldriven.mono.bank-transaction.interface :as transactions]
+    [com.repldriven.mono.bank-transaction.interface :as
+     transactions]
 
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.error.interface :as error
+     :refer [let-nom>]]
     [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn- ->response
-  "Converts result to an ACCEPTED response with
-  Avro-serialized payload. Returns anomalies unchanged."
   [config result]
   (if (error/anomaly? result)
     result
@@ -27,32 +28,20 @@
   [config data]
   (->response
    config
-   (let [{:keys [debtor-account-id creditor-account-id
-                 currency amount reference idempotency-key]}
-         data]
-     (transactions/record-transaction
-      config
-      {:idempotency-key idempotency-key
-       :transaction-type :transaction-type-internal-transfer
-       :currency currency
-       :reference reference
-       :legs [{:account-id debtor-account-id
-               :balance-type :balance-type-default
-               :balance-status :balance-status-posted
-               :side :leg-side-debit
-               :amount amount}
-              {:account-id creditor-account-id
-               :balance-type :balance-type-default
-               :balance-status :balance-status-posted
-               :side :leg-side-credit
-               :amount amount}]}
-      (fn [open-store txn-result]
-        (let [{:keys [transaction]} txn-result
-              txn-id (:transaction-id
-                      (schema/pb->Transaction transaction))
-              payment (domain/new-internal-payment data
-                                                   txn-id)]
-          (fdb/save-record
-           (open-store "internal-payments")
-           (schema/InternalPayment->java payment))
+   (let [{:keys [record-db record-store]} config]
+     (fdb/transact-multi
+      record-db
+      record-store
+      (fn [open-store]
+        (let-nom>
+          [balances-store (open-store "balances")
+           internal-payments-store (open-store "internal-payments")
+           payment-transaction (domain/internal-payment->transaction data)
+           transaction (transactions/record-transaction open-store
+                                                        payment-transaction)
+           {:keys [transaction-id legs]} transaction
+           _ (balances/apply-legs balances-store legs)
+           payment (domain/new-internal-payment data transaction-id)
+           _ (fdb/save-record internal-payments-store
+                              (schema/InternalPayment->java payment))]
           payment))))))

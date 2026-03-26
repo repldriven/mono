@@ -16,6 +16,7 @@
   (:import
     (com.repldriven.mono.schemas.balances BalanceProto$Balance)
     (com.repldriven.mono.schemas.cash_account_products
+     CashAccountProductProto$AccountType
      CashAccountProductProto$CashAccountProductVersion)
     (com.repldriven.mono.schemas.cash_accounts
      CashAccountProto$CashAccount
@@ -44,6 +45,15 @@
 
 (def balance-type->int balances/Balance-BalanceType-label2val)
 (def balance-status->int balances/Balance-BalanceStatus-label2val)
+
+(def account-type->int cash-account-products/AccountType-label2val)
+
+(defn account-type->pb-enum
+  "Converts an account-type keyword to the protobuf
+  enum value for use in FDB queries."
+  [account-type]
+  (CashAccountProductProto$AccountType/forNumber
+   (account-type->int account-type)))
 
 (def pb->CashAccountProductVersion
   cash-account-products/pb->CashAccountProductVersion)

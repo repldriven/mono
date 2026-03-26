@@ -33,4 +33,9 @@
            :currency "GBP"
            :created-at "2025-01-01T00:00:00Z"}]})
 
+(def SimulateInterestRequest {:as-of-date 20260326})
+
+(def SimulateInterestResponse
+  {:organization-id "org_01JMABC" :as-of-date 20260326 :accounts-processed 5})
+
 (def registry (examples-registry []))

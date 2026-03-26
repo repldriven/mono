@@ -1,5 +1,5 @@
 <script>
-  import { create_organization, list_organizations } from "./api.mjs";
+  import { create_organization, list_organizations, simulate_accrue, simulate_capitalize } from "./api.mjs";
   import { time_ago } from "./time.mjs";
   import { onMount } from "svelte";
   import Modal from "./Modal.svelte";
@@ -14,6 +14,39 @@
   let orgName = $state("Galactic Bank");
   let currencies = $state("GBP");
   let creating = $state(false);
+  let accruing = $state({});
+  let capitalizing = $state({});
+  let showDatePicker = $state(false);
+  let datePickerAction = $state(null);
+  let datePickerOrgId = $state(null);
+  let datePickerDate = $state("");
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function dateToInt(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return y * 10000 + m * 100 + d;
+  }
+
+  function openDatePicker(orgId, action) {
+    datePickerOrgId = orgId;
+    datePickerAction = action;
+    datePickerDate = todayISO();
+    showDatePicker = true;
+  }
+
+  function closeDatePicker() {
+    showDatePicker = false;
+  }
+
+  function todayAsInt() {
+    const d = new Date();
+    return d.getFullYear() * 10000
+           + (d.getMonth() + 1) * 100
+           + d.getDate();
+  }
 
   function errorDetail(body) {
     if (!body) return null;
@@ -63,6 +96,47 @@
     }
   }
 
+  async function submitDatePicker() {
+    const orgId = datePickerOrgId;
+    const asOfDate = dateToInt(datePickerDate);
+    const action = datePickerAction;
+    showDatePicker = false;
+
+    if (action === "accrue") {
+      accruing[orgId] = true;
+      try {
+        const res = await simulate_accrue(orgId, asOfDate);
+        if (res["http-status"] >= 200 && res["http-status"] < 300) {
+          showToast?.({ type: "success",
+                        message: `Accrued ${res.body["accounts-processed"]} accounts` });
+        } else {
+          showToast?.({ type: "warning",
+                        message: errorDetail(res.body) ?? `HTTP ${res["http-status"]}` });
+        }
+      } catch (err) {
+        showToast?.({ type: "error", message: err.message });
+      } finally {
+        delete accruing[orgId];
+      }
+    } else if (action === "capitalize") {
+      capitalizing[orgId] = true;
+      try {
+        const res = await simulate_capitalize(orgId, asOfDate);
+        if (res["http-status"] >= 200 && res["http-status"] < 300) {
+          showToast?.({ type: "success",
+                        message: `Capitalized ${res.body["accounts-processed"]} accounts` });
+        } else {
+          showToast?.({ type: "warning",
+                        message: errorDetail(res.body) ?? `HTTP ${res["http-status"]}` });
+        }
+      } catch (err) {
+        showToast?.({ type: "error", message: err.message });
+      } finally {
+        delete capitalizing[orgId];
+      }
+    }
+  }
+
   onMount(() => load());
 </script>
 
@@ -108,6 +182,26 @@
     </form>
   </Modal>
 
+  {#if showDatePicker}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="dialog-overlay" onclick={closeDatePicker}>
+      <div class="dialog" onclick={(e) => e.stopPropagation()}>
+        <h3>{datePickerAction === "accrue" ? "Accrue Interest" : "Capitalize Interest"}</h3>
+        <label>
+          As-of Date
+          <input type="date" bind:value={datePickerDate} min={todayISO()} />
+        </label>
+        <div class="dialog-actions">
+          <button class="cancel-btn" onclick={closeDatePicker}>Cancel</button>
+          <button class="submit-btn" onclick={submitDatePicker} disabled={!datePickerDate}>
+            {datePickerAction === "accrue" ? "Accrue" : "Capitalize"}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   {#if error}
     <div class="error-msg">{error}</div>
   {/if}
@@ -146,6 +240,22 @@
           <td title={org["created-at"]}>{time_ago(org["created-at"])}</td>
           <td title={org["updated-at"]}>{time_ago(org["updated-at"])}</td>
           <td>
+            {#if org.type !== "internal"}
+              <button
+                class="interest-btn"
+                disabled={accruing[org["organization-id"]]}
+                onclick={() => openDatePicker(org["organization-id"], "accrue")}
+              >
+                {accruing[org["organization-id"]] ? "..." : "Accrue"}
+              </button>
+              <button
+                class="interest-btn"
+                disabled={capitalizing[org["organization-id"]]}
+                onclick={() => openDatePicker(org["organization-id"], "capitalize")}
+              >
+                {capitalizing[org["organization-id"]] ? "..." : "Capitalize"}
+              </button>
+            {/if}
             {#if org["organization-id"] === selectedOrgId}
               <span class="default-badge">Default</span>
             {:else if org.type !== "internal"}
@@ -329,6 +439,106 @@
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 600;
+  }
+
+  .dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .dialog {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 320px;
+    max-width: 90vw;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .dialog h3 {
+    margin: 0 0 1rem;
+  }
+
+  .dialog label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .dialog input {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: var(--bg-input);
+    color: var(--text);
+    box-sizing: border-box;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .cancel-btn {
+    padding: 0.4rem 0.8rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .submit-btn {
+    padding: 0.4rem 0.8rem;
+    background: #7c3aed;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .submit-btn:not(:disabled):hover {
+    background: #6d28d9;
+  }
+
+  .interest-btn {
+    padding: 0.25rem 0.6rem;
+    background: #7c3aed;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-right: 0.25rem;
+  }
+
+  .interest-btn:hover:not(:disabled) {
+    background: #6d28d9;
+  }
+
+  .interest-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .action-btn {

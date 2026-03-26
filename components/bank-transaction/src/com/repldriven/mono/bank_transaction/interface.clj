@@ -6,11 +6,11 @@
     [com.repldriven.mono.bank-transaction.store :as store]))
 
 (defn record-transaction
-  "Records a transaction with legs, updating balances.
-  Calls f with open-store and the transaction result
-  within the same FDB transaction, returning f's result."
-  [config data f]
-  (commands/record config data f))
+  "Records a transaction and legs within an open-store
+  context. Does not update balances — callers must call
+  apply-legs separately."
+  [open-store data]
+  (commands/record open-store data))
 
 (defn get-account-transactions
   "Returns transaction legs for an account, enriched

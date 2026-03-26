@@ -14,6 +14,7 @@
     component/testcontainers {:local/root "../../components/testcontainers"}}}}
  :deps {component/bank-balance {:local/root "../../components/bank-balance"}
         component/bank-cash-account-product {:local/root "../../components/bank-cash-account-product"}
+        component/bank-interest {:local/root "../../components/bank-interest"}
         component/avro {:local/root "../../components/avro"}
         component/cache {:local/root "../../components/cache"}
         component/cli {:local/root "../../components/cli"}

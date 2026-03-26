@@ -122,7 +122,8 @@
 (defn create-cash-account-product
   [data]
   (let [{:strs [name account-type balance-sheet-side allowed-currencies
-                balance-products allowed-payment-address-schemes]}
+                balance-products allowed-payment-address-schemes
+                interest-rate-bps]}
         (js->clj data)
         body (cond-> {"name" name
                       "account-type" account-type
@@ -135,7 +136,10 @@
                             balance-products)
                      (seq allowed-payment-address-schemes)
                      (assoc "allowed-payment-address-schemes"
-                            allowed-payment-address-schemes))]
+                            allowed-payment-address-schemes)
+                     interest-rate-bps
+                     (assoc "interest-rate-bps"
+                            interest-rate-bps))]
     (-> (js/fetch "/v1/cash-account-products"
                   #js {:method "POST"
                        :headers #js {"Content-Type" "application/json"
@@ -164,7 +168,8 @@
 (defn create-cash-account-product-version
   [product-id data]
   (let [{:strs [name account-type balance-sheet-side allowed-currencies
-                balance-products allowed-payment-address-schemes]}
+                balance-products allowed-payment-address-schemes
+                interest-rate-bps]}
         (js->clj data)
         body (cond-> {"name" name
                       "account-type" account-type
@@ -177,7 +182,10 @@
                             balance-products)
                      (seq allowed-payment-address-schemes)
                      (assoc "allowed-payment-address-schemes"
-                            allowed-payment-address-schemes))]
+                            allowed-payment-address-schemes)
+                     interest-rate-bps
+                     (assoc "interest-rate-bps"
+                            interest-rate-bps))]
     (-> (js/fetch (str "/v1/cash-account-products/" product-id "/versions")
                   #js {:method "POST"
                        :headers #js {"Content-Type" "application/json"
@@ -211,6 +219,34 @@
                             #js {"account-id" account-id
                                  "amount" amount
                                  "currency" currency})})
+      (.then parse-response)))
+
+(defn simulate-accrue
+  [org-id as-of-date]
+  (-> (js/fetch (str "/v1/simulate/organizations/"
+                     org-id
+                     "/accrue")
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
+                                   "Authorization" (str "Bearer "
+                                                        (admin-token))
+                                   "Idempotency-Key" (str (random-uuid))}
+                     :body (js/JSON.stringify
+                            #js {"as-of-date" as-of-date})})
+      (.then parse-response)))
+
+(defn simulate-capitalize
+  [org-id as-of-date]
+  (-> (js/fetch (str "/v1/simulate/organizations/"
+                     org-id
+                     "/capitalize")
+                #js {:method "POST"
+                     :headers #js {"Content-Type" "application/json"
+                                   "Authorization" (str "Bearer "
+                                                        (admin-token))
+                                   "Idempotency-Key" (str (random-uuid))}
+                     :body (js/JSON.stringify
+                            #js {"as-of-date" as-of-date})})
       (.then parse-response)))
 
 (defn submit-internal-payment

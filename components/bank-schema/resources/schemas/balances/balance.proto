@@ -17,6 +17,7 @@ message Balance {
   optional int64 debit = 6;
   optional int64 created_at = 7;
   optional int64 updated_at = 8;
+  optional int64 credit_carry = 9;
 
   enum BalanceType {
     BALANCE_TYPE_UNKNOWN          = 0;
@@ -25,7 +26,8 @@ message Balance {
     BALANCE_TYPE_INTEREST_PAID    = 3;
     BALANCE_TYPE_PURCHASE         = 4;
     BALANCE_TYPE_CASH             = 5;
-    BALANCE_TYPE_SUSPENSE         = 6;
+    BALANCE_TYPE_SUSPENSE            = 6;
+    BALANCE_TYPE_INTEREST_PAYABLE   = 7;
   }
 
   enum BalanceStatus {

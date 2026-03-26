@@ -7,6 +7,7 @@
     com.repldriven.mono.command-processor.interface
     com.repldriven.mono.fdb.interface
     com.repldriven.mono.bank-idv.interface
+    com.repldriven.mono.bank-interest.interface
     com.repldriven.mono.message-bus.interface
     com.repldriven.mono.bank-party.interface
     com.repldriven.mono.bank-bootstrap.interface

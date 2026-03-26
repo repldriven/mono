@@ -8,7 +8,8 @@
                            "interest-paid" :balance-type-interest-paid
                            "purchase" :balance-type-purchase
                            "cash" :balance-type-cash
-                           "suspense" :balance-type-suspense}
+                           "suspense" :balance-type-suspense
+                           "interest-payable" :balance-type-interest-payable}
                           :balance-type-unknown))
 
 (def ^:private balance-status-enum

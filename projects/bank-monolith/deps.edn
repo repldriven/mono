@@ -26,6 +26,7 @@
         component/error {:local/root "../../components/error"}
         component/fdb {:local/root "../../components/fdb"}
         component/bank-idv {:local/root "../../components/bank-idv"}
+        component/bank-interest {:local/root "../../components/bank-interest"}
         component/http-client {:local/root "../../components/http-client"}
         component/log {:local/root "../../components/log"}
         component/bank-api-key {:local/root "../../components/bank-api-key"}

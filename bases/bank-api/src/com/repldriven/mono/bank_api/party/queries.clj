@@ -23,48 +23,53 @@
           n)))
 
 (defn- build-links
-  [{:keys [parties has-more after before]}]
-  (let [base "/v1/parties"
-        first-id (:party-id (first parties))
-        last-id (:party-id (peek parties))
-        forward? (some? after)
-        backward? (some? before)]
-    (cond-> {}
-            (or (and (not backward?) has-more) backward?)
-            (assoc :next (str base "?page[after]=" (cursor/encode last-id)))
-            (or forward? (and backward? has-more))
-            (assoc :prev
-                   (str base "?page[before]=" (cursor/encode first-id))))))
+  [base before-cursor after-cursor]
+  (cond-> {}
+          after-cursor
+          (assoc :next
+                 (str base
+                      "?page[after]="
+                      (cursor/encode after-cursor)))
+          before-cursor
+          (assoc :prev
+                 (str base
+                      "?page[before]="
+                      (cursor/encode before-cursor)))))
 
 (defn list-parties
   [request]
   (let [{:keys [record-db record-store]} request
         org-id (get-in request [:auth :organization-id])
         query (get-in request [:parameters :query])
-        after-cursor (get query (keyword "page[after]"))
-        before-cursor (get query (keyword "page[before]"))
-        size (parse-page-size (get query (keyword "page[size]")))
-        after-id (cursor/decode after-cursor)
-        before-id (cursor/decode before-cursor)
+        after-id (cursor/decode
+                  (get query (keyword "page[after]")))
+        before-id (cursor/decode
+                   (get query (keyword "page[before]")))
+        size (parse-page-size
+              (get query (keyword "page[size]")))
         result (fdb/transact record-db
                              record-store
                              "parties"
                              (fn [store]
-                               (fdb/scan-records store
-                                                 {:prefix [org-id]
-                                                  :after after-id
-                                                  :before before-id
-                                                  :limit size})))]
+                               (fdb/scan-records
+                                store
+                                {:prefix [org-id]
+                                 :after after-id
+                                 :before before-id
+                                 :limit size})))]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      (let [parties (mapv schema/pb->Party (:records result))
+      (let [parties (mapv schema/pb->Party
+                          (:records result))
             links (when (seq parties)
-                    (build-links {:parties parties
-                                  :has-more (:has-more result)
-                                  :after after-id
-                                  :before before-id}))]
+                    (build-links "/v1/parties"
+                                 (when after-id
+                                   (:before result))
+                                 (:after result)))]
         {:status 200
-         :body (cond-> {:parties parties} (seq links) (assoc :links links))}))))
+         :body (cond-> {:parties parties}
+                       (seq links)
+                       (assoc :links links))}))))
 
 (defn get-party
   [request]

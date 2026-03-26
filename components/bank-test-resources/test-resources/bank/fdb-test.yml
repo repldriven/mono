@@ -22,6 +22,8 @@ _record-types: &record-types !strs
     indexes:
       - name: party_id_idx
         field: party_id
+      - name: account_type_idx
+        field: account_type
   idvs:
     record-type: Idv
     primary-key: [organization_id, verification_id]

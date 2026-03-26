@@ -3,7 +3,8 @@
   (:require
     [com.repldriven.mono.bank-schema.interface :as schema]
 
-    [com.repldriven.mono.error.interface :refer [let-nom> try-nom]]
+    [com.repldriven.mono.error.interface :as error
+     :refer [let-nom> try-nom]]
     [com.repldriven.mono.fdb.interface :as fdb]))
 
 (defn save
@@ -46,6 +47,41 @@
   (let-nom> [result
              (load config account-id balance-type currency balance-status)]
     (when result (schema/pb->Balance result))))
+
+(defn- apply-leg
+  "Updates a balance for a transaction leg. Loads the
+  balance by composite key, increments credit or debit
+  based on side, saves. For use inside an open store."
+  [store leg]
+  (let [{:keys [account-id balance-type currency
+                balance-status side amount]}
+        leg
+        record (fdb/load-record
+                store
+                account-id
+                (schema/balance-type->int balance-type)
+                currency
+                (schema/balance-status->int
+                 balance-status))]
+    (when record
+      (let [balance (schema/pb->Balance record)
+            field (if (= :leg-side-debit side)
+                    :debit
+                    :credit)
+            updated (update balance field + amount)]
+        (fdb/save-record store
+                         (schema/Balance->java updated))))))
+
+(defn apply-legs
+  "Applies all legs to balances. For use inside an open
+  store. Returns nil or the first anomaly."
+  [store legs]
+  (reduce (fn [_ leg]
+            (let [result (apply-leg store leg)]
+              (when (error/anomaly? result)
+                (reduced result))))
+          nil
+          legs))
 
 (defn get-account-balances
   "Lists balances for an account. Returns a sequence of

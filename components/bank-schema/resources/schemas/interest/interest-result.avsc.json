@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "InterestResult",
+  "namespace": "com.repldriven.mono.interest",
+  "fields": [
+    {"name": "organization_id",   "type": "string"},
+    {"name": "as_of_date",        "type": "int"},
+    {"name": "accounts_processed","type": "int"}
+  ]
+}

@@ -48,4 +48,5 @@ message CashAccountProductVersion {
   repeated string allowed_currencies = 13;
   repeated com.repldriven.mono.schemas.balances.BalanceProduct balance_products = 14;
   repeated PaymentAddressScheme allowed_payment_address_schemes = 15;
+  optional int32 interest_rate_bps = 16;
 }

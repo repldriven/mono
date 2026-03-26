@@ -35,6 +35,7 @@
    :allowed-currencies ["GBP" "EUR"]
    :balance-products [{:balance-type :default :balance-status :posted}]
    :allowed-payment-address-schemes [:scan]
+   :interest-rate-bps 0
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"
    :created-at "2025-01-01T00:00:00Z"
@@ -49,6 +50,7 @@
    :allowed-currencies ["GBP" "EUR"]
    :balance-products [{:balance-type :default :balance-status :posted}]
    :allowed-payment-address-schemes [:scan]
+   :interest-rate-bps 0
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"})
 
@@ -59,5 +61,6 @@
    :allowed-currencies ["GBP" "EUR"]
    :balance-products [{:balance-type :default :balance-status :posted}]
    :allowed-payment-address-schemes [:scan]
+   :interest-rate-bps 0
    :valid-from "2025-01-01"
    :valid-to "2025-12-31"})

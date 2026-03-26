@@ -1,0 +1,26 @@
+system:
+  fdb: !include bank/fdb-test.yml
+  avro: !include avro/avro-test.yml
+  bootstrap: !include bank/bootstrap-internal-test.yml
+  cash-account:
+    processor: !system/component
+      system/component-kind: cash-account/processor
+      record-db: !system/ref fdb.record-db
+      record-store: !system/ref fdb.meta-store
+      schemas: !system/ref avro.serde
+    cash-account-watcher-handler: !system/component
+      system/component-kind: cash-account/watcher-handler
+      record-store: !system/ref fdb.meta-store
+    watchers: !system/component
+      system/component-kind: fdb/watchers
+      cash-account:
+        record-db: !system/ref fdb.record-db
+        consumer-id: cash-account-watcher
+        store-name: cash-accounts
+        handler: !system/local-ref cash-account-watcher-handler
+  interest:
+    processor: !system/component
+      system/component-kind: interest/processor
+      record-db: !system/ref fdb.record-db
+      record-store: !system/ref fdb.meta-store
+      schemas: !system/ref avro.serde

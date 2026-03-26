@@ -2,7 +2,10 @@
   (:require
     [com.repldriven.mono.bank-api.cursor :as cursor]
     [com.repldriven.mono.bank-api.errors :refer [error-response]]
-    [com.repldriven.mono.bank-transaction.interface :as transactions]
+    [com.repldriven.mono.bank-cash-account.interface :as
+     cash-accounts]
+    [com.repldriven.mono.bank-transaction.interface :as
+     transactions]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.fdb.interface :as fdb]
     [com.repldriven.mono.bank-schema.interface :as schema]))
@@ -13,7 +16,8 @@
 (defn- parse-page-size
   [s]
   (let [n (when s
-            (try (Integer/parseInt s) (catch NumberFormatException _ nil)))]
+            (try (Integer/parseInt s)
+                 (catch NumberFormatException _ nil)))]
     (cond (nil? n)
           default-page-size
           (< n 1)
@@ -24,47 +28,46 @@
           n)))
 
 (defn- build-links
-  [{:keys [accounts has-more after before]}]
-  (let [base "/v1/cash-accounts"
-        first-id (:account-id (first accounts))
-        last-id (:account-id (peek accounts))
-        forward? (some? after)
-        backward? (some? before)]
-    (cond-> {}
-            (or (and (not backward?) has-more) backward?)
-            (assoc :next (str base "?page[after]=" (cursor/encode last-id)))
-            (or forward? (and backward? has-more))
-            (assoc :prev
-                   (str base "?page[before]=" (cursor/encode first-id))))))
+  [base before-id after-id]
+  (cond-> {}
+          after-id
+          (assoc :next
+                 (str base
+                      "?page[after]="
+                      (cursor/encode after-id)))
+          before-id
+          (assoc :prev
+                 (str base
+                      "?page[before]="
+                      (cursor/encode before-id)))))
 
 (defn list-cash-accounts
   [request]
   (let [{:keys [record-db record-store]} request
         org-id (get-in request [:auth :organization-id])
         query (get-in request [:parameters :query])
-        after-cursor (get query (keyword "page[after]"))
-        before-cursor (get query (keyword "page[before]"))
-        size (parse-page-size (get query (keyword "page[size]")))
-        after-id (cursor/decode after-cursor)
-        before-id (cursor/decode before-cursor)
-        result (fdb/transact record-db
-                             record-store
-                             "cash-accounts"
-                             (fn [store]
-                               (fdb/scan-records store
-                                                 {:prefix [org-id]
-                                                  :after after-id
-                                                  :before before-id
-                                                  :limit size})))]
+        after-id (cursor/decode
+                  (get query (keyword "page[after]")))
+        before-id (cursor/decode
+                   (get query (keyword "page[before]")))
+        size (parse-page-size
+              (get query (keyword "page[size]")))
+        result (cash-accounts/get-accounts
+                {:record-db record-db
+                 :record-store record-store}
+                org-id
+                (cond-> {:limit size}
+                        after-id
+                        (assoc :after after-id)
+                        before-id
+                        (assoc :before before-id)))]
     (if (error/anomaly? result)
       {:status 500 :body (error-response 500 result)}
-      (let [accounts (mapv schema/pb->CashAccount
-                           (:records result))
+      (let [{:keys [accounts before after]} result
             links (when (seq accounts)
-                    (build-links {:accounts accounts
-                                  :has-more (:has-more result)
-                                  :after after-id
-                                  :before before-id}))]
+                    (build-links "/v1/cash-accounts"
+                                 (when after-id before)
+                                 after))]
         {:status 200
          :body (cond-> {:cash-accounts accounts}
                        (seq links)

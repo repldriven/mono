@@ -9,7 +9,7 @@
   (let [{:keys [name account-type balance-sheet-side
                 allowed-currencies balance-products
                 allowed-payment-address-schemes
-                valid-from valid-to]}
+                interest-rate-bps valid-from valid-to]}
         data
         now (System/currentTimeMillis)]
     (cond-> {:organization-id organization-id
@@ -37,7 +37,10 @@
 
             (seq allowed-payment-address-schemes)
             (assoc :allowed-payment-address-schemes
-                   allowed-payment-address-schemes))))
+                   allowed-payment-address-schemes)
+
+            interest-rate-bps
+            (assoc :interest-rate-bps interest-rate-bps))))
 
 (defn publish
   "Sets version status to published."

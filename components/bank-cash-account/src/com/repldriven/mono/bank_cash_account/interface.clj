@@ -12,7 +12,16 @@
   (core/new-account config data))
 
 (defn get-accounts
-  "Lists cash accounts for an organization. Returns sequence
-  of account maps or anomaly."
-  [config org-id]
-  (store/get-accounts config org-id))
+  "Lists cash accounts for an organization. Returns
+  {:accounts [maps] :before id|nil :after id|nil} or
+  anomaly. opts supports :after, :before, :limit."
+  ([config org-id]
+   (store/get-accounts config org-id {}))
+  ([config org-id opts]
+   (store/get-accounts config org-id opts)))
+
+(defn get-accounts-by-type
+  "Returns accounts matching the given account-type.
+  Uses secondary index."
+  [config account-type]
+  (store/get-accounts-by-type config account-type))

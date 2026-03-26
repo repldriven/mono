@@ -31,3 +31,9 @@
   balances or anomaly."
   [config account-id]
   (store/get-account-balances config account-id))
+
+(defn apply-legs
+  "Applies all legs to balances. For use inside an open
+  store."
+  [store legs]
+  (store/apply-legs store legs))

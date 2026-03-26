@@ -31,6 +31,8 @@
                                 {:balance-type :balance-type-suspense
                                  :balance-status :balance-status-posted}]
    :organisation-type-customer [{:balance-type :balance-type-default
+                                 :balance-status :balance-status-posted}
+                                {:balance-type :balance-type-interest-payable
                                  :balance-status :balance-status-posted}]})
 
 (defn- open-accounts
@@ -78,8 +80,9 @@
    (let [org-id (:organization-id org)]
      (let-nom>
        [parties (party/get-parties config org-id)
-        accounts (cash-accounts/get-accounts config org-id)
-        enriched (enrich-accounts config accounts)
+        account-result (cash-accounts/get-accounts config org-id)
+        enriched (enrich-accounts config
+                                  (:accounts account-result))
         api-keys (bank-api-key/get-api-keys config org-id)]
        (cond-> {:organization
                 (assoc org
