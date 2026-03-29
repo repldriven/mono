@@ -1,4 +1,4 @@
-FROM debian:12-slim
+FROM debian:13-slim
 
 ARG FDB_VERSION=7.3.75
 RUN ARCH=$(uname -m) && \
