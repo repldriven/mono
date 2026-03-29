@@ -1,6 +1,6 @@
 {:aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
  :deps {earth.adi/testcontainers-foundationdb {:mvn/version "1.1.0"}
-        org.testcontainers/testcontainers {:mvn/version "2.0.3"}
+        org.testcontainers/testcontainers {:mvn/version "2.0.4"}
         org.testcontainers/vault {:mvn/version "1.21.4"}
         org.testcontainers/hivemq {:mvn/version "1.21.4"}
         ;; Exclude thin clients; pulsar component uses pulsar-client-all
