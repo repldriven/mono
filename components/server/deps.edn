@@ -7,5 +7,5 @@
                         :exclusions [cheshire/cheshire]}
         ;; Pin cheshire to 6.1.0: ring-json 0.5.1 ships 5.10.0 which brings
         ;; jackson-dataformat-cbor 2.10.2 (CVE-2020-28491, fixed in 2.11.4+)
-        cheshire/cheshire {:mvn/version "6.1.0"}}
+        cheshire/cheshire {:mvn/version "6.2.0"}}
  :paths ["src"]}
