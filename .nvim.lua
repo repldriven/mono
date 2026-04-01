@@ -91,3 +91,12 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 	desc = "Disable all formatting for Avro schema files",
 })
+
+-- Format slides.md with local prettier-plugin-slidev
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+	pattern = "*/slides.md",
+	callback = function()
+		vim.bo.filetype = "markdown.slidev"
+	end,
+	desc = "Set slidev filetype for slides.md",
+})

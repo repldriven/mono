@@ -8,9 +8,9 @@ highlighter: shiki
 lineNumbers: false
 ---
 
-# Systems as data 
+# Systems as data
 
-## Mono uses `donut.system` to build a system of components from configuration data
+## How mono uses `donut.system` to build a system from configuration data
 
 <div class="mt-12 opacity-70 text-sm">
   kjothen &middot; mono &middot; 31 march 2026
@@ -193,7 +193,7 @@ What if the **implementation** stayed in Clojure, and the **wiring** lived in a 
 
 # How mono uses donut.system: A YAML example
 
-Systems are expressed as either YAML or EDN, whichever you prefer - we'll use a YAML example throughout because it's more familiar to non-Clojure engineers (think Java Spring Boot) 
+Systems are expressed as either YAML or EDN, whichever you prefer - we'll use a YAML example throughout because it's more familiar to non-Clojure engineers (think Java Spring Boot)
 
 <div class="grid grid-cols-2 gap-8">
 
@@ -242,7 +242,7 @@ The hierarchy is identical. The `system:` top-level key scopes a system. Now we 
 
 # Declare, don't specify
 
-Key abstraction: Mono separates **what** we want, from **how** it's implemented 
+Key abstraction: Mono separates **what** we want, from **how** it's implemented
 
 <div class="grid grid-cols-2 gap-8">
 
@@ -279,13 +279,12 @@ fdb:
 
 <v-click>
 
-`!system/component`: resolves values of `system/component-kind` keys to component groups 
+`!system/component`: resolves values of `system/component-kind` keys to component groups
 `system/defcomponents`: registers components with their start/stop fns and config/instance schemas
 
 </v-click>
 
 <v-click>
-
 
 Note: `!` is the YAML equivalent to Clojure's EDN reader tag literal `#`.
 
@@ -381,7 +380,7 @@ example-bookmark:
 </v-click>
 
 ---
-zoom: 0.94 
+zoom: 0.94
 ---
 
 # Complete mono.system declaration
@@ -444,10 +443,10 @@ server:
 </div>
 
 ---
-zoom: 1.0 
+zoom: 1.0
 ---
 
-# Important tag literals 
+# Important tag literals
 
 <v-click>
 
@@ -470,8 +469,7 @@ server:
 
 <v-click>
 
-**`!profile`** - selects a value by active profile at load time, using `aero` 
-
+**`!profile`** - selects a value by active profile at load time, using `aero`
 
 ```yaml
 options:
@@ -488,7 +486,7 @@ options:
 zoom: 0.85
 ---
 
-# Implementing and registering components 
+# Implementing and registering components
 
 Implementation is registered once, referenced by kind everywhere.
 
@@ -527,6 +525,7 @@ Config keys declared in `:system/config` are validated against what YAML supplie
 ---
 zoom: 0.85
 ---
+
 # Starting the system
 
 ```clojure {1-6|all}
@@ -634,6 +633,7 @@ At the REPL, the full lifecycle:
 ---
 zoom: 0.92
 ---
+
 # Infrastructure via Testcontainers
 
 `!profile` switches the entire group - the rest of the system is unchanged
@@ -730,6 +730,7 @@ mono ships registered component kinds for the full stack.
 ---
 layout: center
 ---
+
 # Thanks
 
 `github.com/kjothen/mono`
