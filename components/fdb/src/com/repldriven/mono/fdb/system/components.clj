@@ -1,4 +1,5 @@
 (ns com.repldriven.mono.fdb.system.components
+  (:refer-clojure :exclude [name])
   (:require
     [com.repldriven.mono.fdb.keyspace :as keyspace]
     [com.repldriven.mono.fdb.watcher :as watcher]
@@ -36,7 +37,8 @@
                            (log/info "FDB cluster file path:" path)
                            path))))
    :system/config {:container system/required-component}
-   :system/config-schema [:map [:container some?]]
+   :system/config-schema [:map
+                          [:container some?]]
    :system/instance-schema string?})
 
 ;; ---
@@ -65,7 +67,8 @@
                     (.close instance)))
    :system/config {:cluster-file-path system/required-component
                    :api-version 710}
-   :system/config-schema [:map [:cluster-file-path string?]]
+   :system/config-schema [:map
+                          [:cluster-file-path string?]]
    :system/instance-schema some?})
 
 ;; ---
@@ -91,27 +94,13 @@
                     (log/info "Closing FDB Record Layer database")
                     (.close instance)))
    :system/config {:cluster-file-path system/required-component}
-   :system/config-schema [:map [:cluster-file-path string?]]
+   :system/config-schema [:map
+                          [:cluster-file-path string?]]
    :system/instance-schema some?})
 
 ;; ---
 ;; store
 ;; ---
-
-(defn- resolve-descriptor
-  [class-name]
-  (let [clazz (Class/forName class-name)
-        method (.getMethod clazz "getDescriptor" (into-array Class []))]
-    (.invoke method nil (into-array Object []))))
-
-(defn- build-index-expr
-  [{:strs [field fields fan-out]}]
-  (if fields
-    (Key$Expressions/concatenateFields ^java.util.List fields)
-    (Key$Expressions/field field
-                           (if fan-out
-                             KeyExpression$FanType/FanOut
-                             KeyExpression$FanType/None))))
 
 (defn- set-primary-key
   [b record-type primary-key]
@@ -120,28 +109,43 @@
                     (Key$Expressions/concatenateFields ^java.util.List
                                                        primary-key))))
 
-(defn- add-indexes
-  [b record-type indexes]
-  (doseq [{:strs [name unique] :as idx-cfg} indexes]
-    (let [expr (build-index-expr idx-cfg)
-          opts
-          (if unique IndexOptions/UNIQUE_OPTIONS IndexOptions/EMPTY_OPTIONS)]
-      (.addIndex b record-type (Index. name expr "value" opts)))))
-
-(defn- apply-all-primary-keys
+(defn- set-primary-keys
   [b record-types]
   (doseq [{:strs [record-type primary-key]} (vals record-types)]
     (set-primary-key b record-type primary-key)))
 
+(defn- key-expression
+  [{:strs [field fields fan-out]}]
+  (if fields
+    (Key$Expressions/concatenateFields ^java.util.List fields)
+    (Key$Expressions/field field
+                           (if fan-out
+                             KeyExpression$FanType/FanOut
+                             KeyExpression$FanType/None))))
+
+(defn- add-indexes
+  [builder record-type indexes]
+  (doseq [{:strs [name unique] :as idx-cfg} indexes]
+    (let [expr (key-expression idx-cfg)
+          opts
+          (if unique IndexOptions/UNIQUE_OPTIONS IndexOptions/EMPTY_OPTIONS)]
+      (.addIndex builder record-type (Index. name expr "value" opts)))))
+
+(defn- resolve-descriptor
+  [class-name]
+  (let [clazz (Class/forName class-name)
+        method (.getMethod clazz "getDescriptor" (into-array Class []))]
+    (.invoke method nil (into-array Object []))))
+
 (defn- build-meta-data
   [descriptor record-types]
   (let [file-desc (resolve-descriptor descriptor)
-        b (-> (RecordMetaData/newBuilder)
-              (.setRecords file-desc))]
-    (apply-all-primary-keys b record-types)
+        builder (-> (RecordMetaData/newBuilder)
+                    (.setRecords file-desc))]
+    (set-primary-keys builder record-types)
     (doseq [[_store-name {:strs [record-type indexes]}] record-types]
-      (add-indexes b record-type indexes))
-    (.build b)))
+      (add-indexes builder record-type indexes))
+    (.build builder)))
 
 (def store
   {:system/start (fn [{:system/keys [config instance]}]
@@ -160,12 +164,24 @@
                                .createOrOpen)))))
    :system/config {:descriptor system/required-component
                    :record-types system/required-component}
-   :system/config-schema [:map [:descriptor string?] [:record-types map?]]
+   :system/config-schema [:map
+                          [:descriptor string?]
+                          [:record-types map?]]
    :system/instance-schema fn?})
 
 ;; ---
 ;; meta-store
 ;; ---
+
+(defn- open-meta-store
+  [ctx ks-path file-desc store-name]
+  (let [ms (doto (FDBMetaDataStore. ctx ks-path)
+             (.setLocalFileDescriptor file-desc))]
+    (-> (FDBRecordStore/newBuilder)
+        (.setMetaDataStore ms)
+        (.setContext ctx)
+        (.setKeySpacePath (keyspace/path store-name))
+        .createOrOpen)))
 
 (def meta-store
   {:system/start
@@ -174,7 +190,8 @@
          (let [{:keys [record-db path descriptor record-types]} config
                ks-path (keyspace/path path)
                file-desc (resolve-descriptor descriptor)
-               meta-data (build-meta-data descriptor record-types)]
+               meta-data (build-meta-data descriptor record-types)
+               store-names (set (keys record-types))]
            (log/info "FDB meta-store saving metadata to:" path)
            (.run record-db
                  ^Function
@@ -182,20 +199,28 @@
                    (let [ms (FDBMetaDataStore. ctx ks-path)]
                      (.saveRecordMetaData ms meta-data))
                    nil))
+           ;; Eagerly open every store to warm the directory layer cache,
+           ;; each in its own transaction to avoid intra-transaction
+           ;; directory conflicts
+           (log/info "FDB meta-store warming directory layer cache for:"
+                     store-names)
+           (doseq [store-name store-names]
+             (.run record-db
+                   ^Function
+                   (fn [ctx]
+                     (open-meta-store ctx ks-path file-desc store-name)
+                     nil)))
            (fn [ctx store-name]
-             (let [ms (doto (FDBMetaDataStore. ctx ks-path)
-                        (.setLocalFileDescriptor file-desc))]
-               (-> (FDBRecordStore/newBuilder)
-                   (.setMetaDataStore ms)
-                   (.setContext ctx)
-                   (.setKeySpacePath (keyspace/path store-name))
-                   .createOrOpen))))))
+             (open-meta-store ctx ks-path file-desc store-name)))))
    :system/config {:record-db system/required-component
                    :path system/required-component
                    :descriptor system/required-component
                    :record-types system/required-component}
-   :system/config-schema [:map [:record-db some?] [:path string?]
-                          [:descriptor string?] [:record-types map?]]
+   :system/config-schema [:map
+                          [:record-db some?]
+                          [:path string?]
+                          [:descriptor string?]
+                          [:record-types map?]]
    :system/instance-schema fn?})
 
 ;; ---
