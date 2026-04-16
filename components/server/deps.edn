@@ -2,7 +2,7 @@
                      :extra-paths ["test" "test-resources"]}}
  :deps {metosin/reitit {:mvn/version "0.10.1"}
         ring-logger-timbre/ring-logger-timbre {:mvn/version "0.7.6"}
-        info.sunng/ring-jetty9-adapter {:mvn/version "0.39.2"}
+        info.sunng/ring-jetty9-adapter {:mvn/version "0.39.3"}
         ring/ring-json {:mvn/version "0.5.1"
                         :exclusions [cheshire/cheshire]}
         ;; Pin cheshire to 6.1.0: ring-json 0.5.1 ships 5.10.0 which brings
