@@ -41,7 +41,7 @@
     com.google.protobuf/protobuf-java {:mvn/version "3.25.8"}
     org.clojure/clojure {:mvn/version "1.12.4"}
     org.clojure/core.async {:mvn/version "1.9.865"}
-    djblue/portal {:mvn/version "0.63.0"}}
+    djblue/portal {:mvn/version "0.64.1"}}
    :main-opts ["-e" "(require '[portal.nrepl :as portal])"]
    :extra-paths ["development/resources"]
    :jvm-opts
@@ -96,8 +96,8 @@
                    :main-opts ["-m" "clj-kondo.main"]}
   :nvd {:extra-deps #:nvd-clojure{nvd-clojure {:mvn/version "5.3.0"}}
         :main-opts ["-m" "nvd.task.check"]}
-  :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.6.0"}
-                       cider/cider-nrepl {:mvn/version "0.58.0"}}
+  :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}
+                       cider/cider-nrepl {:mvn/version "0.59.0"}}
           :main-opts ["-m"
                       "nrepl.cmdline"
                       "--middleware"
