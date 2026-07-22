@@ -83,7 +83,13 @@
       {:url url
        :tag (or tag "LOCAL")
        :sha (or sha "LOCAL")
-       :dir (.getCanonicalPath f)})
+       :dir (.getCanonicalPath f)
+       ;; Only a caller-supplied :mono/dir means development mode. The
+       ;; normal path also ends up with a directory, but a checkout under
+       ;; ~/.gitlibs, which must never be written into a generated
+       ;; deps.edn: it is specific to this machine and disappears when the
+       ;; cache is cleared.
+       :local? true})
     (do
       (when-not (and url tag)
         (die "template.edn must set :mono/url and :mono/tag" {}))
@@ -102,7 +108,8 @@
         {:url url
          :tag tag
          :sha resolved
-         :dir (gitlibs/procure url mono-lib resolved)}))))
+         :dir (gitlibs/procure url mono-lib resolved)
+         :local? false}))))
 
 (defn- workspace-top-ns
   "The Polylith :top-namespace for the generated workspace.
@@ -154,13 +161,18 @@
   "Render the coordinate for one mono artifact, as a string to be substituted
   into a generated deps.edn. `n` is the column continuation lines align to.
 
-  In the normal case this is a pinned git coordinate. When :mono/dir was given
-  it is a :local/root pointing into that working copy instead, so a generated
+  In the normal case this is a pinned git coordinate. Only when the caller
+  supplied :mono/dir is it a :local/root into that working copy, so a generated
   workspace can be exercised before the release it would otherwise depend on
   exists. That is what makes the pre-release smoke test possible: the template
-  pins a release of the very repository it lives in."
-  [{:mono/keys [url tag sha dir]} root n]
-  (if dir
+  pins a release of the very repository it lives in.
+
+  Branching on :mono/local? rather than on the presence of a directory is
+  essential. The published path also has a directory, but it is a ~/.gitlibs
+  checkout; writing that into a generated deps.edn would produce a workspace
+  that only resolves on the machine that generated it."
+  [{:mono/keys [url tag sha dir local?]} root n]
+  (if local?
     (local-root (str dir "/" root))
     (lines n
            [(str "{:git/url \"" url "\"")
@@ -227,7 +239,7 @@
   (let [;; deps-new merges as (merge desc edn opts), so CLI options win
         merged (merge edn opts)
         manifest (starter-manifest template-dir)
-        {:keys [url tag sha dir]} (resolve-mono merged)
+        {:keys [url tag sha dir local?]} (resolve-mono merged)
         top-ns (workspace-top-ns merged)
         bricks (:bricks manifest)]
     (doseq [{:keys [kind name]} bricks]
@@ -235,7 +247,11 @@
         (die (str "Starter brick " kind "/" name " is not present in mono " tag)
              {:mono/dir dir :kind kind :name name})))
     (println "Using mono" tag "at" sha)
-    (let [mono {:mono/url url :mono/tag tag :mono/sha sha :mono/dir dir}]
+    (let [mono {:mono/url url
+                :mono/tag tag
+                :mono/sha sha
+                :mono/dir dir
+                :mono/local? local?}]
       (merge
        edn
        mono
@@ -341,8 +357,8 @@
   "Coordinate for a mono brick a staged brick depends on. Mirrors `coord`, but
   returns data rather than a rendered string, because this one is written back
   through the EDN printer."
-  [{:mono/keys [url tag sha dir]} root]
-  (if dir
+  [{:mono/keys [url tag sha dir local?]} root]
+  (if local?
     {:local/root (str dir "/" root)}
     (cond-> {:git/url url :git/tag tag :git/sha sha}
             root
