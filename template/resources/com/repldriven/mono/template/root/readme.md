@@ -54,7 +54,7 @@ the protobuf and FDB prerequisites go away with them.
 ## First run
 
 ```bash
-just setup          # clj -X:deps prep, generates protobuf code into gen/
+just setup          # clojure -X:deps prep, generates protobuf code into gen/
 just check          # clojure -M:poly check
 just test           # needs Docker
 ```

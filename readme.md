@@ -25,7 +25,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.1.0' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.1' \
   :name com.acme/my-thing
 ```
 
@@ -48,7 +48,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono-lib
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.1.0"
+         :git/tag "v0.0.1"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -56,7 +56,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono-test-lib
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.1.0"
+           :git/tag "v0.0.1"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
@@ -85,10 +85,10 @@ This removes the example domain and rewires configs so you can:
 1. Add domain components under `components/<your-domain>-*/`
 2. Add domain bases under `bases/<your-domain>-*/`
 3. Add domain projects under `projects/<your-domain>-*/`
+4. Register your new bricks in the `:+<your-domain>` alias in `deps.edn`
 
 Deprecated in favour of the template above: forking gives you a full copy of
 every shared brick, so upstream fixes only arrive by hand.
-4. Register your new bricks in the `:+<your-domain>` alias in `deps.edn`
 
 ## Presentations
 

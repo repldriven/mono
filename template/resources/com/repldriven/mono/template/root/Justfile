@@ -9,7 +9,7 @@ list:
 # before any classpath will build, because example-bookmark declares
 # :deps/prep-lib and its "classes" path does not exist until prep has run.
 setup:
-    clj -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]'
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]'
 
 # Start nREPL server
 repl:
@@ -58,7 +58,7 @@ format:
     fi
 
 force-prep:
-    clj -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]' :force true
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]' :force true
 
 # Start Docker via Colima
 start-docker:

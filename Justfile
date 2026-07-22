@@ -35,7 +35,7 @@ template-test name="com.acme/bookmarks" out="/tmp/mono-template-test":
     if ! grep -rq 'com\.repldriven\.mono\.error' .; then
         echo "FAIL: library namespaces were rewritten but should not have been"; exit 1
     fi
-    clj -X:deps prep :aliases '[:dev :+example]'
+    clojure -X:deps prep :aliases '[:dev :+example]'
     clojure -M:poly check
     echo "✓ template generates a workspace that checks"
 
@@ -150,7 +150,7 @@ format:
     fi
 
 force-prep:
-    clj -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]' :force true
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]' :force true
 
 # Start Docker via Colima
 start-docker:

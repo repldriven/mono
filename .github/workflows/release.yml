@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish, e.g. v0.1.0"
+        description: "Version to publish, e.g. v0.0.1"
         required: true
         type: string
       dry_run:
@@ -207,7 +207,7 @@ jobs:
               || { echo "::error::$ns was rewritten but should have been left pointing at mono"; exit 1; }
           done
 
-          clj -X:deps prep :aliases '[:dev :+example]'
+          clojure -X:deps prep :aliases '[:dev :+example]'
           clojure -M:poly check
           echo "template generates a workspace that checks"
 
@@ -326,7 +326,7 @@ jobs:
           grep -q "$SHA" deps.edn \
             || { echo "::error::generated deps.edn does not pin the released sha"; exit 1; }
 
-          clj -X:deps prep :aliases '[:dev :+example]'
+          clojure -X:deps prep :aliases '[:dev :+example]'
           clojure -M:poly check
           echo "the published template generates a portable workspace that checks"
 

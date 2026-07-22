@@ -422,5 +422,5 @@
     (println)
     (println "Workspace created. Next:")
     (println "  cd" target-dir)
-    (println "  clj -X:deps prep :aliases '[:dev :+example]'")
+    (println "  clojure -X:deps prep :aliases '[:dev :+example]'")
     (println "  clojure -M:poly check")))
