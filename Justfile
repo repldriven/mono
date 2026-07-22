@@ -5,9 +5,39 @@ DOMAIN_ALIASES := ":+example"
 list:
     just --list
 
-# Remove the example domain and configure for a new domain
+# DEPRECATED: use `just template-test` / the deps-new template instead.
+# Fork-and-strip gives the new repo a full copy of every shared brick, so
+# upstream fixes can only arrive by hand. See readme.md.
 fork domain:
     bb scripts/fork-domain.bb {{ domain }}
+
+# Generate a throwaway workspace from the template and verify it end to end.
+# Uses the working copy rather than a published tag, so it can run before a
+# release exists.
+template-test name="com.acme/bookmarks" out="/tmp/mono-template-test":
+    #!/usr/bin/env zsh
+    set -e
+    rm -rf {{ out }}
+    mkdir -p $(dirname {{ out }})
+    clojure -Sdeps "{:deps {com.repldriven.mono/template {:local/root \"$PWD/template\"}}}" \
+      -Tnew create \
+      :template com.repldriven.mono/template \
+      :name {{ name }} \
+      :target-dir '"{{ out }}"' \
+      :mono/dir "\"$PWD\"" \
+      :overwrite :delete
+    cd {{ out }}
+    # the rewrite policy, as an assertion: starter namespaces must be gone,
+    # library namespaces must remain
+    if grep -rq 'com\.repldriven\.mono\.example' .; then
+        echo "FAIL: starter namespaces leaked into the generated workspace"; exit 1
+    fi
+    if ! grep -rq 'com\.repldriven\.mono\.error' .; then
+        echo "FAIL: library namespaces were rewritten but should not have been"; exit 1
+    fi
+    clj -X:deps prep :aliases '[:dev :+example]'
+    clojure -M:poly check
+    echo "✓ template generates a workspace that checks"
 
 # Start nREPL server for Conjure connection
 repl:
@@ -99,7 +129,7 @@ nvd project="":
 lint-eastwood:
     clojure -M{{ DOMAIN_ALIASES }}:dev:test:lint/eastwood
 lint-clj-kondo:
-    clojure -M:lint/clj-kondo --lint bases components projects deps.edn workspace.edn
+    clojure -M:lint/clj-kondo --lint bases components projects template/src deps.edn workspace.edn
 lint:
   just lint-eastwood
   just lint-clj-kondo
@@ -109,7 +139,9 @@ format:
     #!/usr/bin/env bash
     set -e
     echo "Formatting Clojure source files..."
-    files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | while read f; do [ -f "$f" ] && echo "$f"; done)
+    # template/resources holds files with deps-new placeholders in them, which
+    # are not valid Clojure until substituted, so zprint cannot parse them
+    files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | grep -v '^template/resources/' | while read f; do [ -f "$f" ] && echo "$f"; done)
     if [ -n "$files" ]; then
         echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
         echo "✓ Formatting complete"

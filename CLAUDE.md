@@ -28,6 +28,24 @@ that follows the Polylith architecture.
   - Combine bases and components into deployable applications
   - No code, just `deps.edn` files
   - Projects do not have `-main` functions (bases do)
+  - `mono-lib` and `mono-test-lib` are **published artifacts**, not deployables.
+    They have no base, list curated bricks as `:local/root` deps, and are
+    consumed downstream as git deps via `:deps/root`. Adding or changing a brick
+    in either is release-visible: consumers pin a sha and there is no snapshot
+    channel, so it requires a new tag. Their dep keys are qualified
+    (`com.repldriven.mono.components/env`) to avoid colliding with a consumer's
+    own keys, and they are listed in `workspace.edn` with `:necessary` because a
+    base-less project trips warning 207. A component published in `mono-lib`
+    MUST be self-contained: it MUST NOT read files relative to the workspace
+    root, since a consuming workspace has no such files
+- **Template** (`template/`):
+  - A deps-new template that scaffolds a workspace wired to `mono-lib`
+  - Sits outside the Polylith directories, so `poly` ignores it
+  - Starter bricks are **not** committed here; they are copied from mono at
+    generation time and namespace-rewritten. Only segments listed in
+    `starter.edn` are rewritten, so references to bricks that come from
+    `mono-lib` keep pointing at `com.repldriven.mono.*`
+  - Verify with `just template-test`
 
 ## Component-Based Infrastructure
 

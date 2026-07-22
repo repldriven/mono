@@ -1,0 +1,21 @@
+;; Deployable project: combines your bricks with the mono component library.
+;; Projects hold no code of their own, only this composition manifest.
+{:paths ["resources"]
+ :deps {com.repldriven/mono-lib
+        {{mono/project-lib-coord}}
+        {{starter/project-deps}}
+        com.google.protobuf/protobuf-java {:mvn/version "3.25.8"}
+        org.clojure/clojure {:mvn/version "1.12.4"}}
+ :aliases
+ {:test
+  {:extra-deps
+   {com.repldriven/mono-test-lib
+    {{mono/project-test-lib-coord}}
+    com.repldriven.mono/external-test-runner
+    {{mono/project-test-runner-coord}}}}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.12"}}
+          :extra-deps {com.repldriven.mono/build
+                       {{mono/build-coord}}}
+          :ns-default com.repldriven.mono.build.build
+          :exec-args {:lib {{top-ns}}/{{main}}
+                      :main {{top-ns}}.example-api.main}}}}

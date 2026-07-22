@@ -17,7 +17,64 @@ framework magic.
 
 ## How to Use It
 
-Fork the repo and set up your own domain:
+### Start a new workspace (recommended)
+
+Generate a Polylith workspace already wired to mono as a library:
+
+```bash
+clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
+
+clojure -Tnew create \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.1.0' \
+  :name com.acme/my-thing
+```
+
+You get a workspace whose shared bricks come from mono as a pinned git
+dependency, plus the example bricks copied in and rewritten into your own
+namespace for you to own and edit. See `template/` for how it works.
+
+If your project name uses a git-service qualifier, say what top namespace you
+want, because deps-new strips those prefixes:
+
+```bash
+clojure -Tnew create ... :name io.github.acme/my-thing :top-ns '"com.acme.my-thing"'
+```
+
+### Use mono as a library from an existing workspace
+
+Shared components are published as a git dependency. No Maven or Clojars is
+involved; everything resolves from a tag and its sha.
+
+```clojure
+{:deps {com.repldriven/mono-lib
+        {:git/url "https://github.com/repldriven/mono.git"
+         :git/tag "v0.1.0"
+         :git/sha "<full-sha>"
+         :deps/root "projects/mono-lib"}}
+
+ :aliases
+ {:test {:extra-deps
+         {com.repldriven/mono-test-lib
+          {:git/url "https://github.com/repldriven/mono.git"
+           :git/tag "v0.1.0"
+           :git/sha "<full-sha>"
+           :deps/root "projects/mono-test-lib"}}}}}
+```
+
+`mono-lib` carries the reusable components. `mono-test-lib` carries the test
+support (`test-system`, `testcontainers`, `test-resources`) and belongs under a
+`:test` alias only, so Docker and the testcontainers tree stay off your runtime
+classpath. They are separate lib symbols on purpose: sharing one symbol would
+make the `:test` alias replace `mono-lib` rather than add to it.
+
+Require bricks by their original namespaces, for example
+`com.repldriven.mono.error.interface`. The namespace belongs to the brick's
+source, not to how it was delivered.
+
+To take an upstream fix, bump the tag and sha together. Published tags never
+move; mono cuts a new one instead.
+
+### Fork the repo (deprecated)
 
 ```bash
 just fork <your-domain>
@@ -28,6 +85,9 @@ This removes the example domain and rewires configs so you can:
 1. Add domain components under `components/<your-domain>-*/`
 2. Add domain bases under `bases/<your-domain>-*/`
 3. Add domain projects under `projects/<your-domain>-*/`
+
+Deprecated in favour of the template above: forking gives you a full copy of
+every shared brick, so upstream fixes only arrive by hand.
 4. Register your new bricks in the `:+<your-domain>` alias in `deps.edn`
 
 ## Presentations

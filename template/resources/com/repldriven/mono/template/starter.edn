@@ -1,0 +1,50 @@
+;; Which mono bricks a generated workspace starts with, and how they are
+;; rewritten. This is data on purpose: adding a starter brick should not mean
+;; editing new.clj.
+{;; Starter exemplar bricks. Copied verbatim out of the pinned mono release at
+ ;; generation time, then namespace-rewritten. They are NOT committed into this
+ ;; template: a committed copy would drift from mono the moment mono changed.
+ ;;
+ ;; :profile? registers the brick in the generated workspace's domain profile.
+ ;; :gen?     the brick generates code into gen/ via :deps/prep-lib, so it needs
+ ;;           a clj-kondo exclusion.
+ :bricks
+ [{:kind "components" :name "example-bookmark" :profile? true :gen? true}
+  {:kind "bases" :name "example-api" :profile? true}]
+
+ ;; Namespace segments owned by the starter bricks. `com.repldriven.mono.<seg>`
+ ;; becomes `<top-ns>.<seg>`, in hyphenated and munged form, as namespace and as
+ ;; file path.
+ ;;
+ ;; Every other mono segment is deliberately absent. A starter brick's require
+ ;; on com.repldriven.mono.error.interface must keep pointing at mono, because
+ ;; error arrives from the frozen mono-lib dependency rather than being copied.
+ ;; Rewriting it would produce a dangling namespace.
+ ;;
+ ;; example-schemas is not a brick: it is the protobuf package generated into
+ ;; components/example-bookmark/gen and compiled into classes/. It has no
+ ;; upstream in mono-lib, so it belongs to the consumer and must be rewritten.
+ :rewrite-segments ["example-bookmark" "example-api" "example-schemas"]
+
+ ;; Brick-relative paths never copied, as regexes. Generated and build output.
+ ;; gen/.gitignore is kept, because it is what keeps generated code out of the
+ ;; consumer's git. These paths are gitignored in mono and so are absent from a
+ ;; gitlibs checkout anyway; excluding them explicitly makes a generation from a
+ ;; local working copy produce the same result as one from a published tag.
+ :exclude ["^classes/" "^target/" "^gen/(?!\\.gitignore$)"
+           "^\\.cpcache/" "^\\.clj-kondo/" "^\\.lsp/" "^\\.nrepl-port$"]
+
+ ;; A staged brick's own deps.edn may reference mono bricks by :local/root that
+ ;; are not shipped in mono-lib. Those become pinned git deps on the mono repo.
+ ;; example-bookmark's :build alias reaching for ../../bases/build is why this
+ ;; exists.
+ :local-root->git
+ {"../../bases/build"
+  {:lib com.repldriven.mono/build :deps/root "bases/build"}
+  "../../bases/external-test-runner"
+  {:lib com.repldriven.mono/external-test-runner
+   :deps/root "bases/external-test-runner"}}
+
+ ;; Binary file extensions, copied byte-for-byte rather than rewritten.
+ :binary-exts ["png" "jpg" "jpeg" "gif" "bmp" "ico" "jar" "class"
+               "so" "dylib" "pem" "p12" "jks"]}

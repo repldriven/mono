@@ -1,0 +1,12 @@
+;; Classpath for the deps-new template. This is not a Polylith project and is
+;; not published as a library; it exists to be resolved by `clojure -Tnew`.
+;;
+;; Deliberately no dependency on mono itself. Depending on projects/mono-lib
+;; here would drag the whole FoundationDB, Pulsar and Jetty transitive tree onto
+;; the -Tnew classpath, when all the template needs is mono's source tree on
+;; disk. The pinned coordinate lives as data in template.edn and is resolved
+;; lazily through tools.gitlibs, which populates the same ~/.gitlibs checkout a
+;; real dependency resolution would use.
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.4"}
+        org.clojure/tools.gitlibs {:mvn/version "2.6.206"}}}

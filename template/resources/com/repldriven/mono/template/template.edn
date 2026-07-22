@@ -1,0 +1,25 @@
+;; deps-new template for a Polylith workspace built on the mono component
+;; library.
+;;
+;;   clojure -Tnew create \
+;;     :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.1.0' \
+;;     :name com.acme/bookmarks
+;;
+;; Only :mono/tag is pinned by hand; the sha is resolved from it at generation
+;; time. That is what breaks the chicken-and-egg of a template that pins a
+;; release of its own repository: a sha written here could never name the commit
+;; containing it, but a tag name is known before that commit exists. The
+;; resolved sha is then used both to locate the starter brick sources and to
+;; pin the generated deps.edn files, so the two can never disagree.
+{:description "A Polylith workspace built on the mono component library."
+
+ :mono/url "https://github.com/repldriven/mono.git"
+ :mono/tag "v0.1.0"
+
+ :template-fn com.repldriven.mono.template.new/template-fn
+ :post-process-fn com.repldriven.mono.template.new/post-process-fn
+
+ ;; `root` is copied automatically before any transform, so it holds every file
+ ;; whose path is fixed. Only the project directory needs a transform, because
+ ;; its name is derived from the project name.
+ :transform [["project" "projects/{{main/file}}"]]}

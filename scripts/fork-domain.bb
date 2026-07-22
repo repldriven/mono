@@ -1,4 +1,17 @@
 #!/usr/bin/env bb
+;; DEPRECATED. Prefer the deps-new template:
+;;
+;;   clojure -Tnew create \
+;;     :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#<tag>' \
+;;     :name com.acme/my-thing
+;;
+;; This script forks and strips: the new repository ends up owning a full copy
+;; of every shared brick, so an upstream fix can only reach it through a manual
+;; merge. The template instead wires the new workspace to mono-lib as a pinned
+;; git dependency, leaving only the example bricks to own and edit.
+;;
+;; Kept for now because existing forks were made with it.
+;;
 ;; Usage: bb scripts/fork-domain.bb <domain-name>
 ;;
 ;; Strips the example domain and rewires configs for a new domain.
