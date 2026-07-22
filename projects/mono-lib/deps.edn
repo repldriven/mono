@@ -67,9 +67,16 @@
  ;; Aliases are invisible to a git-dep consumer. This one exists so that
  ;; `poly check` can satisfy the test context and `poly test project:mono-lib`
  ;; works inside this workspace.
+ ;;
+ ;; logback-test.xml lives on :extra-paths here, NOT on :paths above. A library
+ ;; project's :paths become part of every consumer's classpath, and logback
+ ;; prefers a logback-test.xml found anywhere on the classpath over the
+ ;; consumer's own config, so putting it there would silently hijack their
+ ;; logging.
  :aliases
  {:test
-  {:extra-deps
+  {:extra-paths ["test-resources"]
+   :extra-deps
    {com.repldriven.mono.components/test-resources
     {:local/root "../../components/test-resources"}
     com.repldriven.mono.components/test-schema

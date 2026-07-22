@@ -44,9 +44,14 @@
   org.clojure/clojure {:mvn/version "1.12.4"}}
 
  ;; Invisible to consumers; present so `poly check` and `poly test` work here.
+ ;;
+ ;; logback-test.xml lives on :extra-paths here, NOT on :paths above, so it
+ ;; never reaches a consumer's classpath and cannot override their logging
+ ;; config. See the same note in mono-lib.
  :aliases
  {:test
-  {:extra-deps
+  {:extra-paths ["test-resources"]
+   :extra-deps
    {com.repldriven.mono.components/test-schema
     {:local/root "../../components/test-schema"}
     com.repldriven.mono.bases/external-test-runner
