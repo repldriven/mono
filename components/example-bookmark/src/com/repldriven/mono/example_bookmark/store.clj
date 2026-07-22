@@ -59,4 +59,7 @@
      (fn [store]
        (mapv bookmarks/pb->Bookmark
              (fdb/query-repeated-records
-              store "Bookmark" "tags" tag))))))
+              store
+              "Bookmark"
+              "tags"
+              tag))))))
