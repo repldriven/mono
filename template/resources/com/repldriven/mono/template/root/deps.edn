@@ -19,7 +19,7 @@
    :jvm-opts
    ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]}
 
-  ;; Test support (test-system, testcontainers, test-resources) is a separate
+  ;; Test support (test-system, testcontainers) is a separate
   ;; artifact under a separate lib symbol, so that Docker and the testcontainers
   ;; tree stay off the runtime classpath. Because the symbols differ, this adds
   ;; to mono-lib rather than replacing it.

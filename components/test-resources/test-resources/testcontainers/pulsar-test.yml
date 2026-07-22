@@ -203,6 +203,13 @@ consumers: !system/component
       schema: !pulsar/schema AUTO_CONSUME
       subscriptionName: tenant-1-subscriber-r1
       subscriptionType: !pulsar/subscription-type Shared
+      # Exercises the ackTimeout + deadLetterPolicy code path in
+      # consumer/create. The happy-path consume is unaffected — the DLQ
+      # only triggers after maxRedeliverCount redeliveries.
+      ackTimeoutMillis: 30000
+      deadLetterPolicy:
+        maxRedeliverCount: 3
+        deadLetterTopic: "persistent://tenant-1/namespace-1/topic-pet-dlq"
       topicNames: ["persistent://tenant-1/namespace-1/topic-pet"]
     schemas: !system/local-ref schemas
   pet-2:

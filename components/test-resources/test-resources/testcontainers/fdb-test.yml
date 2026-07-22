@@ -8,9 +8,13 @@ _record-types: &record-types !strs
 container: !system/component
   system/component-kind: fdb/container
 
+container-cluster-file-path: !system/component
+  system/component-kind: fdb/container-cluster-file-path
+  container: !system/local-ref container
+
 cluster-file-path: !system/component
   system/component-kind: fdb/cluster-file-path
-  container: !system/local-ref container
+  path: !system/local-ref container-cluster-file-path
 
 db: !system/component
   system/component-kind: fdb/db
@@ -32,3 +36,4 @@ pet-meta-store: !system/component
   path: pet-meta
   descriptor: com.repldriven.mono.test_schemas.schemas.TestSchemaProto
   record-types: *record-types
+  migrate: true

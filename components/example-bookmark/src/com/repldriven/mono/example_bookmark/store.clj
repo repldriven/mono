@@ -18,48 +18,55 @@
 
 (defn create
   [config data]
-  (let [{:keys [record-db record-store]} config
-        {:keys [url title tags]} data
+  (let [{:keys [url title tags]} data
         bookmark-id (str (utility/uuidv7))]
     (fdb/transact
-     record-db
-     record-store
-     "bookmarks"
-     (fn [store]
-       (let-nom>
-         [_ (fdb/save-record
-             store
-             (Bookmark->java {:bookmark-id bookmark-id
-                              :url url
-                              :title title
-                              :tags (vec tags)}))]
-         {:bookmark-id bookmark-id
-          :url url
-          :title title
-          :tags (vec tags)})))))
+     config
+     (fn [txn]
+       (let [store (fdb/open txn "bookmarks")]
+         (let-nom>
+           [_ (fdb/save-record
+               store
+               (Bookmark->java {:bookmark-id bookmark-id
+                                :url url
+                                :title title
+                                :tags (vec tags)}))]
+           {:bookmark-id bookmark-id
+            :url url
+            :title title
+            :tags (vec tags)}))))))
 
 (defn find-by-id
   [config bookmark-id]
-  (let [{:keys [record-db record-store]} config]
-    (fdb/transact
-     record-db
-     record-store
-     "bookmarks"
-     (fn [store]
-       (some-> (fdb/load-record store bookmark-id)
-               bookmarks/pb->Bookmark)))))
+  (fdb/transact
+   config
+   (fn [txn]
+     (some-> (fdb/load-record (fdb/open txn "bookmarks") bookmark-id)
+             bookmarks/pb->Bookmark))))
+
+;; fdb queries an indexed field for equality; `tags` is a repeated field,
+;; which the planner cannot match that way. The demo scans by primary key
+;; and filters in memory instead, paging so the whole store is never held
+;; at once.
+(def ^:private scan-page-size 100)
 
 (defn find-by-tag
   [config tag]
-  (let [{:keys [record-db record-store]} config]
-    (fdb/transact
-     record-db
-     record-store
-     "bookmarks"
-     (fn [store]
-       (mapv bookmarks/pb->Bookmark
-             (fdb/query-repeated-records
-              store
-              "Bookmark"
-              "tags"
-              tag))))))
+  (fdb/transact
+   config
+   (fn [txn]
+     (let [store (fdb/open txn "bookmarks")]
+       (loop [cursor nil
+              found []]
+         (let [opts (cond-> {:limit scan-page-size}
+                            cursor
+                            (assoc :after cursor))
+               page (fdb/scan-records store opts)
+               {:keys [records after]} page
+               tagged (into found
+                            (comp (map bookmarks/pb->Bookmark)
+                                  (filter #(some #{tag} (:tags %))))
+                            records)]
+           (if after
+             (recur after tagged)
+             tagged)))))))

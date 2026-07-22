@@ -23,16 +23,21 @@
 ;; test-schema is intentionally absent: it carries :deps/prep-lib, and keeping a
 ;; prep step out of the published surface is worth protecting. It stays an alias
 ;; dep, used only inside this workspace.
+;;
+;; test-resources is absent for a different reason: its :paths is ["src"], which
+;; holds nothing but an empty namespace. The shared config it exists to carry
+;; (testcontainers/*.yml, the pulsar keypairs) lives on :extra-paths under the
+;; brick's own :test alias, and a git-dep consumer never activates a dep's
+;; aliases — so publishing it would ship an empty ns. The config is workspace
+;; -internal anyway: it wires our bricks, and only our brick tests !include it.
 {:paths []
  :deps
- {com.repldriven.mono.components/test-resources
-  {:local/root "../../components/test-resources"}
-  com.repldriven.mono.components/test-system
+ {com.repldriven.mono.components/test-system
   {:local/root "../../components/test-system"}
   com.repldriven.mono.components/testcontainers
   {:local/root "../../components/testcontainers"}
 
-  ;; Dependency closure of the three bricks above. Required so that this is a
+  ;; Dependency closure of the two bricks above. Required so that this is a
   ;; valid Polylith project, and so the artifact stands up on its own.
   com.repldriven.mono.components/env {:local/root "../../components/env"}
   com.repldriven.mono.components/error {:local/root "../../components/error"}

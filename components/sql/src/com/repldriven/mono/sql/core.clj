@@ -5,8 +5,6 @@
     [honey.sql :as hsql]))
 
 (defn format
-  "Format a HoneySQL query map into a [sql & params] vector.
-  Returns an anomaly on error."
   [query & opts]
   (try-nom :sql/format
            "Failed to format SQL query"

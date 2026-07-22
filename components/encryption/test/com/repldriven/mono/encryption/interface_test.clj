@@ -3,12 +3,6 @@
     [com.repldriven.mono.encryption.interface :as SUT]
     [clojure.test :refer [deftest is testing]]))
 
-(deftest generate-id-test
-  (testing "generates prefixed base64url ID"
-    (let [id (SUT/generate-id "acc")]
-      (is (string? id))
-      (is (.startsWith id "acc.")))))
-
 (deftest generate-token-test
   (testing "generates prefixed token"
     (let [key (SUT/generate-token "sk_live_")]

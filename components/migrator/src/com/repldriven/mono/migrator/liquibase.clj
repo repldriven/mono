@@ -11,8 +11,6 @@
     (java.io File)))
 
 (defn- resource-accessor
-  "Create a DirectoryResourceAccessor from a classpath resource path.
-   Resolves the resource to its filesystem location."
   [resource-path]
   (let [resource (io/resource resource-path)
         file (io/file (.toURI resource))

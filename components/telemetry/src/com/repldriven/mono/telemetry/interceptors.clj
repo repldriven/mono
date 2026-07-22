@@ -1,24 +1,29 @@
 (ns com.repldriven.mono.telemetry.interceptors
-  "Interceptors for distributed tracing and request validation."
+  "Interceptors for distributed tracing."
   (:require
-    [com.repldriven.mono.log.interface :as log]
     [steffan-westcott.clj-otel.api.trace.http :as trace-http]))
 
-(def require-idempotency-key
-  "Interceptor that validates Idempotency-Key header is present.
+(defn- pedestal->sieppari-error
+  "Adapter for the `:error` interceptor stage. clj-otel's
+  interceptors are Pedestal-shaped (`(fn [ctx ex])`); Sieppari
+  invokes `:error` with the ctx alone and stores the exception
+  under `(:error ctx)`. Without this adapter, the first time
+  anything downstream throws Sieppari calls the otel error fn
+  with one arg and crashes with `Wrong number of args (1)`. In
+  dev nothing throws so the mismatch hides; on a real cluster
+  with a live exporter it surfaces."
+  [pedestal-error-fn]
+  (fn [ctx]
+    (pedestal-error-fn ctx (:error ctx))))
 
-  Returns 400 Bad Request if the header is missing."
-  {:name ::require-idempotency-key
-   :enter (fn [ctx]
-            (log/debugf
-             "telemetry.interceptors/require-idempotency-key(enter): [headers=]"
-             (get-in ctx [:request :headers]))
-            (if (some? (get-in ctx [:request :headers "idempotency-key"]))
-              ctx
-              (assoc ctx
-                     :response
-                     {:status 400
-                      :body {:error "Missing Idempotency-Key header"}})))})
+(defn- sieppari-compatible
+  "Translate a Pedestal interceptor map into a Sieppari one by
+  rewriting only the `:error` arity — `:enter` and `:leave`
+  share a 1-arg shape across both libraries."
+  [interceptor]
+  (cond-> interceptor
+          (:error interceptor)
+          (update :error pedestal->sieppari-error)))
 
 (def trace-span
   "Vector of interceptors that add OpenTelemetry server span support to HTTP requests.
@@ -29,5 +34,10 @@
   - Records HTTP response status and exceptions, ends span on leave or error
 
   Synchronous-only: :set-current-context? is true, which is appropriate because
-  all Reitit/Sieppari interceptors and handlers run on the same thread."
-  (trace-http/server-span-interceptors {:create-span? true}))
+  all Reitit/Sieppari interceptors and handlers run on the same thread.
+
+  Each interceptor's `:error` stage is wrapped to translate the
+  Pedestal `(ctx ex)` arity to Sieppari's `(ctx)` shape; see
+  `pedestal->sieppari-error`."
+  (mapv sieppari-compatible
+        (trace-http/server-span-interceptors {:create-span? true})))

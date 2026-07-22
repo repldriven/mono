@@ -1,5 +1,5 @@
 (ns com.repldriven.mono.pulsar.pulsar.schemas
-  (:refer-clojure :exclude [name namespace resolve type])
+  (:refer-clojure :exclude [resolve type])
   (:require
     [clojure.data.json :as json]
     [clojure.java.data :as j]
@@ -27,34 +27,34 @@
       (withProperties (j/to-java Map (or properties {})))
       build))
 
+(def ^:private primitive-schemas
+  {"BOOL" Schema/BOOL
+   "BYTEBUFFER" Schema/BYTEBUFFER
+   "BYTES" Schema/BYTES
+   "DATE" Schema/DATE
+   "DOUBLE" Schema/DOUBLE
+   "FLOAT" Schema/FLOAT
+   "INSTANT" Schema/INSTANT
+   "INT16" Schema/INT16
+   "INT32" Schema/INT32
+   "INT64" Schema/INT64
+   "INT8" Schema/INT8
+   "LOCAL_DATE" Schema/LOCAL_DATE
+   "LOCAL_DATE_TIME" Schema/LOCAL_DATE_TIME
+   "STRING" Schema/STRING
+   "TIME" Schema/TIME
+   "TIMESTAMP" Schema/TIMESTAMP})
+
 (defn- create-schema
   ^Schema
   ([type]
-   (case type
-     ;; primitive
-     "BOOL" Schema/BOOL
-     "BYTEBUFFER" Schema/BYTEBUFFER
-     "BYTES" Schema/BYTES
-     "DATE" Schema/DATE
-     "DOUBLE" Schema/DOUBLE
-     "FLOAT" Schema/FLOAT
-     "INSTANT" Schema/INSTANT
-     "INT16" Schema/INT16
-     "INT32" Schema/INT32
-     "INT64" Schema/INT64
-     "INT8" Schema/INT8
-     "LOCAL_DATE" Schema/LOCAL_DATE
-     "LOCAL_DATE_TIME" Schema/LOCAL_DATE_TIME
-     "STRING" Schema/STRING
-     "TIME" Schema/TIME
-     "TIMESTAMP" Schema/TIMESTAMP
-     ;; auto
-     "AUTO_CONSUME" (Schema/AUTO_CONSUME)
-     "AUTO_PRODUCE_BYTES" (Schema/AUTO_PRODUCE_BYTES)))
+   (or (get primitive-schemas type)
+       (case type
+         "AUTO_CONSUME" (Schema/AUTO_CONSUME)
+         "AUTO_PRODUCE_BYTES" (Schema/AUTO_PRODUCE_BYTES))))
   ([type schema properties]
    (let [schema-definition (create-definition schema properties)]
      (case type
-       ;; complex
        "JSON" (Schema/JSON schema-definition)
        "AVRO" (Schema/AVRO schema-definition)
        (create-schema type)))))
@@ -64,7 +64,6 @@
   (log/info "Loading Pulsar schema file:" filename)
   (-> filename
       io/resource
-      io/file
       slurp
       json/read-str))
 

@@ -1,15 +1,18 @@
 (ns com.repldriven.mono.fdb.record
   (:refer-clojure :exclude [load])
   (:require
-    [com.repldriven.mono.error.interface :refer [try-nom]])
+    [com.repldriven.mono.error.interface :as error :refer [try-nom]])
   (:import
-    (com.apple.foundationdb.record EndpointType
-                                   ExecuteProperties
+    (com.apple.foundationdb.record ExecuteProperties
+                                   IndexScanType
                                    ScanProperties
                                    TupleRange)
     (com.apple.foundationdb.record.provider.foundationdb
      FDBDatabase
-     FDBStoreTimer$Waits)
+     FDBStoreTimer$Waits
+     IndexScanRange)
+    (com.apple.foundationdb.record.metadata IndexAggregateFunction
+                                            IndexTypes)
     (com.apple.foundationdb.record.query RecordQuery)
     (com.apple.foundationdb.record.query.expressions Query)
     (com.apple.foundationdb.tuple Tuple)
@@ -44,185 +47,255 @@
   (.saveRecord store record)
   nil)
 
+(defn delete
+  "Deletes a record by primary key from an open FDBRecordStore.
+  Returns true if deleted, false if not found. For use inside
+  transact. Accepts one or more primary key parts for composite keys."
+  [store & primary-key-parts]
+  (.deleteRecord store (Tuple/from (into-array Object primary-key-parts))))
+
+(defn- field-filter
+  [[field value]]
+  (-> (Query/field field)
+      (.equalsValue value)))
+
+(defn- apply-allowed-indexes
+  "Constrains the planner to the named index when
+  (:index opts) is provided. Returns the builder."
+  [builder opts]
+  (let [index (:index opts)]
+    (cond-> builder
+            index
+            (.setAllowedIndexes
+             ^java.util.List
+             (java.util.ArrayList. ^java.util.Collection [index])))))
+
+(defn- equals-query
+  ([record-type field value]
+   (equals-query record-type field value nil))
+  ([record-type field value opts]
+   (-> (RecordQuery/newBuilder)
+       (.setRecordType record-type)
+       (.setFilter (field-filter [field value]))
+       (apply-allowed-indexes opts)
+       .build)))
+
+(defn- and-query
+  ([record-type filters]
+   (and-query record-type filters nil))
+  ([record-type filters opts]
+   (-> (RecordQuery/newBuilder)
+       (.setRecordType record-type)
+       (.setFilter (Query/and
+                    ^java.util.List
+                    (java.util.ArrayList. (map field-filter filters))))
+       (apply-allowed-indexes opts)
+       .build)))
+
+(defn- execute-query
+  [store q]
+  (->> (.executeQuery store q)
+       .asList
+       (.asyncToSync (.getContext store)
+                     FDBStoreTimer$Waits/WAIT_EXECUTE_QUERY)))
+
+(defn- execute-query-one
+  [store q]
+  (let [props (-> (ExecuteProperties/newBuilder)
+                  (.setReturnedRowLimit 1)
+                  .build)]
+    (->> (.executeQuery store q nil props)
+         .asList
+         (.asyncToSync (.getContext store)
+                       FDBStoreTimer$Waits/WAIT_EXECUTE_QUERY))))
+
 (defn query
   "Queries an open FDBRecordStore where field equals value.
   Returns a vector of serialized byte arrays. For use inside
-  transact."
-  [store record-type field value]
-  (let [q (-> (RecordQuery/newBuilder)
-              (.setRecordType record-type)
-              (.setFilter (-> (Query/field field)
-                              (.equalsValue value)))
-              .build)]
-    (->> (.executeQuery store q)
-         .asList
-         (.asyncToSync (.getContext store)
-                       FDBStoreTimer$Waits/WAIT_EXECUTE_QUERY)
-         (mapv record->bytes))))
+  transact. opts supports :index to pin the planner to a
+  named index."
+  ([store record-type field value]
+   (query store record-type field value nil))
+  ([store record-type field value opts]
+   (mapv record->bytes
+         (execute-query store (equals-query record-type field value opts)))))
 
-(defn query-repeated
-  "Queries an open FDBRecordStore where a repeated field
-  contains value. Uses oneOfThem() semantics for fan-out
-  indexes. Returns a vector of serialized byte arrays.
-  For use inside transact."
-  [store record-type field value]
-  (let [q (-> (RecordQuery/newBuilder)
-              (.setRecordType record-type)
-              (.setFilter (-> (Query/field field)
-                              .oneOfThem
-                              (.equalsValue value)))
-              .build)]
-    (->> (.executeQuery store q)
-         .asList
-         (.asyncToSync (.getContext store)
-                       FDBStoreTimer$Waits/WAIT_EXECUTE_QUERY)
-         (mapv record->bytes))))
+(defn query-one
+  "Queries an open FDBRecordStore where field equals value,
+  capping the planner at one result via ExecuteProperties.
+  Returns the first matching record bytes, or nil. opts
+  supports :index to pin the planner to a named index."
+  ([store record-type field value]
+   (query-one store record-type field value nil))
+  ([store record-type field value opts]
+   (some-> (execute-query-one store
+                              (equals-query record-type field value opts))
+           first
+           record->bytes)))
+
+(defn query-one-compound
+  "Queries an open FDBRecordStore where all of a sequence of
+  [field value] pairs match, capping the planner at one
+  result. Returns first matching record bytes, or nil.
+  opts supports :index to pin the planner to a named index."
+  ([store record-type filters]
+   (query-one-compound store record-type filters nil))
+  ([store record-type filters opts]
+   (some-> (execute-query-one store (and-query record-type filters opts))
+           first
+           record->bytes)))
+
+(defn- map-entry-query
+  [record-type map-field map-key map-value opts]
+  (-> (RecordQuery/newBuilder)
+      (.setRecordType record-type)
+      (.setFilter
+       (-> (Query/field map-field)
+           .oneOfThem
+           (.matches
+            (Query/and ^java.util.List
+                       (java.util.ArrayList.
+                        [(.equalsValue (Query/field "key") map-key)
+                         (.equalsValue (Query/field "value") map-value)])))))
+      (apply-allowed-indexes opts)
+      .build))
+
+(defn query-by-map-entry
+  "Queries records where a proto map<K,V> field has at least
+  one entry matching `map-key`/`map-value`. Returns a vector
+  of serialized byte arrays. opts supports :index to pin the
+  planner to a named index."
+  ([store record-type map-field map-key map-value]
+   (query-by-map-entry store record-type map-field map-key map-value nil))
+  ([store record-type map-field map-key map-value opts]
+   (mapv record->bytes
+         (execute-query store
+                        (map-entry-query record-type
+                                         map-field
+                                         map-key
+                                         map-value
+                                         opts)))))
+
+(defn count-groups
+  "Counts unique grouping-key entries in a COUNT index whose
+  group key starts with `prefix`. Returns the number of
+  distinct groups, not the sum of per-group counts. Uses a
+  `BY_GROUP` index scan: FDB iterates the index range
+  server-side and streams one entry per group; only index
+  entries cross the wire."
+  [store index-name prefix]
+  (let [index (.getIndex (.getRecordMetaData store) index-name)
+        prefix-tuple (if (vector? prefix)
+                       (Tuple/from (into-array Object prefix))
+                       (Tuple/from (into-array Object [prefix])))
+        bounds (IndexScanRange. IndexScanType/BY_GROUP
+                                (TupleRange/allOf prefix-tuple))]
+    (-> (.scanIndex store index bounds nil ScanProperties/FORWARD_SCAN)
+        .getCount
+        .join)))
+
+(defn count-records
+  "Counts records using a COUNT index. index-name is the
+  name of the count index. key is the Tuple key to count
+  (e.g. a single value or vector of values for compound
+  keys). Uses evaluateAggregateFunction for O(1) lookup."
+  [store index-name key]
+  (let [key-tuple (if (vector? key)
+                    (Tuple/from (into-array Object key))
+                    (Tuple/from (into-array Object [key])))
+        index (.getIndex (.getRecordMetaData store)
+                         index-name)
+        agg-fn (IndexAggregateFunction.
+                IndexTypes/COUNT
+                (.getRootExpression index)
+                index-name)]
+    (-> (.evaluateAggregateFunction
+         store
+         (java.util.Collections/emptyList)
+         agg-fn
+         (TupleRange/allOf key-tuple)
+         com.apple.foundationdb.record.IsolationLevel/SERIALIZABLE)
+        (.join)
+        (.getLong 0))))
+
+(defn sum-records
+  "Sums the trailing value column of a SUM index over the group whose
+  grouping key is `key` (a single value or vector for compound keys).
+  Uses evaluateAggregateFunction for O(1) lookup; an empty group
+  sums to 0."
+  [store index-name key]
+  (let [key-tuple (if (vector? key)
+                    (Tuple/from (into-array Object key))
+                    (Tuple/from (into-array Object [key])))
+        index (.getIndex (.getRecordMetaData store)
+                         index-name)
+        agg-fn (IndexAggregateFunction.
+                IndexTypes/SUM
+                (.getRootExpression index)
+                index-name)
+        result (-> (.evaluateAggregateFunction
+                    store
+                    (java.util.Collections/emptyList)
+                    agg-fn
+                    (TupleRange/allOf key-tuple)
+                    com.apple.foundationdb.record.IsolationLevel/SERIALIZABLE)
+                   (.join))]
+    (if (nil? result) 0 (.getLong result 0))))
+
+(defrecord Txn [open])
+
+(defn open
+  "Opens a named store within the transaction. Memoised for
+  the life of the txn so the same store name returns the same
+  FDBRecordStore."
+  [^Txn txn store-name]
+  ((:open txn) store-name))
 
 (defn transact
-  "Opens an FDB Record Layer store and runs f within a single
-  transaction. f receives the open FDBRecordStore and should
-  return the transaction result.
+  "Runs f within a transaction. f receives a Txn.
 
-  The 6-arg form accepts a custom nom category and message for
-  call-site-specific anomaly reporting."
-  ([^FDBDatabase record-db open-store-fn store-name f]
-   (transact record-db
-             open-store-fn
-             store-name
-             f
-             :fdb/transact
-             "Failed to execute transaction"))
-  ([^FDBDatabase record-db open-store-fn store-name f category message]
-   (try-nom category
-            message
-            (.run record-db
-                  ^Function
-                  (fn [ctx]
-                    (f (open-store open-store-fn ctx store-name)))))))
+  - Given an existing Txn, reuses it (composition).
+  - Given a config map with :record-db and :record-store,
+    opens a fresh FDB transaction and wraps ctx in a new Txn
+    whose store-opening is memoised for this transaction.
 
-(defn transact-multi
-  "Runs f within a single FDB transaction, passing a function
-  that opens stores by name. f receives open-store and should
-  call (open-store \"store-name\") for each store it needs.
-  All writes across stores are atomic."
-  ([^FDBDatabase record-db open-store-fn f]
-   (transact-multi record-db
-                   open-store-fn
-                   f
-                   :fdb/transact
-                   "Failed to execute transaction"))
-  ([^FDBDatabase record-db open-store-fn f category message]
-   (try-nom category
-            message
-            (.run record-db
-                  ^Function
-                  (fn [ctx]
-                    (f (fn [store-name]
-                         (open-store open-store-fn ctx store-name))))))))
+  If f returns an anomaly, the FDB transaction is aborted
+  (rolled back) and the anomaly is returned to the caller."
+  ([txn-or-config f]
+   (transact txn-or-config f :fdb/transact "Failed to execute transaction"))
+  ([txn-or-config f category message]
+   (if (instance? Txn txn-or-config)
+     (try-nom category message (f txn-or-config))
+     (let [{:keys [record-db record-store]} txn-or-config]
+       (try
+         (.run ^FDBDatabase record-db
+               ^Function
+               (fn [ctx]
+                 (let [cache (atom {})
+                       open-fn (fn [store-name]
+                                 (or (get @cache store-name)
+                                     (let [s (open-store record-store
+                                                         ctx
+                                                         store-name)]
+                                       (swap! cache assoc store-name s)
+                                       s)))
+                       result (try-nom category
+                                       message
+                                       (f (->Txn open-fn)))]
+                   (if (error/anomaly? result)
+                     ;; nosemgrep: no-raw-throw
+                     (throw (ex-info "Transaction rolled back"
+                                     {::anomaly result}))
+                     result))))
+         (catch Exception e
+           (or (::anomaly (ex-data e))
+               (error/fail category
+                           {:message message
+                            :exception e
+                            :stack-trace
+                            (with-out-str
+                              (.printStackTrace
+                               e
+                               (java.io.PrintWriter. *out*
+                                                     true)))}))))))))
 
-(defn- prefix-range
-  "Returns a TupleRange scoped to a prefix tuple."
-  [prefix-tuple]
-  (TupleRange/allOf prefix-tuple))
-
-(defn- cursor-tuple
-  "Builds a cursor Tuple from prefix parts and a cursor
-  value."
-  [prefix cursor]
-  (let [parts (into (vec prefix) [cursor])]
-    (Tuple/from (into-array Object parts))))
-
-(defn- cursor
-  "Extracts the cursor element from a record's primary
-  key at the given position."
-  [r position]
-  (.get (.getPrimaryKey r) (int position)))
-
-(defn scan
-  "Scans records by primary key order. Returns
-  {:records [bytes ...] :before cursor|nil :after cursor|nil}.
-
-  :after is the cursor for the next forward page (nil when
-  no more records). :before is the first record's cursor
-  (nil when empty).
-
-  opts:
-    :prefix  vector of leading PK parts to scope the scan
-    :after   cursor, exclusive lower bound (forward)
-    :before  cursor, exclusive upper bound (reverse)
-    :limit   int, page size
-
-  When :prefix is given, the scan is constrained to records
-  whose PK starts with those values. Cursors are the PK
-  element at the position after the prefix."
-  [store {:keys [prefix after before limit]}]
-  (let [reverse? (some? before)
-        prefix-size (count (or prefix []))
-        prefix-tuple (when (seq prefix)
-                       (Tuple/from (into-array Object prefix)))
-        base-range (when prefix-tuple
-                     (prefix-range prefix-tuple))
-        range (cond
-               (and prefix-tuple after)
-               (TupleRange.
-                (cursor-tuple prefix after)
-                (.getHigh ^TupleRange base-range)
-                EndpointType/RANGE_EXCLUSIVE
-                (.getHighEndpoint ^TupleRange
-                                  base-range))
-
-               (and prefix-tuple before)
-               (TupleRange.
-                (.getLow ^TupleRange base-range)
-                (cursor-tuple prefix before)
-                (.getLowEndpoint ^TupleRange
-                                 base-range)
-                EndpointType/RANGE_EXCLUSIVE)
-
-               prefix-tuple
-               base-range
-
-               after
-               (TupleRange.
-                (Tuple/from (into-array Object [after]))
-                nil
-                EndpointType/RANGE_EXCLUSIVE
-                EndpointType/TREE_END)
-
-               before
-               (TupleRange.
-                nil
-                (Tuple/from (into-array Object [before]))
-                EndpointType/TREE_START
-                EndpointType/RANGE_EXCLUSIVE)
-
-               :else
-               TupleRange/ALL)
-        execute-props (-> (ExecuteProperties/newBuilder)
-                          (.setReturnedRowLimit (inc limit))
-                          .build)
-        scan-props (ScanProperties. execute-props reverse?)
-        raw (->> (.scanRecords store
-                               ^TupleRange range
-                               nil
-                               ^ScanProperties scan-props)
-                 .asList
-                 (.asyncToSync
-                  (.getContext store)
-                  FDBStoreTimer$Waits/WAIT_SCAN_RECORDS)
-                 vec)
-        more? (> (count raw) limit)
-        page (cond->
-              raw
-
-              more?
-              (subvec 0 limit)
-
-              reverse?
-              (-> rseq
-                  vec))]
-    {:records (mapv record->bytes page)
-     :before (when (seq page)
-               (cursor (first page) prefix-size))
-     :after (when more?
-              (cursor (peek page) prefix-size))}))

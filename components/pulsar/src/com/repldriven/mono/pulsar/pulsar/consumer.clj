@@ -12,10 +12,31 @@
     (org.apache.pulsar.client.api
      Consumer
      ConsumerBuilder
+     DeadLetterPolicy
      Message
      PulsarClient
      PulsarClientException
      PulsarClientException$AlreadyClosedException)))
+
+;; Redelivery safety net: an ack is sent only after the handler
+;; returns, so a message received but never acked (stuck handler,
+;; dropped go-loop) would otherwise sit undelivered forever while the
+;; consumer stays connected (Pulsar's default ackTimeout is disabled).
+;; 30s is comfortably above the 10s command dispatcher timeout, so an
+;; in-flight command never redelivers under it.
+(def ^:private default-ack-timeout-ms 30000)
+
+(defn- ->dead-letter-policy
+  "Build a Pulsar DeadLetterPolicy from a conf map
+  `{:maxRedeliverCount n :deadLetterTopic \"...\"}`. Built in code
+  (not via loadConf) because loadConf only string-keys the top-level
+  conf, so a nested policy map would keep keyword keys and fail
+  Jackson coercion."
+  ^DeadLetterPolicy [{:keys [maxRedeliverCount deadLetterTopic]}]
+  (.. (DeadLetterPolicy/builder)
+      (maxRedeliverCount (int maxRedeliverCount))
+      (deadLetterTopic deadLetterTopic)
+      (build)))
 
 (defn create
   ^Consumer [{:keys [^PulsarClient client conf schemas] :as opts}]
@@ -23,8 +44,9 @@
   (try-nom-ex
    :pulsar/consumer-create PulsarClientException
    "Failed to create Pulsar consumer"
-   (let [{:keys [cryptoKeyReader schema]} conf
-         manual-conf [:cryptoKeyReader :schema]
+   (let [{:keys [cryptoKeyReader schema ackTimeoutMillis deadLetterPolicy]} conf
+         manual-conf [:cryptoKeyReader :schema :ackTimeoutMillis
+                      :deadLetterPolicy]
          conf-str-keys (into {} (map (fn [[k v]] [(name k) v]) conf))
          auto-conf (j/to-java
                     Map
@@ -36,6 +58,14 @@
          ^ConsumerBuilder builder (.. instance (loadConf auto-conf))
          ^ConsumerBuilder builder-with-conf
          (cond-> builder
+                 true
+                 (.ackTimeout (long (or ackTimeoutMillis
+                                        default-ack-timeout-ms))
+                              TimeUnit/MILLISECONDS)
+
+                 (some? deadLetterPolicy)
+                 (.deadLetterPolicy (->dead-letter-policy deadLetterPolicy))
+
                  (some? cryptoKeyReader)
                  (.cryptoKeyReader cryptoKeyReader))]
      (.subscribe builder-with-conf))))
@@ -54,14 +84,37 @@
                (async/alts!!
                 [stop
                  (async/thread
-                  (try (when-let [^Message msg
-                                  (.. consumer
-                                      (receive timeout-ms
-                                               TimeUnit/MILLISECONDS))]
-                         msg)
-                       (catch PulsarClientException$AlreadyClosedException
-                         _
-                         ::closed)))])]
+                  (try
+                    (when-let [^Message msg
+                               (.. consumer
+                                   (receive timeout-ms
+                                            TimeUnit/MILLISECONDS))]
+                      msg)
+                    (catch PulsarClientException$AlreadyClosedException
+                      _
+                      ::closed)
+                    ;; Anything else would otherwise kill this
+                    ;; thread silently (the JVM default handler
+                    ;; prints `Exception in thread async-mixed-N
+                    ;; …` and the inner channel closes empty);
+                    ;; the outer loop would still recur, but the
+                    ;; underlying consumer state may be wedged so
+                    ;; we never publish to `c` again — services
+                    ;; appear to hang. Log loudly with the
+                    ;; exception class + message (the JIT folds
+                    ;; the stack on repeat throws, so `t` alone
+                    ;; produces a one-line ClassCastException),
+                    ;; back off for a beat to rate-limit the
+                    ;; log spam, and return nil so the loop
+                    ;; continues without papering over the fault.
+                    (catch Throwable t
+                      (log/error
+                       t
+                       "Pulsar consumer.receive threw; recurring"
+                       {:exception-class (.getName (class t))
+                        :message (.getMessage t)})
+                      (Thread/sleep 500)
+                      nil)))])]
            (cond
             (or (= port stop) (= v ::closed))
             nil
@@ -87,6 +140,15 @@
   (try-nom-ex :pulsar/consumer-acknowledge PulsarClientException
               "Failed to acknowledge Pulsar consumer message"
               (do (.acknowledge consumer message) nil)))
+
+(defn negative-acknowledge
+  "Negatively-acknowledge a message so the broker redelivers it (and
+  eventually dead-letters it once maxRedeliverCount is reached).
+  Returns nil on success or an anomaly on failure."
+  [^Consumer consumer ^Message message]
+  (try-nom-ex :pulsar/consumer-negative-acknowledge PulsarClientException
+              "Failed to negative-acknowledge Pulsar consumer message"
+              (do (.negativeAcknowledge consumer message) nil)))
 
 (defn close
   [^Consumer consumer]

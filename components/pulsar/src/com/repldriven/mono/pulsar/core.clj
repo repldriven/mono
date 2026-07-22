@@ -20,6 +20,10 @@
 
 (defn acknowledge [consumer message] (consumer/acknowledge consumer message))
 
+(defn negative-acknowledge
+  [consumer message]
+  (consumer/negative-acknowledge consumer message))
+
 ;;;; reader
 (defn read [reader timeout-ms] (reader/read reader timeout-ms))
 

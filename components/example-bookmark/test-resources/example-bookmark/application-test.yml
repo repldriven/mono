@@ -3,9 +3,13 @@ system:
     container: !system/component
       system/component-kind: fdb/container
 
+    container-cluster-file-path: !system/component
+      system/component-kind: fdb/container-cluster-file-path
+      container: !system/local-ref container
+
     cluster-file-path: !system/component
       system/component-kind: fdb/cluster-file-path
-      container: !system/local-ref container
+      path: !system/local-ref container-cluster-file-path
 
     record-db: !system/component
       system/component-kind: fdb/record-db

@@ -11,9 +11,14 @@
     components/encryption {:local/root "components/encryption"}
     components/env {:local/root "components/env"}
     components/error {:local/root "components/error"}
+    components/event {:local/root "components/event"}
+    components/event-processor {:local/root "components/event-processor"}
+    components/event-schema {:local/root "components/event-schema"}
     components/fdb {:local/root "components/fdb"}
     components/http-client {:local/root "components/http-client"}
+    components/identity-provider {:local/root "components/identity-provider"}
     components/json {:local/root "components/json"}
+    components/keycloak {:local/root "components/keycloak"}
     components/log {:local/root "components/log"}
     components/message-bus {:local/root "components/message-bus"}
     components/migrator {:local/root "components/migrator"}
@@ -22,6 +27,8 @@
     components/pulsar {:local/root "components/pulsar"}
     components/pulsar-vault-crypto {:local/root
                                     "components/pulsar-vault-crypto"}
+    components/scheduler {:local/root "components/scheduler"}
+    components/secret {:local/root "components/secret"}
     components/server {:local/root "components/server"}
     components/spec {:local/root "components/spec"}
     components/sql {:local/root "components/sql"}
@@ -49,6 +56,8 @@
   :test {:extra-paths ["components/avro/test"
                        "components/cache/test"
                        "components/cli/test"
+                       "components/command/test"
+                       "components/command/test-resources"
                        "components/db/test"
                        "components/db/test-resources"
                        "components/encryption/test"
@@ -69,6 +78,9 @@
                        "components/pulsar/test-resources"
                        "components/pulsar-vault-crypto/test"
                        "components/pulsar-vault-crypto/test-resources"
+                       "components/scheduler/test"
+                       "components/secret/test"
+                       "components/secret/test-resources"
                        "components/server/test"
                        "components/server/test-resources"
                        "components/spec/test"

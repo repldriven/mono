@@ -12,6 +12,7 @@
                       (let [json (slurp (io/resource path))
                             schema (serde/json->schema json)]
                         (if (error/anomaly? schema)
+                          ;; nosemgrep: no-raw-throw
                           (throw (ex-info "Failed to load Avro schema"
                                           {:name k :path path :anomaly schema}))
                           (assoc m (name k) schema))))

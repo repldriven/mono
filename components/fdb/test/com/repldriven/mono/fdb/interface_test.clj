@@ -36,21 +36,20 @@
   [sys pet-store]
   (let [whiskers
         {:pet-id "pet-1" :name "Whiskers" :species "cat" :age-months 24}
-        record-db (system/instance sys [:fdb :record-db])]
+        config {:record-db (system/instance sys [:fdb :record-db])
+                :record-store pet-store}]
     (testing "can save and load Pet records via FDB Record Layer"
       (nom-test> [_
                   (SUT/transact
-                   record-db
-                   pet-store
-                   "pets"
-                   (fn [store]
-                     (SUT/save-record store (test-schema/Pet->java whiskers))))
+                   config
+                   (fn [txn]
+                     (SUT/save-record (SUT/open txn "pets")
+                                      (test-schema/Pet->java whiskers))))
                   retrieved
-                  (nom-> (SUT/transact record-db
-                                       pet-store
-                                       "pets"
-                                       (fn [store]
-                                         (SUT/load-record store "pet-1")))
+                  (nom-> (SUT/transact
+                          config
+                          (fn [txn]
+                            (SUT/load-record (SUT/open txn "pets") "pet-1")))
                          test-schema/pb->Pet)
                   _
                   (is (= whiskers (utility/record->map retrieved)))]))))
@@ -60,6 +59,8 @@
   (let [whiskers
         {:pet-id "pet-20" :name "Whiskers" :species "cat" :age-months 24}
         rex {:pet-id "pet-21" :name "Rex" :species "dog" :age-months 36}
+        config {:record-db (system/instance sys [:fdb :record-db])
+                :record-store pet-store}
         record-db (system/instance sys [:fdb :record-db])
         received (atom [])]
     (testing
@@ -67,21 +68,20 @@
        record bytes"
       (nom-test>
         [_
-         (SUT/transact record-db
-                       pet-store
-                       "pets"
-                       (fn [store]
-                         (SUT/save-record store
-                                          (test-schema/Pet->java whiskers))
-                         (SUT/write-changelog store
-                                              "pets"
-                                              (:pet-id whiskers)
-                                              (.getBytes "whiskers-data"))
-                         (SUT/save-record store (test-schema/Pet->java rex))
-                         (SUT/write-changelog store
-                                              "pets"
-                                              (:pet-id rex)
-                                              (.getBytes "rex-data"))))
+         (SUT/transact config
+                       (fn [txn]
+                         (let [store (SUT/open txn "pets")]
+                           (SUT/save-record store
+                                            (test-schema/Pet->java whiskers))
+                           (SUT/write-changelog store
+                                                "pets"
+                                                (:pet-id whiskers)
+                                                (.getBytes "whiskers-data"))
+                           (SUT/save-record store (test-schema/Pet->java rex))
+                           (SUT/write-changelog store
+                                                "pets"
+                                                (:pet-id rex)
+                                                (.getBytes "rex-data")))))
          _
          (SUT/process-changelog record-db
                                 "test-consumer"
@@ -102,23 +102,25 @@
                   :species "hamster"
                   :age-months 6}
         rex {:pet-id "pet-11" :name "Rex" :species "parrot" :age-months 48}
-        record-db (system/instance sys [:fdb :record-db])]
+        config {:record-db (system/instance sys [:fdb :record-db])
+                :record-store pet-store}]
     (testing "can query records by field value"
       (nom-test>
         [_
-         (SUT/transact record-db
-                       pet-store
-                       "pets"
-                       (fn [store]
-                         (SUT/save-record store
-                                          (test-schema/Pet->java whiskers))
-                         (SUT/save-record store (test-schema/Pet->java rex))))
+         (SUT/transact config
+                       (fn [txn]
+                         (let [store (SUT/open txn "pets")]
+                           (SUT/save-record store
+                                            (test-schema/Pet->java whiskers))
+                           (SUT/save-record store
+                                            (test-schema/Pet->java rex)))))
          results
-         (SUT/transact record-db
-                       pet-store
-                       "pets"
-                       (fn [store]
-                         (SUT/query-records store "Pet" "species" "hamster")))
+         (SUT/transact config
+                       (fn [txn]
+                         (SUT/query-records (SUT/open txn "pets")
+                                            "Pet"
+                                            "species"
+                                            "hamster")))
          _
          (is (= 1 (count results)))
          retrieved

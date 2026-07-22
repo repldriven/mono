@@ -7,7 +7,8 @@
         org.testcontainers/pulsar {:mvn/version "1.21.4"
                                    :exclusions [org.apache.pulsar/pulsar-client
                                                 org.apache.pulsar/pulsar-admin]}
-        org.testcontainers/postgresql {:mvn/version "1.21.4"}}
- ;; resources carries the FDB image build context (fdb/Dockerfile, fdb/fdb.bash)
- ;; so that it travels with the component when it is consumed as a library
+        org.testcontainers/postgresql {:mvn/version "1.21.4"}
+        com.github.dasniko/testcontainers-keycloak {:mvn/version "3.7.0"}}
+ ;; resources carries the FDB image build context (fdb/Dockerfile, fdb/fdb.bash),
+ ;; read from the classpath so the component works in a consuming workspace.
  :paths ["src" "resources"]}

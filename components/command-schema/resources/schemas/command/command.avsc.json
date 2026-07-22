@@ -5,6 +5,7 @@
     "fields": [
         { "name": "id",             "type": "string" },
         { "name": "correlation_id", "type": "string" },
+        { "name": "command_id",     "type": ["null", "string"], "default": null },
         { "name": "command",        "type": "string" },
         { "name": "data",           "type": ["null", "string"], "default": null },
         { "name": "causation_id",   "type": ["null", "string"], "default": null },

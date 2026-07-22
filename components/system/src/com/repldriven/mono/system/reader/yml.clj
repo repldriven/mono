@@ -17,7 +17,6 @@
 
 (defn required-component [_] (symbol "#system required-component"))
 
-;; System yml-reader defmethods
 (defmethod env/yml-reader :!system/required-component
   [m]
   (required-component m))

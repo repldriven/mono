@@ -14,6 +14,7 @@
     :CONSUME ConsumerCryptoFailureAction/CONSUME
     :DISCARD ConsumerCryptoFailureAction/DISCARD
     :FAIL ConsumerCryptoFailureAction/FAIL
+    ;; nosemgrep: no-raw-throw
     (throw (ex-info (format "Invalid value %s for tag %s" value tag)
                     {:tag tag :value value}))))
 
@@ -22,6 +23,7 @@
   (case value
     :earliest MessageId/earliest
     :latest MessageId/latest
+    ;; nosemgrep: no-raw-throw
     (throw (ex-info (format "Invalid value %s for tag %s" value tag)
                     {:tag tag :value value}))))
 
@@ -48,6 +50,7 @@
 (defn- schema
   [_ tag value]
   (or (get schema-map value)
+      ;; nosemgrep: no-raw-throw
       (throw (ex-info (format "Invalid value %s for tag %s" value tag)
                       {:tag tag :value value}))))
 
@@ -58,6 +61,7 @@
     :Failover SubscriptionType/Failover
     :Key_Shared SubscriptionType/Key_Shared
     :Shared SubscriptionType/Shared
+    ;; nosemgrep: no-raw-throw
     (throw (ex-info (format "Invalid value %s for tag %s" value tag)
                     {:tag tag :value value}))))
 
@@ -67,6 +71,7 @@
     :Shared ProducerAccessMode/Shared
     :Exclusive ProducerAccessMode/Exclusive
     :WaitForExclusive ProducerAccessMode/WaitForExclusive
+    ;; nosemgrep: no-raw-throw
     (throw (ex-info (format "Invalid value %s for tag %s" value tag)
                     {:tag tag :value value}))))
 

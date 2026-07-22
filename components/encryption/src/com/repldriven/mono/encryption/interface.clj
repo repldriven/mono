@@ -2,7 +2,6 @@
   (:require
     [com.repldriven.mono.encryption.token :as token]
     [com.repldriven.mono.encryption.bytes :as bytes]
-    [com.repldriven.mono.encryption.id :as id]
     [com.repldriven.mono.encryption.rsa :as rsa]))
 
 (defn create-key-pair [opts] (rsa/create-key-pair opts))
@@ -18,8 +17,6 @@
 (defn public-key->der-string [k] (rsa/public-key->der-string k))
 
 (defn private-key->der-string [k] (rsa/private-key->der-string k))
-
-(defn generate-id [prefix] (id/generate prefix))
 
 (defn generate-token [prefix] (token/generate prefix))
 

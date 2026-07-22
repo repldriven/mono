@@ -41,4 +41,23 @@
              (is (= "test-1" (get data "id")))
              (is (= "test-command" (get data "command")))))
          (SUT/unsubscribe bus :command)
-         (SUT/unsubscribe bus :reply))))))
+         (SUT/unsubscribe bus :reply)))
+     (testing "A handler throw does not wedge the channel loop"
+       (let [calls (atom 0)
+             received (promise)]
+         (SUT/subscribe bus
+                        :command
+                        (fn [data]
+                          (if (= 1 (swap! calls inc))
+                            ;; nosemgrep: no-raw-throw
+                            (throw (ex-info "boom" {}))
+                            (deliver received data))))
+         (nom-test> [_ (SUT/send bus
+                                 :command
+                                 (assoc test-message "id" "throw-1"))])
+         (nom-test> [_ (SUT/send bus :command (assoc test-message "id" "ok-2"))])
+         (let [data (deref received 5000 ::timeout)]
+           (is (not= ::timeout data)
+               "second message must still be delivered after the first throws")
+           (when (not= ::timeout data) (is (= "ok-2" (get data "id")))))
+         (SUT/unsubscribe bus :command))))))
