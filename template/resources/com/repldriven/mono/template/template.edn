@@ -2,7 +2,7 @@
 ;; library.
 ;;
 ;;   clojure -Tnew create \
-;;     :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.2' \
+;;     :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.4' \
 ;;     :name com.acme/bookmarks
 ;;
 ;; Only :mono/tag is pinned by hand; the sha is resolved from it at generation
@@ -14,7 +14,7 @@
 {:description "A Polylith workspace built on the mono component library."
 
  :mono/url "https://github.com/repldriven/mono.git"
- :mono/tag "v0.0.2"
+ :mono/tag "v0.0.4"
 
  :template-fn com.repldriven.mono.template.new/template-fn
  :post-process-fn com.repldriven.mono.template.new/post-process-fn
