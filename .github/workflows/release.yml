@@ -278,6 +278,58 @@ jobs:
               || { echo "::error::published $root does not resolve"; exit 1; }
           done
 
+      # The template is published by the same tag, and this is the only place
+      # its real consumer path is exercised: resolved as a git dep, with the
+      # starter bricks procured from the tag through gitlibs rather than read
+      # from a working copy. A bug that only appears here is easy to ship,
+      # because every pre-release check necessarily generates from a working
+      # copy, so check it before anyone else does.
+      - name: Setup Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "25.8"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install protoc-gen-clojure
+        run: |
+          sudo curl -L https://github.com/protojure/protoc-plugin/releases/latest/download/protoc-gen-clojure \
+            -o /usr/local/bin/protoc-gen-clojure
+          sudo chmod +x /usr/local/bin/protoc-gen-clojure
+
+      - name: Generate from the published template, cold cache
+        run: |
+          set -euo pipefail
+          export GITLIBS=$(mktemp -d) CLJ_CACHE=$(mktemp -d)
+          url="https://github.com/${{ github.repository }}.git"
+          out=$(mktemp -d)/acme
+          cd "$(mktemp -d)"
+
+          clojure -Sdeps "{:deps {com.repldriven/mono
+                                  {:git/url \"$url\"
+                                   :git/tag \"${{ inputs.version }}\"
+                                   :git/sha \"$SHA\"
+                                   :deps/root \"template\"}}}" \
+            -Tnew create \
+            :template com.repldriven.mono/template \
+            :name com.acme/bookmarks \
+            :target-dir "\"$out\""
+          cd "$out"
+
+          # A generated workspace must be portable. Pinning anything into the
+          # generating machine's dependency cache would produce one that
+          # resolves nowhere else.
+          if grep -rqE ':local/root "(/|~)' .; then
+            echo "::error::generated workspace pins an absolute path instead of a git coordinate"
+            grep -rnE ':local/root "(/|~)' . | head
+            exit 1
+          fi
+          grep -q "$SHA" deps.edn \
+            || { echo "::error::generated deps.edn does not pin the released sha"; exit 1; }
+
+          clj -X:deps prep :aliases '[:dev :+example]'
+          clojure -M:poly check
+          echo "the published template generates a portable workspace that checks"
+
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
