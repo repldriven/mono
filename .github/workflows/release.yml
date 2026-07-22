@@ -233,6 +233,36 @@ jobs:
             exit 1
           fi
 
+      # Every setup step runs BEFORE the tag is created. Verifying the published
+      # coordinates inherently requires the tag to exist, so some checks can only
+      # run after it; that window should contain nothing but those checks. A
+      # toolchain that fails to install must not leave a tag behind.
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          cli: latest
+
+      - name: Setup Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "25.8"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install protoc-gen-clojure
+        run: |
+          sudo curl -L https://github.com/protojure/protoc-plugin/releases/latest/download/protoc-gen-clojure \
+            -o /usr/local/bin/protoc-gen-clojure
+          sudo chmod +x /usr/local/bin/protoc-gen-clojure
+
+      - name: Install deps-new
+        run: clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
+
       - name: Create and push the tag
         run: |
           set -euo pipefail
@@ -248,17 +278,6 @@ jobs:
             exit 1
           fi
           echo "SHA=$full" >> "$GITHUB_ENV"
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: "temurin"
-          java-version: "21"
-
-      - name: Setup Clojure
-        uses: DeLaGuardo/setup-clojure@13.5
-        with:
-          cli: latest
 
       # The first time the real published coordinates are exercised: a cold
       # cache, resolving over the network from the tag that now exists.
@@ -284,18 +303,6 @@ jobs:
       # from a working copy. A bug that only appears here is easy to ship,
       # because every pre-release check necessarily generates from a working
       # copy, so check it before anyone else does.
-      - name: Setup Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "25.8"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install protoc-gen-clojure
-        run: |
-          sudo curl -L https://github.com/protojure/protoc-plugin/releases/latest/download/protoc-gen-clojure \
-            -o /usr/local/bin/protoc-gen-clojure
-          sudo chmod +x /usr/local/bin/protoc-gen-clojure
-
       - name: Generate from the published template, cold cache
         run: |
           set -euo pipefail
