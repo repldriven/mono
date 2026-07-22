@@ -12,15 +12,17 @@ rest) are **not** copied into this repository. They arrive as a pinned git
 dependency, so you see them under `libs` rather than as editable bricks:
 
 ```clojure
-com.repldriven/mono-lib {:git/url "{{mono/url}}"
-                         :git/tag "{{mono/tag}}"
-                         :git/sha "{{mono/sha}}"
-                         :deps/root "projects/mono-lib"}
+com.repldriven/mono {:git/url "{{mono/url}}"
+                     :git/tag "{{mono/tag}}"
+                     :git/sha "{{mono/sha}}"
+                     :deps/root "projects/mono-lib"}
 ```
 
-Test support (`test-system`, `testcontainers`) is a second
-artifact, `com.repldriven/mono-test-lib`, added under the `:test` alias only, so
-Docker and the testcontainers tree stay off your runtime classpath.
+Test support (`test-system`, `testcontainers`) ships from the same lib symbol
+with `:deps/root "projects/mono-test-lib"`, added under the `:test` alias only,
+so Docker and the testcontainers tree stay off your runtime classpath. That root
+is a superset of the runtime one, because sharing a lib symbol means the `:test`
+alias replaces the runtime coordinate rather than adding to it.
 
 Requires on those bricks keep their original namespaces, for example
 `com.repldriven.mono.error.interface`. That is deliberate: the namespace is a

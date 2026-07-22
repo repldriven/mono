@@ -46,7 +46,7 @@ Shared components are published as a git dependency. No Maven or Clojars is
 involved; everything resolves from a tag and its sha.
 
 ```clojure
-{:deps {com.repldriven/mono-lib
+{:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
          :git/tag "v0.0.5"
          :git/sha "<full-sha>"
@@ -54,18 +54,25 @@ involved; everything resolves from a tag and its sha.
 
  :aliases
  {:test {:extra-deps
-         {com.repldriven/mono-test-lib
+         {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
            :git/tag "v0.0.5"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
 
-`mono-lib` carries the reusable components. `mono-test-lib` carries the test
-support (`test-system`, `testcontainers`) and belongs under a
+`projects/mono-lib` carries the reusable components. `projects/mono-test-lib`
+adds the test support (`test-system`, `testcontainers`) and belongs under a
 `:test` alias only, so Docker and the testcontainers tree stay off your runtime
-classpath. They are separate lib symbols on purpose: sharing one symbol would
-make the `:test` alias replace `mono-lib` rather than add to it.
+classpath.
+
+Both ship under **one lib symbol**, `com.repldriven/mono`, differing only by
+`:deps/root`. tools.deps checks out a git dep once per lib symbol, so two
+symbols would mean two checkouts, and every component the two roots share would
+appear at two absolute paths under the same component lib symbol — which
+tools.deps refuses to reconcile ("No known ancestor relationship between local
+versions"). One symbol means `:extra-deps` replaces the runtime root rather
+than adding to it, which is why the test root is a superset of the runtime one.
 
 Require bricks by their original namespaces, for example
 `com.repldriven.mono.error.interface`. The namespace belongs to the brick's
