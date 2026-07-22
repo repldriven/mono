@@ -1,5 +1,4 @@
 (ns com.repldriven.mono.pulsar.system.components
-  (:refer-clojure :exclude [name namespace type])
   (:require
     [com.repldriven.mono.pulsar.message-bus :as message-bus]
     [com.repldriven.mono.pulsar.pulsar.admin :as admin]
@@ -145,7 +144,8 @@
 (def namespaces
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance (namespaces/create-namespaces config)))
-   :system/config system/required-component})
+   :system/config {:admin system/required-component
+                   :namespaces system/required-component}})
 
 ;; ---
 ;; producer(s)
@@ -221,7 +221,10 @@
 (def schemas
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance (schemas/create-schemas config)))
-   :system/config system/required-component
+   ;; Schemas config has user-defined keys (one per logical schema,
+   ;; e.g. :command, :event) so we can't enumerate them here. Empty
+   ;; map = no defaults, accept any keys from the system def.
+   :system/config {}
    :system/instance-schema some?})
 
 ;; ---
@@ -231,7 +234,8 @@
 (def tenants
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance (tenants/create-tenants config)))
-   :system/config system/required-component})
+   :system/config {:admin system/required-component
+                   :tenants system/required-component}})
 
 ;; ---
 ;; topics
@@ -240,7 +244,9 @@
 (def topics
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance (topics/create-topics config)))
-   :system/config system/required-component})
+   :system/config {:admin system/required-component
+                   :schemas system/required-component
+                   :topics system/required-component}})
 
 ;; ---
 ;; message-bus
@@ -256,6 +262,34 @@
    :system/config system/required-component
    :system/instance-schema map?})
 
+(defn- consumer-or-throw
+  "Validates that `consumer` is a real Pulsar `Consumer` instance.
+  If it's a vector (an unresolved `[::local-ref [...]]` ref tag,
+  visible as `clojure.lang.PersistentVector` at runtime), a map
+  (an anomaly returned from `consumer/create` when subscribe
+  failed), or nil, throws with the channel name so the failure
+  surfaces at component-start rather than as a tight log loop
+  inside the async receive thread later."
+  [channel-key consumer]
+  (when (or (nil? consumer)
+            (vector? consumer)
+            (and (map? consumer)
+                 (not (instance? org.apache.pulsar.client.api.Consumer
+                                 consumer))))
+    ;; nosemgrep: no-raw-throw
+    (throw (ex-info (str "Pulsar consumer for channel "
+                         channel-key
+                         " did not resolve to a Consumer instance — "
+                         "got " (clojure.core/type consumer)
+                         ". Common causes: a `!system/local-ref` "
+                         "that didn't get expanded (PersistentVector), "
+                         "or `consumer/create` returned an anomaly "
+                         "(PersistentArrayMap) because subscribe failed.")
+                    {:channel channel-key
+                     :type (clojure.core/type consumer)
+                     :value consumer})))
+  consumer)
+
 (def message-bus-consumers
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance
@@ -263,7 +297,7 @@
                              (map (fn [[k {:keys [consumer timeout]}]]
                                     [k
                                      (message-bus/map->PulsarConsumer
-                                      {:consumer consumer
+                                      {:consumer (consumer-or-throw k consumer)
                                        :timeout (or timeout 10000)
                                        :stop-ch (atom nil)})])
                                   config))))

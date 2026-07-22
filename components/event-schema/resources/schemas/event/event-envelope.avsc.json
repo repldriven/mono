@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "EventEnvelope",
+  "namespace": "com.repldriven.mono.event",
+  "fields": [
+    {"name": "id",             "type": "string"},
+    {"name": "correlation_id", "type": "string"},
+    {"name": "event",          "type": "string"},
+    {"name": "payload",        "type": ["null", "bytes"], "default": null},
+    {"name": "causation_id",   "type": ["null", "string"], "default": null},
+    {"name": "traceparent",    "type": ["null", "string"], "default": null},
+    {"name": "tracestate",     "type": ["null", "string"], "default": null}
+  ]
+}

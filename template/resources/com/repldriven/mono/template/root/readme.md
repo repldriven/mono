@@ -18,7 +18,7 @@ com.repldriven/mono-lib {:git/url "{{mono/url}}"
                          :deps/root "projects/mono-lib"}
 ```
 
-Test support (`test-system`, `testcontainers`, `test-resources`) is a second
+Test support (`test-system`, `testcontainers`) is a second
 artifact, `com.repldriven/mono-test-lib`, added under the `:test` alias only, so
 Docker and the testcontainers tree stay off your runtime classpath.
 

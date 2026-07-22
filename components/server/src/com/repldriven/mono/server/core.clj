@@ -12,6 +12,8 @@
   ([] (router/router-data))
   ([exception-handlers] (router/router-data exception-handlers)))
 
+(defn standard-default-handler [] (router/standard-default-handler))
+
 (defn standard-openapi-handler [] (openapi/standard-handler))
 
 (defn standard-openapi-ui-handler [] (openapi/standard-ui-handler))

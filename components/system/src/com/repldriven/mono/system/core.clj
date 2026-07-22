@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [ref])
   (:require
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
+    [com.repldriven.mono.utility.interface :as util]
     [donut.system :as ds]
     [donut.system.validation :as dsv]))
 
@@ -24,8 +25,17 @@
                                      k)
                                    v))
                           {}
-                          to-ns-map)]
-      (f args))))
+                          to-ns-map)
+          result (f args)]
+      (if-let [[path anomaly] (util/deep-some error/anomaly? result)]
+        ;; nosemgrep: no-raw-throw
+        (throw (ex-info (or (:message (error/payload anomaly))
+                            "Component lifecycle returned an anomaly")
+                        {:kind (error/kind anomaly)
+                         :path path
+                         :anomaly anomaly
+                         :payload (error/payload anomaly)}))
+        result))))
 
 (defn- nsmap->nsmap
   [m from-ns to-ns]
@@ -96,7 +106,10 @@
   [system]
   (try-nom :system/stop
            "System STOP threw an exception"
-           (ds/stop system)))
+           ;; Return nil, not the stopped system map: it holds every
+           ;; started instance (e.g. the full Lancaster schema set) and
+           ;; floods a REPL that prints the result.
+           (do (ds/stop system) nil)))
 
 (defmacro with-system
   {:clj-kondo/lint-as 'clojure.core/let}

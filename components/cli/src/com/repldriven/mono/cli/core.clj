@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.cli.core
   (:require
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.log.interface :as log]
     [clojure.java.io :as io]
     [clojure.string :as string]
@@ -25,9 +26,6 @@
        (string/join \newline errors)))
 
 (defn validate-args
-  "Validate command line arguments. Either return a map indicating the program
-  should exit (with an error message, and optional ok status), or a map
-  indicating the action the program should take and the options provided."
   [program-name args]
   (let [{:keys [options errors summary]} (cli/parse-opts args cli-options)]
     (cond (:help options)
@@ -40,9 +38,6 @@
 
 (defn exit
   [ok? msg]
-  (if ok? (log/info msg) (log/error msg))
-  (System/exit (if ok? 0 1)))
-
-
-(comment
-  {:a "1" :b "2"})
+  (let [text (if (error/anomaly? msg) (error/format-anomaly msg) (str msg))]
+    (if ok? (log/info text) (log/error text))
+    (System/exit (if ok? 0 1))))

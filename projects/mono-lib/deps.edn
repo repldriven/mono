@@ -34,13 +34,22 @@
   {:local/root "../../components/encryption"}
   com.repldriven.mono.components/env {:local/root "../../components/env"}
   com.repldriven.mono.components/error {:local/root "../../components/error"}
+  com.repldriven.mono.components/event {:local/root "../../components/event"}
+  com.repldriven.mono.components/event-processor
+  {:local/root "../../components/event-processor"}
+  com.repldriven.mono.components/event-schema
+  {:local/root "../../components/event-schema"}
   ;; fdb needs the FoundationDB client library (7.3.75) installed natively at
   ;; runtime. The jar is inert on the classpath until FDB/selectAPIVersion is
   ;; called, so merely depending on mono-lib does not require it.
   com.repldriven.mono.components/fdb {:local/root "../../components/fdb"}
   com.repldriven.mono.components/http-client
   {:local/root "../../components/http-client"}
+  com.repldriven.mono.components/identity-provider
+  {:local/root "../../components/identity-provider"}
   com.repldriven.mono.components/json {:local/root "../../components/json"}
+  com.repldriven.mono.components/keycloak
+  {:local/root "../../components/keycloak"}
   com.repldriven.mono.components/log {:local/root "../../components/log"}
   com.repldriven.mono.components/message-bus
   {:local/root "../../components/message-bus"}
@@ -52,6 +61,9 @@
   com.repldriven.mono.components/pulsar {:local/root "../../components/pulsar"}
   com.repldriven.mono.components/pulsar-vault-crypto
   {:local/root "../../components/pulsar-vault-crypto"}
+  com.repldriven.mono.components/scheduler
+  {:local/root "../../components/scheduler"}
+  com.repldriven.mono.components/secret {:local/root "../../components/secret"}
   com.repldriven.mono.components/server {:local/root "../../components/server"}
   com.repldriven.mono.components/spec {:local/root "../../components/spec"}
   com.repldriven.mono.components/sql {:local/root "../../components/sql"}

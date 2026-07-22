@@ -87,10 +87,6 @@
   `(span-tests/with-span-tests [~spans-sym ~expected-names] ~@body))
 
 ;; Interceptors
-(def require-idempotency-key
-  "Interceptor that validates Idempotency-Key header is present."
-  interceptors/require-idempotency-key)
-
 (def trace-span
   "Vector of interceptors that add OpenTelemetry server span support to HTTP requests.
   Use with concat, not conj, when composing interceptor chains."

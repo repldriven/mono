@@ -6,9 +6,6 @@
     (org.apache.pulsar.client.api CryptoKeyReader EncryptionKeyInfo)))
 
 (defn tenant-key-reader
-  "Returns a CryptoKeyReader that reads tenant encryption keys from Vault on demand.
-   Keys are stored as base64-encoded PEM bytes at:
-   <mount>/tenants/<tenant-id>/keys/<key-name> with fields :public and :private."
   [vault-client tenant-id mount]
   (let
     [decoder (java.util.Base64/getDecoder)

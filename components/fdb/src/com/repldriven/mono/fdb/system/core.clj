@@ -5,6 +5,8 @@
 
 (system/defcomponents :fdb
                       {:cluster-file-path components/cluster-file-path
+                       :container-cluster-file-path
+                       components/container-cluster-file-path
                        :db components/db
                        :record-db components/record-db
                        :store components/store

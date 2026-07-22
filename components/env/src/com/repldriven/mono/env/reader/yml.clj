@@ -37,9 +37,19 @@
 
 (defmethod yml-reader :!keyword [{:keys [value]}] (keyword value))
 
+(defmethod yml-reader :!keywords
+  [{:keys [value]}]
+  (util/val-strs->keywords value))
+
 (defmethod yml-reader :!str [{:keys [value]}] (str "\"" (name value) "\""))
 
 (defmethod yml-reader :!strs [{:keys [value]}] (util/keys->strs value))
+
+;; `!concat` flattens a sequence of sequences into one sequence — handy
+;; for splicing several `!include`d lists (e.g. per-domain capability
+;; files) into a single parent list, since plain YAML can't merge
+;; sequences across `!include` boundaries.
+(defmethod yml-reader :!concat [{:keys [value]}] (vec (apply concat value)))
 
 (defn- key-fn
   [{:keys [key]}]

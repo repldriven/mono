@@ -62,7 +62,7 @@ involved; everything resolves from a tag and its sha.
 ```
 
 `mono-lib` carries the reusable components. `mono-test-lib` carries the test
-support (`test-system`, `testcontainers`, `test-resources`) and belongs under a
+support (`test-system`, `testcontainers`) and belongs under a
 `:test` alias only, so Docker and the testcontainers tree stay off your runtime
 classpath. They are separate lib symbols on purpose: sharing one symbol would
 make the `:test` alias replace `mono-lib` rather than add to it.

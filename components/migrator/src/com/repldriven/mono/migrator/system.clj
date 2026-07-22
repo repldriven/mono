@@ -10,6 +10,7 @@
                      (doseq [changelog changelogs]
                        (let [result (liquibase/migrate datasource changelog)]
                          (when (error/anomaly? result)
+                           ;; nosemgrep: no-raw-throw
                            (throw (ex-info "Migration failed"
                                            {:changelog changelog
                                             :anomaly result})))))

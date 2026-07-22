@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.testcontainers.system.core
   (:require
     [com.repldriven.mono.testcontainers.system.components.fdb :as fdb]
+    [com.repldriven.mono.testcontainers.system.components.keycloak :as keycloak]
     [com.repldriven.mono.testcontainers.system.components.mqtt :as mqtt]
     [com.repldriven.mono.testcontainers.system.components.postgres :as postgres]
     [com.repldriven.mono.testcontainers.system.components.pulsar :as pulsar]
@@ -46,3 +47,10 @@
 
 ;; FoundationDB testcontainer components
 (system/defcomponents :fdb {:container fdb/container})
+
+;; Keycloak testcontainer components — real Keycloak realm for
+;; high-fidelity auth tests. Pair `container` with `auth-server-url`
+;; then point `identity-provider/client`'s `:base-url` at the latter.
+(system/defcomponents :keycloak
+                      {:container keycloak/container
+                       :auth-server-url keycloak/auth-server-url})

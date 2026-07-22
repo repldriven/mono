@@ -10,10 +10,12 @@
   [bindings]
   `(nom-let> ~bindings
              (fn [v#]
-               (is (not (error/anomaly? v#))
-                   (format "Unexpected anomaly [%s]: %s"
-                           (error/kind v#)
-                           (or (:message (error/payload v#)) (pr-str v#)))))))
+               (let [payload# (error/payload v#)]
+                 (when-let [st# (:stack-trace payload#)] (println st#))
+                 (is (not (error/anomaly? v#))
+                     (format "Unexpected anomaly [%s]: %s"
+                             (error/kind v#)
+                             (or (:message payload#) (pr-str v#))))))))
 
 (defmacro with-test-system
   {:clj-kondo/lint-as 'clojure.core/let}

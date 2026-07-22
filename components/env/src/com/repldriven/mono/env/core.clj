@@ -19,6 +19,7 @@
         (str/ends-with? source ".yaml")
         :yml
         :else
+        ;; nosemgrep: no-raw-throw
         (throw (ex-info "Unknown file type" {:source source}))))
 
 (defmulti file-type (fn [source] (type source)))
@@ -28,6 +29,7 @@
 (defmethod file-type java.lang.String [source] (file-type->keyword source))
 (defmethod file-type :default
   [source]
+  ;; nosemgrep: no-raw-throw
   (throw (ex-info "Cannot detect file type" {:source source})))
 
 (defmulti read-config (fn [source _] (file-type source)))
@@ -35,6 +37,7 @@
 (defmethod read-config :yml [source profile] (reader.yml/config source profile))
 (defmethod read-config :default
   [source _]
+  ;; nosemgrep: no-raw-throw
   (throw (ex-info "Unsupported config file type" {:source source})))
 
 (defn config

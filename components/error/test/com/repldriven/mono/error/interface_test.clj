@@ -35,6 +35,7 @@
   (testing "returns value on success"
     (is (= 42 (try-nom :foo/bar "failed" 42))))
   (testing "catches exception and returns anomaly"
+    ;; nosemgrep: no-raw-throw
     (let [result (try-nom :foo/bar "failed" (throw (ex-info "boom" {})))]
       (is (error/anomaly? result))
       (is (= :foo/bar (error/kind result)))
@@ -43,6 +44,7 @@
 (deftest try-nom-ex-test
   (testing "catches specified exception type"
     (let [result (try-nom-ex :foo/bar IllegalArgumentException
+                             ;; nosemgrep: no-raw-throw
                              "bad arg" (throw (IllegalArgumentException.
                                                "boom")))]
       (is (error/anomaly? result))
@@ -50,4 +52,5 @@
   (testing "does not catch other exception types"
     (is (thrown? RuntimeException
                  (try-nom-ex :foo/bar IllegalArgumentException
+                             ;; nosemgrep: no-raw-throw
                              "bad arg" (throw (RuntimeException. "boom")))))))

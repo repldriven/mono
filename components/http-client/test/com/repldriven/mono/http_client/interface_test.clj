@@ -44,6 +44,7 @@
        :body "{\"result\":\"success\"}"}
       {:url "http://example.com/exception" :method :get}
       (fn [_orig-fn _opts _callback]
+        ;; nosemgrep: no-raw-throw
         (throw (ex-info "Simulated error" {:test true})))
       {:url "http://example.com/request-failed" :method :get}
       {:error "Connection timeout"}]

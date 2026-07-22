@@ -8,12 +8,13 @@
             ;; :necessary is how a base-less project is declared intentional.
             "mono-lib" {:alias "lib"
                         :necessary ["cache" "cli" "command-processor"
-                                    "command-schema" "migrator" "mqtt"
-                                    "pulsar-vault-crypto" "server" "spec" "sql"
+                                    "command-schema" "event-processor"
+                                    "event-schema" "fdb" "keycloak" "migrator"
+                                    "mqtt" "pulsar-vault-crypto" "scheduler"
+                                    "secret" "server" "spec" "sql"
                                     "test-resources"]}
             "mono-test-lib" {:alias "test-lib"
-                             :necessary ["test-resources" "test-schema"
-                                         "testcontainers"]}}
+                             :necessary ["test-schema" "testcontainers"]}}
  :tag-patterns {:release "v[0-9]*" :stable "stable-*"}
  :test {:create-test-runner
         com.repldriven.mono.external-test-runner.core/create}

@@ -63,7 +63,23 @@
                          msg)
                        (catch PulsarClientException$AlreadyClosedException
                          _
-                         ::closed)))])]
+                         ::closed)
+                       ;; See consumer.clj — same uncaught-throwable
+                       ;; trap; without it the inner async/thread
+                       ;; dies silently on the JVM default handler
+                       ;; and the reader can wedge. Log exception
+                       ;; class + message explicitly (the JIT folds
+                       ;; stacks on repeat throws so `t` alone
+                       ;; degrades to a one-line ClassCastException)
+                       ;; and back off to rate-limit log spam.
+                       (catch Throwable t
+                         (log/error
+                          t
+                          "Pulsar reader.readNext threw; recurring"
+                          {:exception-class (.getName (class t))
+                           :message (.getMessage t)})
+                         (Thread/sleep 500)
+                         nil)))])]
            (cond
             (or (= port stop) (= v ::closed))
             nil

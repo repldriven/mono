@@ -1,6 +1,10 @@
 {:paths ["src" "gen" "resources" "classes"]
  :deps {io.github.protojure/core {:mvn/version "2.11.0"}
         com.google.protobuf/protobuf-java {:mvn/version "3.25.8"}
+        ;; fdb-record-layer-core sits in top-level deps even though only the
+        ;; prep step's javac uses it: tools.deps prep runs the brick's
+        ;; top-level deps as the javac classpath rather than merging the
+        ;; :build alias's own :deps.
         org.foundationdb/fdb-record-layer-core {:mvn/version "4.10.4.0"}}
  :deps/prep-lib {:alias :build :fn build/gen-proto :ensure "classes"}
  :aliases {:test {:extra-paths []}

@@ -4,13 +4,8 @@
 
 (defn standard-handler [] (openapi/create-openapi-handler))
 
-(defn standard-ui-handler
-  []
-  (fn [_]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body
-     "<!DOCTYPE html>
+(def ^:private ui-html
+  "<!DOCTYPE html>
 <html>
 <head>
   <title>API Docs</title>
@@ -24,4 +19,12 @@
   </script>
   <script src=\"https://cdn.jsdelivr.net/npm/@scalar/api-reference\"></script>
 </body>
-</html>"}))
+</html>")
+
+(defn standard-ui-handler
+  []
+  (fn [{:keys [request-method uri]}]
+    (when (and (= :get request-method) (= "/" uri))
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body ui-html})))
