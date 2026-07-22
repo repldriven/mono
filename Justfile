@@ -26,7 +26,14 @@ shell:
 build snapshot="true":
     #!/usr/bin/env zsh
     for project in projects/*/; do
-        echo "Building ${project:t}..."
+        name=${project:t}
+        # Library projects are published as git deps, not uberjars: they have
+        # no base, no -main and no :build alias.
+        if [[ "$name" == *-lib ]]; then
+            echo "Skipping library project $name"
+            continue
+        fi
+        echo "Building $name..."
         (cd "$project" && clojure -X:build uber :snapshot {{ snapshot }})
     done
 

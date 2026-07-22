@@ -9,6 +9,9 @@
   "schedule": [
     "before 9am on monday"
   ],
+  "ignorePaths": [
+    "template/resources/**"
+  ],
   "prConcurrentLimit": 10,
   "commitMessagePrefix": "deps",
   "dependencyDashboardApproval": false,

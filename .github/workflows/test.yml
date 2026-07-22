@@ -29,9 +29,56 @@ jobs:
       - name: Discover projects
         id: projects
         run: |
-          matrix=$(ls projects/ | jq -Rc '[., inputs]')
+          # Library projects (mono-lib, mono-test-lib) are excluded: they have
+          # no base and no tests of their own, and every brick in them is
+          # already covered by example-service. `poly check` is what validates
+          # them, and it runs as its own job below.
+          matrix=$(ls projects/ | grep -v -- '-lib$' | jq -Rc '[., inputs]')
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "Discovered projects: $matrix"
+
+  # Validates the whole workspace, including the base-less library projects that
+  # the test matrix skips. Needs no protoc, FoundationDB or Docker: poly check
+  # is static analysis and does not read generated code.
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          cli: latest
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ runner.os }}-clojure-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            ${{ runner.os }}-clojure-
+
+      - name: Check workspace
+        run: clojure -M:poly check
+
+      - name: Resolve published library artifacts
+        run: |
+          # Each artifact must build a classpath standalone, the way a
+          # consumer's :deps/root resolve will.
+          for project in mono-lib mono-test-lib; do
+            echo "Resolving $project..."
+            (cd "projects/$project" && clojure -Spath > /dev/null)
+          done
 
   test:
     needs: discover
@@ -140,11 +187,15 @@ jobs:
   # Gate job for branch protection — produces a single required check
   tests:
     if: always()
-    needs: [test]
+    needs: [check, test]
     runs-on: ubuntu-latest
     steps:
       - name: Check test results
         run: |
+          if [[ "${{ needs.check.result }}" != "success" ]]; then
+            echo "Workspace check failed or was cancelled"
+            exit 1
+          fi
           if [[ "${{ needs.test.result }}" != "success" ]]; then
             echo "Tests failed or were cancelled"
             exit 1
