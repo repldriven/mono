@@ -1,0 +1,53 @@
+;; Publishable test-support library. Consumed as a git dep, under a :test alias
+;; only, so that testcontainers and its Docker requirement never reach a
+;; consumer's runtime classpath:
+;;
+;;   :aliases {:test {:extra-deps
+;;             {com.repldriven/mono-test-lib
+;;              {:git/url "https://github.com/repldriven/mono.git"
+;;               :git/tag "vX.Y.Z" :git/sha "<full-sha>"
+;;               :deps/root "projects/mono-test-lib"}}}}
+;;
+;; This is deliberately a *separate lib symbol* from com.repldriven/mono-lib,
+;; not the same symbol with a different :deps/root. tools.deps merges
+;; :extra-deps over :deps by lib symbol, so sharing a symbol would make
+;; activating :test replace mono-lib outright and silently drop every runtime
+;; component from the classpath. Distinct symbols resolve side by side out of
+;; the same gitlibs checkout.
+;;
+;; Because they are separate artifacts, this project lists only the test bricks
+;; plus the components those bricks require. It does not repeat all of mono-lib.
+;; The overlap is harmless: both projects key the shared components identically,
+;; so a consumer resolving both artifacts gets one copy of each.
+;;
+;; test-schema is intentionally absent: it carries :deps/prep-lib, and keeping a
+;; prep step out of the published surface is worth protecting. It stays an alias
+;; dep, used only inside this workspace.
+{:paths []
+ :deps
+ {com.repldriven.mono.components/test-resources
+  {:local/root "../../components/test-resources"}
+  com.repldriven.mono.components/test-system
+  {:local/root "../../components/test-system"}
+  com.repldriven.mono.components/testcontainers
+  {:local/root "../../components/testcontainers"}
+
+  ;; Dependency closure of the three bricks above. Required so that this is a
+  ;; valid Polylith project, and so the artifact stands up on its own.
+  com.repldriven.mono.components/env {:local/root "../../components/env"}
+  com.repldriven.mono.components/error {:local/root "../../components/error"}
+  com.repldriven.mono.components/log {:local/root "../../components/log"}
+  com.repldriven.mono.components/system {:local/root "../../components/system"}
+  com.repldriven.mono.components/utility
+  {:local/root "../../components/utility"}
+
+  org.clojure/clojure {:mvn/version "1.12.4"}}
+
+ ;; Invisible to consumers; present so `poly check` and `poly test` work here.
+ :aliases
+ {:test
+  {:extra-deps
+   {com.repldriven.mono.components/test-schema
+    {:local/root "../../components/test-schema"}
+    com.repldriven.mono.bases/external-test-runner
+    {:local/root "../../bases/external-test-runner"}}}}}
