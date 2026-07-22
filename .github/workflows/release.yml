@@ -1,0 +1,319 @@
+name: Release
+
+# mono-lib and mono-test-lib are consumed as git deps, so there is nothing to
+# compile and no artifact to upload: publishing IS tagging. What this workflow
+# does is prove the tag will resolve for a consumer before creating it, then
+# create it.
+#
+# On a pull request that touches published bricks, only `validate` runs, so
+# breakage shows up on the PR rather than on release day.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, e.g. v0.1.0"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate only; do not create or push the tag"
+        required: false
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - "components/**"
+      - "bases/**"
+      - "projects/mono-lib/**"
+      - "projects/mono-test-lib/**"
+      - "template/**"
+      - "workspace.edn"
+      - ".github/workflows/release.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate publishable artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          cli: latest
+
+      # Needed only by the template check: the starter brick declares
+      # :deps/prep-lib, so its classpath cannot be built until codegen has run.
+      # No FoundationDB client and no Docker: nothing here starts a container.
+      - name: Setup Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "25.8"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install protoc-gen-clojure
+        run: |
+          sudo curl -L https://github.com/protojure/protoc-plugin/releases/latest/download/protoc-gen-clojure \
+            -o /usr/local/bin/protoc-gen-clojure
+          sudo chmod +x /usr/local/bin/protoc-gen-clojure
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ runner.os }}-clojure-${{ hashFiles('**/deps.edn') }}
+          restore-keys: |
+            ${{ runner.os }}-clojure-
+
+      - name: Check workspace
+        run: clojure -M:poly check
+
+      # The template pins the tag of the release that contains it, and derives
+      # the sha from that tag at generation time. If the pin disagrees with what
+      # is being released, every generated workspace would point at the wrong
+      # version of mono.
+      - name: Verify template pins the version being released
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          pinned=$(grep -oP ':mono/tag\s+"\K[^"]+' \
+            template/resources/com/repldriven/mono/template/template.edn)
+          echo "template.edn pins: $pinned"
+          echo "releasing:         ${{ inputs.version }}"
+          if [ "$pinned" != "${{ inputs.version }}" ]; then
+            echo "::error::template.edn pins :mono/tag \"$pinned\" but this release is ${{ inputs.version }}. Update the pin in the commit you intend to tag."
+            exit 1
+          fi
+
+      - name: Resolve each artifact standalone, cold cache
+        run: |
+          # Isolated caches, so this cannot pass merely because the runner
+          # already had something warm.
+          export GITLIBS=$(mktemp -d) CLJ_CACHE=$(mktemp -d)
+          for project in mono-lib mono-test-lib; do
+            echo "Resolving $project..."
+            (cd "projects/$project" && clojure -Spath > /dev/null) \
+              || { echo "::error::$project does not resolve standalone"; exit 1; }
+          done
+
+      # Regression guard for the reason these are two lib symbols rather than
+      # one with two :deps/root values. tools.deps merges :extra-deps over :deps
+      # by lib symbol, so a single shared symbol would make a consumer's :test
+      # alias REPLACE the runtime library and silently empty the classpath.
+      - name: Consumer smoke test
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cat > "$work/deps.edn" <<EOF
+          {:deps {com.repldriven/mono-lib {:local/root "$PWD/projects/mono-lib"}}
+           :aliases
+           {:test {:extra-deps
+                   {com.repldriven/mono-test-lib
+                    {:local/root "$PWD/projects/mono-test-lib"}}}}}
+          EOF
+          cd "$work"
+
+          runtime=$(clojure -Spath)
+          test_cp=$(clojure -Spath -A:test)
+
+          fail=0
+          assert() { # name, haystack, needle, expect(yes|no)
+            if echo "$2" | tr ':' '\n' | grep -q "$3"; then found=yes; else found=no; fi
+            if [ "$found" != "$4" ]; then
+              echo "::error::$1 (expected $4, got $found)"; fail=1
+            else
+              echo "ok: $1"
+            fi
+          }
+
+          assert "runtime carries a library component"        "$runtime" "components/pulsar/src"      yes
+          assert "runtime excludes testcontainers"            "$runtime" "components/testcontainers"  no
+          # the important one: :test must ADD to mono-lib, not replace it
+          assert "test still carries the library component"   "$test_cp" "components/pulsar/src"      yes
+          assert "test adds testcontainers"                   "$test_cp" "components/testcontainers/" yes
+          assert "test adds test-system"                      "$test_cp" "components/test-system/"    yes
+          # a library's :paths reach every consumer, so a logback-test.xml there
+          # would override the consumer's own logging config
+          assert "no logback config leaks to consumers"       "$test_cp" "projects/mono.*test-resources" no
+
+          exit $fail
+
+      - name: Verify library namespaces load
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          cat > "$work/deps.edn" <<EOF
+          {:deps {com.repldriven/mono-lib {:local/root "$PWD/projects/mono-lib"}}
+           :aliases
+           {:test {:extra-deps
+                   {com.repldriven/mono-test-lib
+                    {:local/root "$PWD/projects/mono-test-lib"}}}}}
+          EOF
+          cd "$work"
+          clojure -M:test -e "
+          (require '[com.repldriven.mono.error.interface :as error]
+                   '[com.repldriven.mono.system.interface]
+                   '[com.repldriven.mono.test-system.interface])
+          (assert (error/anomaly? (error/fail :ci/check \"boom\")))
+          (println \"library namespaces load and execute\")"
+
+      - name: Install deps-new
+        run: clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
+
+      # Generates against the working copy rather than a published tag, because
+      # on a PR (and before the tag exists) there is nothing else to generate
+      # against. The published-coordinate path is exercised after tagging.
+      - name: Generate a workspace from the template
+        run: |
+          set -euo pipefail
+          out=$(mktemp -d)/acme
+          clojure -Sdeps "{:deps {com.repldriven.mono/template {:local/root \"$PWD/template\"}}}" \
+            -Tnew create \
+            :template com.repldriven.mono/template \
+            :name com.acme/bookmarks \
+            :target-dir "\"$out\"" \
+            :mono/dir "\"$PWD\"" \
+            :overwrite :delete
+          cd "$out"
+
+          # The rewrite policy, as assertions. Starter bricks belong to the
+          # consumer and must be rewritten; everything else arrives from the
+          # frozen library and must NOT be.
+          if grep -rq 'com\.repldriven\.mono\.example' .; then
+            echo "::error::starter namespaces leaked into the generated workspace"
+            grep -rn 'com\.repldriven\.mono\.example' . | head
+            exit 1
+          fi
+          for ns in error fdb system utility; do
+            grep -rq "com\.repldriven\.mono\.$ns" . \
+              || { echo "::error::$ns was rewritten but should have been left pointing at mono"; exit 1; }
+          done
+
+          clj -X:deps prep :aliases '[:dev :+example]'
+          clojure -M:poly check
+          echo "template generates a workspace that checks"
+
+  release:
+    name: Tag and publish
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Refuse to move a published tag
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ inputs.version }}" > /dev/null \
+             || git ls-remote --exit-code --tags origin "refs/tags/${{ inputs.version }}" > /dev/null 2>&1; then
+            echo "::error::Tag ${{ inputs.version }} already exists. Published tags never move: consumers pin a sha, so moving one produces a split brain that only surfaces on a cold cache. Cut a new version instead."
+            exit 1
+          fi
+
+      - name: Create and push the tag
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" "${{ github.sha }}" -m "mono ${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+          # Read the sha back off the tag rather than trusting the input.
+          full=$(git rev-list -n 1 "${{ inputs.version }}")
+          if [ "$full" != "${{ github.sha }}" ]; then
+            echo "::error::tag points at $full, expected ${{ github.sha }}"
+            exit 1
+          fi
+          echo "SHA=$full" >> "$GITHUB_ENV"
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13.5
+        with:
+          cli: latest
+
+      # The first time the real published coordinates are exercised: a cold
+      # cache, resolving over the network from the tag that now exists.
+      - name: Resolve the published coordinates, cold cache
+        run: |
+          set -euo pipefail
+          export GITLIBS=$(mktemp -d) CLJ_CACHE=$(mktemp -d)
+          url="https://github.com/${{ github.repository }}.git"
+          for root in projects/mono-lib projects/mono-test-lib; do
+            echo "Resolving $root from ${{ inputs.version }}..."
+            clojure -Sdeps "{:deps {com.repldriven/published
+                                    {:git/url \"$url\"
+                                     :git/tag \"${{ inputs.version }}\"
+                                     :git/sha \"$SHA\"
+                                     :deps/root \"$root\"}}}" \
+              -Spath > /dev/null \
+              || { echo "::error::published $root does not resolve"; exit 1; }
+          done
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="https://github.com/${{ github.repository }}.git"
+          cat > notes.md <<EOF
+          Consume the shared components:
+
+          \`\`\`clojure
+          {:deps {com.repldriven/mono-lib
+                  {:git/url "$url"
+                   :git/tag "${{ inputs.version }}"
+                   :git/sha "$SHA"
+                   :deps/root "projects/mono-lib"}}
+
+           :aliases
+           {:test {:extra-deps
+                   {com.repldriven/mono-test-lib
+                    {:git/url "$url"
+                     :git/tag "${{ inputs.version }}"
+                     :git/sha "$SHA"
+                     :deps/root "projects/mono-test-lib"}}}}}
+          \`\`\`
+
+          \`mono-test-lib\` belongs under a \`:test\` alias only, so Docker and the
+          testcontainers tree stay off your runtime classpath.
+
+          Start a new workspace from the template:
+
+          \`\`\`bash
+          clojure -Tnew create \\
+            :template 'io.github.${{ github.repository_owner }}/mono%template%com.repldriven.mono/template#${{ inputs.version }}' \\
+            :name com.acme/my-thing
+          \`\`\`
+          EOF
+          gh release create "${{ inputs.version }}" \
+            --title "mono ${{ inputs.version }}" \
+            --notes-file notes.md \
+            --target "$SHA"
