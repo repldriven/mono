@@ -114,20 +114,41 @@ jobs:
               || { echo "::error::$project does not resolve standalone"; exit 1; }
           done
 
-      # Regression guard for the reason these are two lib symbols rather than
-      # one with two :deps/root values. tools.deps merges :extra-deps over :deps
-      # by lib symbol, so a single shared symbol would make a consumer's :test
-      # alias REPLACE the runtime library and silently empty the classpath.
+      # The test root REPLACES the runtime root on :test, because they share a
+      # lib symbol. That is only safe while it is a superset, so assert it.
+      - name: Test root is a superset of the runtime root
+        run: |
+          clojure -M -e '
+          (require (quote clojure.edn) (quote clojure.string))
+          (let [deps (fn [f] (:deps (clojure.edn/read-string (slurp f))))
+                lib (deps "projects/mono-lib/deps.edn")
+                tst (deps "projects/mono-test-lib/deps.edn")
+                missing (sort (remove (set (keys tst)) (keys lib)))]
+            (when (seq missing)
+              (println (str "::error::projects/mono-test-lib/deps.edn is missing "
+                            (count missing) " dep(s) that projects/mono-lib declares: "
+                            (clojure.string/join ", " missing)
+                            ". Activating :test would drop them from a consumer classpath."))
+              (System/exit 1))
+            (println "ok: test root is a superset of the runtime root"))'
+
+      # Both roots are consumed from ONE lib symbol, so a consumer gets one
+      # gitlibs checkout. Copying the repo twice reproduces what two symbols
+      # would do — two paths for every shared component — which tools.deps
+      # refuses to reconcile. Resolving from a single copy cannot catch that.
       - name: Consumer smoke test
         run: |
           set -euo pipefail
+          runtime_src=$(mktemp -d)/mono; test_src=$(mktemp -d)/mono
+          git archive HEAD | (mkdir -p "$runtime_src" && tar -x -C "$runtime_src")
+          git archive HEAD | (mkdir -p "$test_src" && tar -x -C "$test_src")
           work=$(mktemp -d)
           cat > "$work/deps.edn" <<EOF
-          {:deps {com.repldriven/mono-lib {:local/root "$PWD/projects/mono-lib"}}
+          {:deps {com.repldriven/mono {:local/root "$runtime_src/projects/mono-lib"}}
            :aliases
            {:test {:extra-deps
-                   {com.repldriven/mono-test-lib
-                    {:local/root "$PWD/projects/mono-test-lib"}}}}}
+                   {com.repldriven/mono
+                    {:local/root "$test_src/projects/mono-test-lib"}}}}}
           EOF
           cd "$work"
 
@@ -146,7 +167,8 @@ jobs:
 
           assert "runtime carries a library component"        "$runtime" "components/pulsar/src"      yes
           assert "runtime excludes testcontainers"            "$runtime" "components/testcontainers"  no
-          # the important one: :test must ADD to mono-lib, not replace it
+          # the important one: :test replaces the runtime root, so the superset
+          # property is what keeps the library components on the classpath
           assert "test still carries the library component"   "$test_cp" "components/pulsar/src"      yes
           assert "test adds testcontainers"                   "$test_cp" "components/testcontainers/" yes
           assert "test adds test-system"                      "$test_cp" "components/test-system/"    yes
@@ -161,10 +183,10 @@ jobs:
           set -euo pipefail
           work=$(mktemp -d)
           cat > "$work/deps.edn" <<EOF
-          {:deps {com.repldriven/mono-lib {:local/root "$PWD/projects/mono-lib"}}
+          {:deps {com.repldriven/mono {:local/root "$PWD/projects/mono-lib"}}
            :aliases
            {:test {:extra-deps
-                   {com.repldriven/mono-test-lib
+                   {com.repldriven/mono
                     {:local/root "$PWD/projects/mono-test-lib"}}}}}
           EOF
           cd "$work"

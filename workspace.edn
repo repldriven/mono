@@ -13,8 +13,17 @@
                                     "mqtt" "pulsar-vault-crypto" "scheduler"
                                     "secret" "server" "spec" "sql"
                                     "test-resources"]}
+            ;; mono-test-lib repeats every mono-lib component on purpose — it
+            ;; is consumed by REPLACING mono-lib on the :test alias, so it has
+            ;; to be a superset. See its deps.edn header.
             "mono-test-lib" {:alias "test-lib"
-                             :necessary ["test-schema" "testcontainers"]}}
+                             :necessary ["cache" "cli" "command-processor"
+                                         "command-schema" "event-processor"
+                                         "event-schema" "fdb" "keycloak"
+                                         "migrator" "mqtt"
+                                         "pulsar-vault-crypto" "scheduler"
+                                         "secret" "server" "spec" "sql"
+                                         "test-schema" "testcontainers"]}}
  :tag-patterns {:release "v[0-9]*" :stable "stable-*"}
  :test {:create-test-runner
         com.repldriven.mono.external-test-runner.core/create}

@@ -38,6 +38,13 @@ that follows the Polylith architecture.
     base-less project trips warning 207. A component published in `mono-lib`
     MUST be self-contained: it MUST NOT read files relative to the workspace
     root, since a consuming workspace has no such files
+  - Both roots ship under ONE lib symbol, `com.repldriven/mono`, differing only
+    by `:deps/root`. tools.deps checks out a git dep once per lib symbol, so two
+    symbols would mean two checkouts and two irreconcilable paths for every
+    component the roots share. Because `:extra-deps` merges by lib symbol, a
+    consumer's `:test` alias REPLACES the runtime root with the test one, so
+    `mono-test-lib` MUST stay a superset of `mono-lib` — never prune a component
+    from it. The release workflow asserts this
 - **Template** (`template/`):
   - A deps-new template that scaffolds a workspace wired to `mono-lib`
   - Sits outside the Polylith directories, so `poly` ignores it

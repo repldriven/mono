@@ -1,24 +1,30 @@
-;; Publishable test-support library. Consumed as a git dep, under a :test alias
-;; only, so that testcontainers and its Docker requirement never reach a
-;; consumer's runtime classpath:
+;; Publishable test-support root. Consumed under a :test alias only, so that
+;; testcontainers and its Docker requirement never reach a consumer's runtime
+;; classpath:
 ;;
-;;   :aliases {:test {:extra-deps
-;;             {com.repldriven/mono-test-lib
-;;              {:git/url "https://github.com/repldriven/mono.git"
-;;               :git/tag "vX.Y.Z" :git/sha "<full-sha>"
-;;               :deps/root "projects/mono-test-lib"}}}}
+;;   {:deps {com.repldriven/mono {:git/url "https://github.com/repldriven/mono.git"
+;;                                :git/tag "vX.Y.Z" :git/sha "<full-sha>"
+;;                                :deps/root "projects/mono-lib"}}
+;;    :aliases {:test {:extra-deps
+;;              {com.repldriven/mono {:git/url "https://github.com/repldriven/mono.git"
+;;                                    :git/tag "vX.Y.Z" :git/sha "<full-sha>"
+;;                                    :deps/root "projects/mono-test-lib"}}}}}
 ;;
-;; This is deliberately a *separate lib symbol* from com.repldriven/mono-lib,
-;; not the same symbol with a different :deps/root. tools.deps merges
-;; :extra-deps over :deps by lib symbol, so sharing a symbol would make
-;; activating :test replace mono-lib outright and silently drop every runtime
-;; component from the classpath. Distinct symbols resolve side by side out of
-;; the same gitlibs checkout.
+;; ONE lib symbol, two :deps/root values. It must not be two symbols: tools.deps
+;; checks out a git dep per lib symbol, so two symbols means two checkouts, and
+;; a component this root shares with mono-lib would appear twice at two absolute
+;; paths under the same lib symbol. tools.deps cannot reconcile those:
 ;;
-;; Because they are separate artifacts, this project lists only the test bricks
-;; plus the components those bricks require. It does not repeat all of mono-lib.
-;; The overlap is harmless: both projects key the shared components identically,
-;; so a consumer resolving both artifacts gets one copy of each.
+;;   Error building classpath. No known ancestor relationship between local
+;;   versions for com.repldriven.mono.components/env
+;;
+;; and it fails only when both are on one classpath — the documented usage.
+;;
+;; Because :extra-deps merges over :deps BY LIB SYMBOL, activating :test does
+;; not add this root to mono-lib, it REPLACES mono-lib with it. That is safe
+;; only while this root is a superset of mono-lib, so it repeats every runtime
+;; component and adds the test bricks. The release workflow asserts the superset
+;; property; do not hand-prune this list.
 ;;
 ;; test-schema is intentionally absent: it carries :deps/prep-lib, and keeping a
 ;; prep step out of the published surface is worth protecting. It stays an alias
@@ -32,19 +38,78 @@
 ;; -internal anyway: it wires our bricks, and only our brick tests !include it.
 {:paths []
  :deps
- {com.repldriven.mono.components/test-system
+ {com.repldriven.mono.components/avro
+  {:local/root "../../components/avro"}
+  com.repldriven.mono.components/cache
+  {:local/root "../../components/cache"}
+  com.repldriven.mono.components/cli
+  {:local/root "../../components/cli"}
+  com.repldriven.mono.components/command
+  {:local/root "../../components/command"}
+  com.repldriven.mono.components/command-processor
+  {:local/root "../../components/command-processor"}
+  com.repldriven.mono.components/command-schema
+  {:local/root "../../components/command-schema"}
+  com.repldriven.mono.components/db
+  {:local/root "../../components/db"}
+  com.repldriven.mono.components/encryption
+  {:local/root "../../components/encryption"}
+  com.repldriven.mono.components/env
+  {:local/root "../../components/env"}
+  com.repldriven.mono.components/error
+  {:local/root "../../components/error"}
+  com.repldriven.mono.components/event
+  {:local/root "../../components/event"}
+  com.repldriven.mono.components/event-processor
+  {:local/root "../../components/event-processor"}
+  com.repldriven.mono.components/event-schema
+  {:local/root "../../components/event-schema"}
+  com.repldriven.mono.components/fdb
+  {:local/root "../../components/fdb"}
+  com.repldriven.mono.components/http-client
+  {:local/root "../../components/http-client"}
+  com.repldriven.mono.components/identity-provider
+  {:local/root "../../components/identity-provider"}
+  com.repldriven.mono.components/json
+  {:local/root "../../components/json"}
+  com.repldriven.mono.components/keycloak
+  {:local/root "../../components/keycloak"}
+  com.repldriven.mono.components/log
+  {:local/root "../../components/log"}
+  com.repldriven.mono.components/message-bus
+  {:local/root "../../components/message-bus"}
+  com.repldriven.mono.components/migrator
+  {:local/root "../../components/migrator"}
+  com.repldriven.mono.components/mqtt
+  {:local/root "../../components/mqtt"}
+  com.repldriven.mono.components/processor
+  {:local/root "../../components/processor"}
+  com.repldriven.mono.components/pulsar
+  {:local/root "../../components/pulsar"}
+  com.repldriven.mono.components/pulsar-vault-crypto
+  {:local/root "../../components/pulsar-vault-crypto"}
+  com.repldriven.mono.components/scheduler
+  {:local/root "../../components/scheduler"}
+  com.repldriven.mono.components/secret
+  {:local/root "../../components/secret"}
+  com.repldriven.mono.components/server
+  {:local/root "../../components/server"}
+  com.repldriven.mono.components/spec
+  {:local/root "../../components/spec"}
+  com.repldriven.mono.components/sql
+  {:local/root "../../components/sql"}
+  com.repldriven.mono.components/system
+  {:local/root "../../components/system"}
+  com.repldriven.mono.components/telemetry
+  {:local/root "../../components/telemetry"}
+  com.repldriven.mono.components/test-system
   {:local/root "../../components/test-system"}
   com.repldriven.mono.components/testcontainers
   {:local/root "../../components/testcontainers"}
-
-  ;; Dependency closure of the two bricks above. Required so that this is a
-  ;; valid Polylith project, and so the artifact stands up on its own.
-  com.repldriven.mono.components/env {:local/root "../../components/env"}
-  com.repldriven.mono.components/error {:local/root "../../components/error"}
-  com.repldriven.mono.components/log {:local/root "../../components/log"}
-  com.repldriven.mono.components/system {:local/root "../../components/system"}
   com.repldriven.mono.components/utility
   {:local/root "../../components/utility"}
+  com.repldriven.mono.components/vault
+  {:local/root "../../components/vault"}
 
   org.clojure/clojure {:mvn/version "1.12.4"}}
 

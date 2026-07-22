@@ -1,15 +1,18 @@
 ;; Deployable project: combines your bricks with the mono component library.
 ;; Projects hold no code of their own, only this composition manifest.
 {:paths ["resources"]
- :deps {com.repldriven/mono-lib
+ :deps {com.repldriven/mono
         {{mono/project-lib-coord}}
         {{starter/project-deps}}
         com.google.protobuf/protobuf-java {:mvn/version "3.25.8"}
         org.clojure/clojure {:mvn/version "1.12.4"}}
  :aliases
  {:test
+  ;; Same lib symbol as :deps above, with the test :deps/root. tools.deps
+  ;; merges :extra-deps over :deps by lib symbol, so this REPLACES the runtime
+  ;; root — safe because the test root is a superset of it.
   {:extra-deps
-   {com.repldriven/mono-test-lib
+   {com.repldriven/mono
     {{mono/project-test-lib-coord}}
     com.repldriven.mono/external-test-runner
     {{mono/project-test-runner-coord}}}}

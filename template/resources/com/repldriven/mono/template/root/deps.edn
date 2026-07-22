@@ -6,7 +6,7 @@
 {:aliases
  {:dev
   {:extra-deps
-   {com.repldriven/mono-lib
+   {com.repldriven/mono
     {{mono/lib-coord}}
     ;; protojure pulls protobuf-java 4.x, which breaks the FoundationDB Record
     ;; Layer at runtime; pin to 3.x for binary compatibility
@@ -19,13 +19,16 @@
    :jvm-opts
    ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/slf4j-factory"]}
 
-  ;; Test support (test-system, testcontainers) is a separate
-  ;; artifact under a separate lib symbol, so that Docker and the testcontainers
-  ;; tree stay off the runtime classpath. Because the symbols differ, this adds
-  ;; to mono-lib rather than replacing it.
+  ;; Test support (test-system, testcontainers) ships from the same lib symbol
+  ;; with a different :deps/root, so that Docker and the testcontainers tree
+  ;; stay off the runtime classpath. tools.deps merges :extra-deps over :deps by
+  ;; lib symbol, so this REPLACES the runtime root rather than adding to it —
+  ;; safe because the test root is a superset of it. One symbol is required: a
+  ;; second one would be a second gitlibs checkout, and every component the two
+  ;; roots share would then appear at two irreconcilable paths.
   :test
   {:extra-deps
-   {com.repldriven/mono-test-lib
+   {com.repldriven/mono
     {{mono/test-lib-coord}}}}
 
   ;; Domain profile. Add your own bricks here as you create them, alongside the

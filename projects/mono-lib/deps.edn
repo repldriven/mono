@@ -1,12 +1,19 @@
 ;; Publishable component library. Consumed as a git dep:
 ;;
-;;   com.repldriven/mono-lib
+;;   com.repldriven/mono
 ;;   {:git/url "https://github.com/repldriven/mono.git"
 ;;    :git/tag "vX.Y.Z" :git/sha "<full-sha>"
 ;;    :deps/root "projects/mono-lib"}
 ;;
 ;; tools.deps reads this file and pulls the components below transitively, so
 ;; consumers see them under `libs` rather than as editable bricks.
+;;
+;; Test support ships from the same lib symbol with :deps/root
+;; projects/mono-test-lib, on a :test alias. One symbol, because tools.deps
+;; checks out a git dep per lib symbol: two symbols would mean two checkouts and
+;; two irreconcilable paths for every component the roots share. That makes the
+;; :test root REPLACE this one rather than add to it, which is why it is a
+;; superset. See projects/mono-test-lib/deps.edn.
 ;;
 ;; Dep keys are qualified with the workspace top namespace. Polylith identifies
 ;; a brick by its :local/root and discards the key, so the key is free to be
