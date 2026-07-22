@@ -3,20 +3,26 @@
   high-fidelity auth tests. Wrapper around dasniko/testcontainers-
   keycloak — the lib handles startup probing and the
   `withRealmImportFile` import hook. The container exposes its
-  randomly-mapped HTTP port; the `auth-server-url` component
-  surfaces the full base URL the `keycloak/identity-provider`
-  component can be pointed at."
+  randomly-mapped HTTP port as data, which the generic
+  `testcontainers/mapped-exposed-port` and `testcontainers/uri`
+  components turn into the base URL `keycloak/identity-provider`
+  can be pointed at."
   (:require
-    [clojure.java.shell :as shell]
-    [clojure.string :as str]
+    [com.repldriven.mono.testcontainers.container :as container]
+
     [com.repldriven.mono.log.interface :as log]
-    [com.repldriven.mono.system.interface :as system])
+
+    [clojure.java.shell :as shell]
+    [clojure.string :as str])
   (:import
     (dasniko.testcontainers.keycloak KeycloakContainer)
     (org.testcontainers.images.builder Transferable)
     (org.testcontainers.utility MountableFile)))
 
 (def default-docker-image-name "quay.io/keycloak/keycloak:26.0")
+
+;; Keycloak serves HTTP on 8080 inside the container.
+(def default-exposed-port 8080)
 
 ;; Files Keycloak expects to find under <theme>/login/. Copied
 ;; individually as classpath resources because Testcontainers'
@@ -115,12 +121,12 @@
           ;; touching the host environment or the realm JSON.
           (when (seq vault-secrets)
             (mount-vault-secrets! c vault-dir vault-secrets))
-          (.start c)
-          {:container c}))))
+          ;; start! snapshots the mapped ports into the instance map, so
+          ;; nothing downstream has to interrogate a running container.
+          (container/start! c [default-exposed-port])))))
    :system/stop (fn [{:system/keys [instance]}]
-                  (when-let [c (:container instance)]
-                    (log/info "Stopping keycloak container")
-                    (.stop c)))
+                  (log/info "Stopping keycloak container")
+                  (container/stop! instance))
    :system/config {:docker-image-name default-docker-image-name
                    :realm-import-file nil
                    :realm-import-files nil
@@ -130,14 +136,3 @@
                    :vault-dir nil
                    :vault-secrets nil}
    :system/instance-schema map?})
-
-(def auth-server-url
-  "Resolves to the container's `<scheme>://<host>:<port>` base URL.
-  Pair with `keycloak/identity-provider`'s `:base-url` config."
-  {:system/start (fn [{:system/keys [config instance]}]
-                   (or instance
-                       (let [^KeycloakContainer c (:container (:container
-                                                               config))]
-                         (.getAuthServerUrl c))))
-   :system/config {:container system/required-component}
-   :system/instance-schema string?})

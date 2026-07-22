@@ -49,8 +49,9 @@
 (system/defcomponents :fdb {:container fdb/container})
 
 ;; Keycloak testcontainer components — real Keycloak realm for
-;; high-fidelity auth tests. Pair `container` with `auth-server-url`
-;; then point `identity-provider/client`'s `:base-url` at the latter.
+;; high-fidelity auth tests. Point `identity-provider/client`'s
+;; `:base-url` at `container-auth-server-url`.
 (system/defcomponents :keycloak
                       {:container keycloak/container
-                       :auth-server-url keycloak/auth-server-url})
+                       :container-http-port testcontainers/mapped-exposed-port
+                       :container-auth-server-url testcontainers/uri})
