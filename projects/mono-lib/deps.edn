@@ -1,0 +1,89 @@
+;; Publishable component library. Consumed as a git dep:
+;;
+;;   com.repldriven/mono-lib
+;;   {:git/url "https://github.com/repldriven/mono.git"
+;;    :git/tag "vX.Y.Z" :git/sha "<full-sha>"
+;;    :deps/root "projects/mono-lib"}
+;;
+;; tools.deps reads this file and pulls the components below transitively, so
+;; consumers see them under `libs` rather than as editable bricks.
+;;
+;; Dep keys are qualified with the workspace top namespace. Polylith identifies
+;; a brick by its :local/root and discards the key, so the key is free to be
+;; whatever avoids collisions: a consuming workspace with its own bare
+;; `components/cache` key would otherwise clash with ours.
+;;
+;; :paths is empty on purpose. This project ships no code of its own, and
+;; omitting the key would make tools.deps fall back to a non-existent "src",
+;; warning on every consumer resolve.
+;;
+;; Any change to a brick listed here is release-visible: consumers pin a sha and
+;; there is no snapshot channel, so it requires a version bump.
+{:paths []
+ :deps
+ {com.repldriven.mono.components/avro {:local/root "../../components/avro"}
+  com.repldriven.mono.components/cache {:local/root "../../components/cache"}
+  com.repldriven.mono.components/cli {:local/root "../../components/cli"}
+  com.repldriven.mono.components/command {:local/root "../../components/command"}
+  com.repldriven.mono.components/command-processor
+  {:local/root "../../components/command-processor"}
+  com.repldriven.mono.components/command-schema
+  {:local/root "../../components/command-schema"}
+  com.repldriven.mono.components/db {:local/root "../../components/db"}
+  com.repldriven.mono.components/encryption
+  {:local/root "../../components/encryption"}
+  com.repldriven.mono.components/env {:local/root "../../components/env"}
+  com.repldriven.mono.components/error {:local/root "../../components/error"}
+  ;; fdb needs the FoundationDB client library (7.3.75) installed natively at
+  ;; runtime. The jar is inert on the classpath until FDB/selectAPIVersion is
+  ;; called, so merely depending on mono-lib does not require it.
+  com.repldriven.mono.components/fdb {:local/root "../../components/fdb"}
+  com.repldriven.mono.components/http-client
+  {:local/root "../../components/http-client"}
+  com.repldriven.mono.components/json {:local/root "../../components/json"}
+  com.repldriven.mono.components/log {:local/root "../../components/log"}
+  com.repldriven.mono.components/message-bus
+  {:local/root "../../components/message-bus"}
+  com.repldriven.mono.components/migrator
+  {:local/root "../../components/migrator"}
+  com.repldriven.mono.components/mqtt {:local/root "../../components/mqtt"}
+  com.repldriven.mono.components/processor
+  {:local/root "../../components/processor"}
+  com.repldriven.mono.components/pulsar {:local/root "../../components/pulsar"}
+  com.repldriven.mono.components/pulsar-vault-crypto
+  {:local/root "../../components/pulsar-vault-crypto"}
+  com.repldriven.mono.components/server {:local/root "../../components/server"}
+  com.repldriven.mono.components/spec {:local/root "../../components/spec"}
+  com.repldriven.mono.components/sql {:local/root "../../components/sql"}
+  com.repldriven.mono.components/system {:local/root "../../components/system"}
+  com.repldriven.mono.components/telemetry
+  {:local/root "../../components/telemetry"}
+  com.repldriven.mono.components/utility
+  {:local/root "../../components/utility"}
+  com.repldriven.mono.components/vault {:local/root "../../components/vault"}
+
+  org.clojure/clojure {:mvn/version "1.12.4"}}
+
+ ;; Aliases are invisible to a git-dep consumer. This one exists so that
+ ;; `poly check` can satisfy the test context and `poly test project:mono-lib`
+ ;; works inside this workspace.
+ ;;
+ ;; logback-test.xml lives on :extra-paths here, NOT on :paths above. A library
+ ;; project's :paths become part of every consumer's classpath, and logback
+ ;; prefers a logback-test.xml found anywhere on the classpath over the
+ ;; consumer's own config, so putting it there would silently hijack their
+ ;; logging.
+ :aliases
+ {:test
+  {:extra-paths ["test-resources"]
+   :extra-deps
+   {com.repldriven.mono.components/test-resources
+    {:local/root "../../components/test-resources"}
+    com.repldriven.mono.components/test-schema
+    {:local/root "../../components/test-schema"}
+    com.repldriven.mono.components/test-system
+    {:local/root "../../components/test-system"}
+    com.repldriven.mono.components/testcontainers
+    {:local/root "../../components/testcontainers"}
+    com.repldriven.mono.bases/external-test-runner
+    {:local/root "../../bases/external-test-runner"}}}}}

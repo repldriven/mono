@@ -1,0 +1,6 @@
+{:output
+ {:exclude-files
+  ["target/"
+   ".clj-kondo/imports/"
+   {{starter/kondo-excludes}}
+   "components/.*/build\\.clj"]}}

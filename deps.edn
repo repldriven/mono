@@ -107,5 +107,4 @@
                                                   "bases/external-test-runner"}}
          :main-opts ["-m" "polylith.clj.core.poly-cli.core"]}
   :rebel {:extra-deps #:com.bhauman{rebel-readline {:mvn/version "0.1.7"}}
-          :main-opts ["-m" "rebel-readline.main"]}
-  :mvn/repos {"maven" {:url "https://packages.confluent.io/maven"}}}}
+          :main-opts ["-m" "rebel-readline.main"]}}}

@@ -1,0 +1,12 @@
+{:compact-views #{}
+ :default-profile-name "example"
+ :interface-ns "interface"
+ :projects {"development" {:alias "dev"}
+            "{{main}}" {:alias "{{main}}"}}
+ :tag-patterns {:release "v[0-9]*" :stable "stable-*"}
+ ;; Left pointing at mono on purpose: the external test runner arrives from the
+ ;; pinned git dep rather than being copied into this workspace.
+ :test {:create-test-runner
+        com.repldriven.mono.external-test-runner.core/create}
+ :top-namespace "{{top-ns}}"
+ :vcs {:auto-add true :name "git"}}

@@ -1,0 +1,50 @@
+**/classes
+**/target
+**/.artifacts
+**/.cpcache
+**/.DS_Store
+**/generated
+**/src/gen
+
+# User-specific stuff
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf
+.idea/**/statistic.xml
+.idea/dictionaries/**
+.idea/libraries/**
+
+# File-based project format
+*.iws
+*.ipr
+
+# Cursive Clojure plugin
+.idea/replstate.xml
+*.iml
+
+# Claude Code
+.claude
+
+# Clojure tools
+.calva
+**/.calva-repl
+*cider-error*
+bases/**/.clj-kondo
+components/**/.clj-kondo
+projects/**/.clj-kondo
+.clj-kondo/*
+!.clj-kondo/config.edn
+!.clj-kondo/hooks/
+bases/**/.lsp
+components/**/.lsp
+projects/**/.lsp
+.lsp/*
+!.lsp/config.edn
+
+# REPL and linting files
+.nrepl-port
+**/.nrepl-port
+.rebel_readline_history
+.eastwood
+.direnv/

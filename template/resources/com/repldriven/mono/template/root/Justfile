@@ -1,0 +1,70 @@
+set shell := ["zsh", "-cu"]
+
+DOMAIN_ALIASES := ":+example"
+
+list:
+    just --list
+
+# One-off after generating this workspace: run protobuf codegen. Required
+# before any classpath will build, because example-bookmark declares
+# :deps/prep-lib and its "classes" path does not exist until prep has run.
+setup:
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]'
+
+# Start nREPL server
+repl:
+    find . -name .nrepl-port -not -path ./.nrepl-port -delete
+    clojure -M{{ DOMAIN_ALIASES }}:dev:test:nrepl -Sforce -P
+
+# Start Rebel Readline REPL
+rebel:
+    clj -M{{ DOMAIN_ALIASES }}:dev:test:rebel
+
+# Start polylith shell
+shell:
+    clj -M:poly shell
+
+# Check the workspace
+check:
+    clojure -M:poly check
+
+# Build all polylith projects as uberjars
+build snapshot="true":
+    #!/usr/bin/env zsh
+    for project in projects/*/; do
+        echo "Building ${project:t}..."
+        (cd "$project" && clojure -X:build uber :snapshot {{ snapshot }})
+    done
+
+# Run all polylith project tests
+test: start-docker
+    clojure -M:poly test :all
+
+# Linter
+lint:
+    clojure -M:lint/clj-kondo --lint bases components projects deps.edn workspace.edn
+
+# Formatter - uses .zprint.edn config in project root
+format:
+    #!/usr/bin/env bash
+    set -e
+    echo "Formatting Clojure source files..."
+    files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | while read f; do [ -f "$f" ] && echo "$f"; done)
+    if [ -n "$files" ]; then
+        echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
+        echo "✓ Formatting complete"
+    else
+        echo "No Clojure files found"
+    fi
+
+force-prep:
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]' :force true
+
+# Start Docker via Colima
+start-docker:
+    colima status 2>/dev/null || colima start --arch aarch64 --vm-type vz --vz-rosetta --cpu 6 --memory 12
+    docker context use colima
+
+# Stop Docker via Colima
+stop-docker:
+    colima stop
