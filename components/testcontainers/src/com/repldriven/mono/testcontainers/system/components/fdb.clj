@@ -2,7 +2,6 @@
   (:require
     [com.repldriven.mono.log.interface :as log])
   (:import
-    (java.io File)
     (java.net ServerSocket)
     (java.time Duration)
     (org.testcontainers.containers FixedHostPortGenericContainer)
@@ -12,24 +11,16 @@
 (def fdb-version "7.3.75")
 (def default-image-name (str "mono/foundationdb:" fdb-version))
 
-(defn- workspace-root
-  []
-  (loop [dir (File. (System/getProperty "user.dir"))]
-    (if (.exists (File. dir "workspace.edn"))
-      (.toPath dir)
-      (if-let [parent (.getParentFile dir)]
-        (recur parent)
-        (throw (ex-info
-                "Could not find workspace.edn - are we in a Polylith project?"
-                {}))))))
-
 (defn- fdb-image
+  "Build context for the FDB image, loaded from this component's own resources.
+
+  Read from the classpath rather than from a path relative to the workspace
+  root, so the component is self-contained when consumed as a library. A
+  consuming workspace has no infra directory of ours to find."
   [image-name]
-  (let [root (workspace-root)
-        fdb-dir (.resolve root "infra/docker/fdb")]
-    (-> (ImageFromDockerfile. image-name false)
-        (.withFileFromPath "Dockerfile" (.resolve fdb-dir "Dockerfile"))
-        (.withFileFromPath "fdb.bash" (.resolve fdb-dir "fdb.bash")))))
+  (-> (ImageFromDockerfile. image-name false)
+      (.withFileFromClasspath "Dockerfile" "fdb/Dockerfile")
+      (.withFileFromClasspath "fdb.bash" "fdb/fdb.bash")))
 
 (defn- free-port
   "Finds a free port by briefly opening and closing a server socket."

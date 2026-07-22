@@ -8,4 +8,6 @@
                                    :exclusions [org.apache.pulsar/pulsar-client
                                                 org.apache.pulsar/pulsar-admin]}
         org.testcontainers/postgresql {:mvn/version "1.21.4"}}
- :paths ["src"]}
+ ;; resources carries the FDB image build context (fdb/Dockerfile, fdb/fdb.bash)
+ ;; so that it travels with the component when it is consumed as a library
+ :paths ["src" "resources"]}
