@@ -16,7 +16,11 @@
  :aliases
  {:test
   {:extra-deps
-   {components/test-resources {:local/root "../../components/test-resources"}
+   {;; test-schema's pet processor requires avro and processor. Neither is a
+    ;; runtime dep of this service, so they belong here rather than in :deps.
+    components/avro {:local/root "../../components/avro"}
+    components/processor {:local/root "../../components/processor"}
+    components/test-resources {:local/root "../../components/test-resources"}
     components/test-schema {:local/root "../../components/test-schema"}
     components/test-system {:local/root "../../components/test-system"}
     components/testcontainers {:local/root "../../components/testcontainers"}
