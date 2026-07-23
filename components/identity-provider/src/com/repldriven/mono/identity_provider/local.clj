@@ -85,6 +85,11 @@
     (swap! (-state client) assoc-in [:clients client-id :client-secret] secret)
     {:client-id client-id :client-secret secret}))
 
+(defn- update-audience-impl
+  [client client-id audience]
+  (swap! (-state client) assoc-in [:clients client-id :audience] audience)
+  {:client-id client-id})
+
 (defn- exchange-client-credentials-impl
   [client {:keys [client-id client-secret]}]
   (let [registered (get-in @(-state client) [:clients client-id])]
@@ -138,6 +143,8 @@
     (-create-service-account [this data] (create-client-impl this data))
     (-revoke-service-account [this bank-id] (delete-client-impl this bank-id))
     (-rotate-secret [this bank-id] (regenerate-secret-impl this bank-id))
+    (-update-service-account-audience [this bank-id audience]
+      (update-audience-impl this bank-id audience))
     (-exchange-client-credentials [this creds]
       (exchange-client-credentials-impl this creds))
     (-verify-token [this jwt-string opts]

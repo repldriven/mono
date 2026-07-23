@@ -37,6 +37,7 @@
         jar (first (filter #(str/includes? % "fdb-record-layer-core") cp))
         target (str root "/target/fdb-protos")]
     (when-not jar
+      ;; nosemgrep: no-raw-throw
       (throw (ex-info "fdb-record-layer-core JAR not found" {:classpath cp})))
     (extract-protos-from-jar jar target)))
 
@@ -63,6 +64,7 @@
         fdb-path (fdb-proto-dir root)
         protos (proto-files proto-path)]
     (when (empty? protos)
+      ;; nosemgrep: no-raw-throw
       (throw (ex-info "No .proto files found" {:path proto-path})))
     (run! #(.mkdirs (io/file %)) [clj-out java-out class-out])
     (b/process {:command-args (cond-> ["protoc" "--clojure_out" clj-out

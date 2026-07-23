@@ -1,4 +1,4 @@
-(ns com.repldriven.mono.test-schema.processor
+(ns com.repldriven.mono.service.pet-processor
   (:require
     [com.repldriven.mono.test_schemas.pets :as pets]
 
@@ -31,17 +31,16 @@
     (fdb/transact
      config
      (fn [txn]
-       (let [store (fdb/open txn "pets")]
-         (let-nom>
-           [_ (fdb/save-record store
-                               (Pet->java {:pet-id pet-id
-                                           :name name
-                                           :species species
-                                           :age-months age-months}))]
-           {:pet-id pet-id
-            :name name
-            :species species
-            :age-months age-months}))))))
+       (let-nom>
+         [_ (fdb/save-record (fdb/open txn "pets")
+                             (Pet->java {:pet-id pet-id
+                                         :name name
+                                         :species species
+                                         :age-months age-months}))]
+         {:pet-id pet-id
+          :name name
+          :species species
+          :age-months age-months})))))
 
 (defn- dispatch
   [config message]
@@ -49,14 +48,14 @@
         {:keys [schemas]} config
         schema (get schemas command)]
     (if-not schema
-      (error/fail :test-schema/process-command
+      (error/fail :pets/process-command
                   {:message "No schema found for command"
                    :command command})
       (let-nom>
         [data (avro/deserialize-same schema payload)]
         (case command
           "create-pet" (->response config (create config data))
-          (error/reject :test-schema/unknown-command
+          (error/reject :pets/unknown-command
                         (str "Unknown command: " command)))))))
 
 (defrecord PetProcessor [config]

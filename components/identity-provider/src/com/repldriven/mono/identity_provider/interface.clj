@@ -51,6 +51,14 @@
   [client bank-id]
   (protocol/-rotate-secret client bank-id))
 
+(defn update-service-account-audience
+  "Point `bank-id`'s service-account client at `audience` — the JWT
+  `aud` claim its tokens should carry going forward. Target-state
+  idempotent: a redelivered call converges on the same result.
+  Returns `{:client-id …}` or an anomaly."
+  [client bank-id audience]
+  (protocol/-update-service-account-audience client bank-id audience))
+
 (defn exchange-client-credentials
   "Run the OAuth2 `client_credentials` flow. Returns the raw token
   response with snake-case keys (`:access_token`, `:expires_in`,

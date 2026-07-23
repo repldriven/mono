@@ -231,6 +231,39 @@
        sec (http/res->edn res)]
       {:client-id client-id :client-secret (:value sec)})))
 
+(defn update-client-audience
+  "Point the Keycloak client matching `client-id` at `audience`: replace
+  its `defaultClientScopes` with `[\"service-accounts\" audience]` — the
+  same shape `new-client-representation` builds at creation. Fetches
+  the current `ClientRepresentation` (needed to preserve every other
+  field on the PUT) and swaps just that one list, so this is
+  target-state idempotent — a redelivered call converges on the same
+  result."
+  [client client-id audience]
+  (let [config (-config client)]
+    (let-nom>
+      [token (admin-token! client)
+       list-res (http/request
+                 {:method :get
+                  :url (admin-url config "/clients?clientId=" client-id)
+                  :headers (admin-headers token)})
+       clients (http/res->edn list-res)
+       representation (first clients)
+       _ (when-not representation
+           (error/reject :keycloak/client-not-found
+                         {:message "No Keycloak client matches client-id"
+                          :client-id client-id}))
+       _ (http/request
+          {:method :put
+           :url (admin-url config "/clients/" (:id representation))
+           :headers (admin-headers token)
+           :body (json/write-str
+                  (assoc
+                   representation
+                   :defaultClientScopes
+                   (cond-> ["service-accounts"] audience (conj audience))))})]
+      {:client-id client-id})))
+
 (defn- fetch-jwks
   [config]
   (let-nom>

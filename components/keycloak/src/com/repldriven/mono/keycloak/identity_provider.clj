@@ -84,6 +84,8 @@
         result))
     (-revoke-service-account [this bank-id] (core/delete-client this bank-id))
     (-rotate-secret [this bank-id] (core/regenerate-secret this bank-id))
+    (-update-service-account-audience [this bank-id audience]
+      (core/update-client-audience this bank-id audience))
     (-exchange-client-credentials [this creds]
       (core/exchange-client-credentials this creds))
     (-verify-token [this jwt-string opts]

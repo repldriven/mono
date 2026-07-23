@@ -1,6 +1,6 @@
 (ns ^:eftest/synchronized com.repldriven.mono.service.main-test
   (:require
-    com.repldriven.mono.test-schema.interface
+    com.repldriven.mono.service.system
     com.repldriven.mono.message-bus.interface
     com.repldriven.mono.testcontainers.interface
     [com.repldriven.mono.service.main :as SUT]

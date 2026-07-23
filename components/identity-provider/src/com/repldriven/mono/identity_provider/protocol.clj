@@ -9,6 +9,7 @@
   (-create-service-account [this data])
   (-revoke-service-account [this bank-id])
   (-rotate-secret [this bank-id])
+  (-update-service-account-audience [this bank-id audience])
   (-exchange-client-credentials [this creds])
   (-verify-token [this jwt-string opts])
   (-get-jwks [this])
