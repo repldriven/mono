@@ -81,22 +81,6 @@ source, not to how it was delivered.
 To take an upstream fix, bump the tag and sha together. Published tags never
 move; mono cuts a new one instead.
 
-### Fork the repo (deprecated)
-
-```bash
-just fork <your-domain>
-```
-
-This removes the example domain and rewires configs so you can:
-
-1. Add domain components under `components/<your-domain>-*/`
-2. Add domain bases under `bases/<your-domain>-*/`
-3. Add domain projects under `projects/<your-domain>-*/`
-4. Register your new bricks in the `:+<your-domain>` alias in `deps.edn`
-
-Deprecated in favour of the template above: forking gives you a full copy of
-every shared brick, so upstream fixes only arrive by hand.
-
 ## Presentations
 
 1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./slides/systems_as_data/slides.md)
@@ -137,76 +121,114 @@ clojure -M:poly test brick:command project:dev
 
 ## Components
 
+Each brick lists the library it is built on, and **how it relates to it**:
+
+| Kind            | What it means                                                                                                                                             |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Facade**      | The library's whole API, wrapped so every call returns an anomaly instead of throwing. You should not need to require the library yourself.                |
+| **Abstraction** | The interface names operations rather than a library, so what is underneath can be swapped without touching a single call site.                            |
+| **Curated**     | Mono's own API, using the library inside. It covers what mono needs; for anything beyond it, require the library directly and declare it in your `deps.edn`. |
+| **—**           | No third-party library — the brick is mono's own code.                                                                                                     |
+
+The distinction is not stylistic. A library gets a **facade** when its API is
+wide and it signals failure by throwing: next.jdbc is 25 functions and macros,
+http-kit's documented idiom is `@(http/get url)`, and wrapping only the popular
+calls reads like the library right up to the moment it doesn't. A library gets
+an **abstraction** only when the operations are genuinely generic — parsing JSON
+is, connection pooling is not.
+
+Everything else is **curated**, and two libraries got no brick at all: malli and
+honeysql, whose real interfaces are *data* — a schema is a vector you hand to
+reitit, a query is a map you hand to a formatter — so wrapping their functions
+bought nothing but a namespace hop. Require those directly.
+
+Whatever the kind, the library stays on your classpath, so reaching past a brick
+is always available. Declare it in your own `deps.edn` when you do, rather than
+relying on ours.
+
 ### System
 
-| Component | Purpose                                                    |
-| --------- | ---------------------------------------------------------- |
-| `cli`     | CLI argument validation and exit handling                  |
-| `env`     | Configuration loading with `:dev`/`:test`/`:prod` profiles |
-| `error`   | Anomaly-based error handling (`nom` library)               |
-| `log`     | Structured logging                                         |
-| `spec`    | Malli-based validation with human-readable errors          |
-| `system`  | Lifecycle management wrapping `donut.system`               |
-| `utility` | Deep merge, UUID v7, YAML conversion, collection helpers   |
+| Component | Purpose                                                    | Library                     | Kind    |
+| --------- | ---------------------------------------------------------- | --------------------------- | ------- |
+| `cli`     | CLI argument validation and exit handling                  | `tools.cli`                 | Curated |
+| `env`     | Configuration loading with `:dev`/`:test`/`:prod` profiles | `aero`, `clj-yaml`          | Curated |
+| `error`   | Anomaly-based error handling, and the combinators for it   | `nom`                       | Curated |
+| `log`     | Structured logging                                         | `tools.logging`, `logback`  | Curated |
+| `system`  | Lifecycle management, systems as data                      | `donut.system`              | Curated |
+| `utility` | Deep merge, UUID v7, ULID, time, collection helpers        | `uuid-creator`, `ulid-creator` | Curated |
 
 ### Persistence
 
-| Component  | Purpose                                                     |
-| ---------- | ----------------------------------------------------------- |
-| `cache`    | In-memory caching                                           |
-| `db`       | PostgreSQL with connection pooling                          |
-| `fdb`      | FoundationDB — KV layer, record layer, changelog processing |
-| `migrator` | Liquibase schema migrations                                 |
-| `sql`      | HoneySQL query formatting                                   |
+| Component  | Purpose                                                        | Library                    | Kind    |
+| ---------- | -------------------------------------------------------------- | -------------------------- | ------- |
+| `cache`    | In-memory caching                                              | `core.cache`               | Curated |
+| `fdb`      | FoundationDB — KV layer, record layer, changelog processing    | `fdb-java`, `fdb-record-layer-core` | Curated |
+| `jdbc`     | All of next.jdbc, returning anomalies; kebab keys, snake_case SQL | `next.jdbc`             | Facade  |
+| `migrator` | Liquibase schema migrations                                    | `liquibase-core`           | Curated |
 
 ### Messaging
 
-| Component           | Purpose                                            |
-| ------------------- | -------------------------------------------------- |
-| `command`           | Request-reply and async command dispatch over bus  |
-| `command-processor` | Bus-subscription lifecycle for domain processors   |
-| `command-schema`    | Command Avro schemas (envelope, response, command) |
-| `message-bus`       | Protocol abstraction over messaging backends       |
-| `mqtt`              | MQTT publish/subscribe                             |
-| `processor`         | Message processor protocol                         |
-| `pulsar`            | Apache Pulsar producer/consumer/reader with Avro   |
+| Component           | Purpose                                            | Library         | Kind        |
+| ------------------- | -------------------------------------------------- | --------------- | ----------- |
+| `command`           | Request-reply and async command dispatch over bus  | —               | —           |
+| `command-processor` | Bus-subscription lifecycle for domain processors   | —               | —           |
+| `command-schema`    | Command Avro schemas (envelope, response, command) | —               | —           |
+| `event`             | Event publication and processing                   | —               | —           |
+| `event-processor`   | Bus-subscription lifecycle for event handlers      | —               | —           |
+| `event-schema`      | Event envelope Avro schema                         | —               | —           |
+| `message-bus`       | Protocol over messaging backends — local or Pulsar | —               | Abstraction |
+| `mqtt`              | MQTT publish/subscribe                             | `machine_head`  | Curated     |
+| `processor`         | Message processor protocol                         | —               | —           |
+| `pulsar`            | Apache Pulsar producer/consumer/reader with Avro   | `pulsar-client` | Curated     |
 
 ### Web & HTTP
 
-| Component     | Purpose                                                       |
-| ------------- | ------------------------------------------------------------- |
-| `http-client` | HTTP client with anomaly-based error handling                 |
-| `server`      | Jetty with interceptor-based dependency injection and OpenAPI |
+| Component     | Purpose                                                         | Library            | Kind    |
+| ------------- | ----------------------------------------------------------------- | ------------------ | ------- |
+| `http-client` | All of http-kit's client, returning anomalies; `-async` twins    | `http-kit`         | Facade  |
+| `server`      | Jetty with interceptor-based dependency injection and OpenAPI    | `reitit`, `jetty9` | Curated |
 
 ### Security & Cryptography
 
-| Component             | Purpose                                           |
-| --------------------- | ------------------------------------------------- |
-| `encryption`          | AES-256, RSA, base64                              |
-| `pulsar-vault-crypto` | Tenant-scoped Pulsar message encryption via Vault |
-| `vault`               | HashiCorp Vault for secrets and key management    |
+| Component             | Purpose                                             | Library        | Kind        |
+| --------------------- | --------------------------------------------------- | -------------- | ----------- |
+| `encryption`          | RSA keys, opaque tokens, constant-time comparison   | `buddy-core`   | Curated     |
+| `identity-provider`   | Service-account and token protocol, with local impl | `buddy-sign`   | Abstraction |
+| `keycloak`            | Keycloak-backed `identity-provider` implementation  | `buddy-sign`   | Curated     |
+| `pulsar-vault-crypto` | Tenant-scoped Pulsar message encryption via Vault   | `pulsar-client`| Curated     |
+| `secret`              | Secret resolution — env, `pass`, GCP Secret Manager | —              | Abstraction |
+| `vault`               | HashiCorp Vault for secrets and key management      | `vault-clj`    | Curated     |
 
 ### Serialisation
 
-| Component | Purpose                                |
-| --------- | -------------------------------------- |
-| `avro`    | Apache Avro schema-based serialisation |
-| `json`    | JSON read/write with anomaly errors    |
+| Component | Purpose                                                     | Library     | Kind        |
+| --------- | ------------------------------------------------------------- | ----------- | ----------- |
+| `avro`    | Apache Avro schema-based serialisation                       | `lancaster`, `abracad` | Curated |
+| `json`    | JSON read/write — the library underneath is swappable        | `data.json` | Abstraction |
+
+### Scheduling
+
+| Component   | Purpose                                        | Library  | Kind    |
+| ----------- | ---------------------------------------------- | -------- | ------- |
+| `scheduler` | In-memory cron scheduling of named jobs        | `cronut` | Curated |
 
 ### Observability
 
-| Component   | Purpose                                                |
-| ----------- | ------------------------------------------------------ |
-| `telemetry` | OpenTelemetry tracing with W3C traceparent propagation |
+| Component   | Purpose                                                | Library    | Kind    |
+| ----------- | ------------------------------------------------------ | ---------- | ------- |
+| `telemetry` | OpenTelemetry tracing with W3C traceparent propagation | `clj-otel` | Curated |
 
 ### Testing
 
-| Component        | Purpose                                                    |
-| ---------------- | ---------------------------------------------------------- |
-| `test-resources` | Shared test configuration                                  |
-| `test-schema`    | Protobuf test fixtures and pet command processor           |
-| `test-system`    | `with-test-system` lifecycle macro, `nom-test>` assertions |
-| `testcontainers` | Declarative container infrastructure for integration tests |
+| Component        | Purpose                                                    | Library          | Kind    |
+| ---------------- | ---------------------------------------------------------- | ---------------- | ------- |
+| `test-resources` | Shared test configuration                                  | —                | —       |
+| `test-schema`    | Protobuf and Avro test fixtures                            | `protojure`      | Curated |
+| `test-system`    | `with-test-system` lifecycle macro, `nom-test>` assertions | —                | —       |
+| `testcontainers` | Declarative container infrastructure for integration tests | `testcontainers` | Curated |
+
+`example-bookmark` is not shared: it is the starter domain the template copies
+into a new workspace, and yours to edit or delete.
 
 ## Mono Bases
 
@@ -230,6 +252,14 @@ atoms.
 
 **Keyword keys throughout** — all data, including from Pulsar, MQTT, and HTTP
 request bodies, uses kebab-case keyword keys.
+
+**Anomalies, not exceptions** — a component interface returns an anomaly rather
+than throwing, so failures thread through `nom->` and `let-nom>` alongside
+values. That holds even where the library underneath throws: malformed key
+bytes, an unparseable cron expression and a rejected Vault login are all
+ordinary runtime conditions, not bugs. The exceptions are deliberate and
+documented where they occur — telemetry degrades rather than failing, and a
+brick implementing a Java interface obeys that interface's contract.
 
 ## Tooling
 
