@@ -3,10 +3,10 @@
   high-fidelity auth tests. Wrapper around dasniko/testcontainers-
   keycloak — the lib handles startup probing and the
   `withRealmImportFile` import hook. The container exposes its
-  randomly-mapped HTTP port as data, which the generic
-  `testcontainers/mapped-exposed-port` and `testcontainers/uri`
-  components turn into the base URL `keycloak/identity-provider`
-  can be pointed at."
+  randomly-mapped HTTP and management ports as data, which the
+  generic `testcontainers/mapped-exposed-port` and
+  `testcontainers/uri` components turn into the base URLs
+  `keycloak/identity-provider` can be pointed at."
   (:require
     [com.repldriven.mono.testcontainers.container :as container]
 
@@ -23,6 +23,16 @@
 
 ;; Keycloak serves HTTP on 8080 inside the container.
 (def default-exposed-port 8080)
+
+;; Keycloak 25+ serves the management endpoints — /health, /health/ready,
+;; /metrics — on a second port rather than alongside the application.
+;;
+;; Exposing the port only maps it; whether an endpoint answers there is a
+;; separate matter. /health is on already — KeycloakContainer enables it for
+;; its own readiness wait. /metrics needs `:metrics true`, because the
+;; container library pins KC_METRICS_ENABLED=false itself. Until then a
+;; wired-up management URL resolves fine and then 404s.
+(def default-management-port 9000)
 
 ;; Files Keycloak expects to find under <theme>/login/. Copied
 ;; individually as classpath resources because Testcontainers'
@@ -91,8 +101,8 @@
      (or
       instance
       (let [{:keys [docker-image-name realm-import-file realm-import-files
-                    host-port theme-resource theme-name vault-dir
-                    vault-secrets]}
+                    host-port theme-resource theme-name vault-dir vault-secrets
+                    env metrics]}
             config
             ;; Singular `:realm-import-file` stays supported for
             ;; back-compat; `:realm-import-files` (vector) wins when
@@ -103,6 +113,29 @@
         (log/info "Starting keycloak container" docker-image-name)
         (let [c (KeycloakContainer. docker-image-name)]
           (doseq [f files] (.withRealmImportFile c f))
+          ;; Arbitrary settings, straight from the YAML, so this
+          ;; component never has to learn which flags Keycloak has:
+          ;; KC_LOG_LEVEL, KC_FEATURES and the rest are all one config
+          ;; key. Keys may be keywords or strings; the name is passed
+          ;; through unmunged, so spell the variable exactly.
+          ;;
+          ;; Applied before the settings below, so the vault wiring
+          ;; wins over an entry that would otherwise contradict it.
+          ;; The container library likewise overrides the KC_* vars it
+          ;; manages itself — KC_METRICS_ENABLED among them, hence
+          ;; `metrics` below.
+          (doseq [[k v] env] (.withEnv c (name k) (str v)))
+          ;; The one flag :env cannot express. KeycloakContainer writes
+          ;; KC_METRICS_ENABLED=false during its own configure step,
+          ;; which runs at start and so lands after anything set above;
+          ;; its builder is the only lever that survives. Setting it
+          ;; through :env is therefore a silent no-op — say so, rather
+          ;; than leave someone reading a 404 against config that looks
+          ;; correct.
+          (when (some #(= "KC_METRICS_ENABLED" (name %)) (keys env))
+            (log/warn "KC_METRICS_ENABLED in :env is overridden by"
+                      "KeycloakContainer - use `metrics: true` instead"))
+          (when metrics (.withEnabledMetrics c))
           ;; Optional custom login theme. `theme-resource` is a
           ;; classpath prefix containing `login/theme.properties`
           ;; and `login/resources/css/styles.css`; they get copied
@@ -123,7 +156,8 @@
             (mount-vault-secrets! c vault-dir vault-secrets))
           ;; start! snapshots the mapped ports into the instance map, so
           ;; nothing downstream has to interrogate a running container.
-          (container/start! c [default-exposed-port])))))
+          (container/start! c
+                            [default-exposed-port default-management-port])))))
    :system/stop (fn [{:system/keys [instance]}]
                   (log/info "Stopping keycloak container")
                   (container/stop! instance))
@@ -134,5 +168,7 @@
                    :theme-resource nil
                    :theme-name "queenswood"
                    :vault-dir nil
-                   :vault-secrets nil}
+                   :vault-secrets nil
+                   :env {}
+                   :metrics false}
    :system/instance-schema map?})

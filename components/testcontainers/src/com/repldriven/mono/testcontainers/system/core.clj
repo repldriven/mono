@@ -50,8 +50,15 @@
 
 ;; Keycloak testcontainer components — real Keycloak realm for
 ;; high-fidelity auth tests. Point `identity-provider/client`'s
-;; `:base-url` at `container-auth-server-url`.
+;; `:base-url` at `container-auth-server-url`. The management pair
+;; reaches /health and /metrics, which Keycloak 25+ serves on their
+;; own port rather than alongside the application. /health answers
+;; out of the box; /metrics needs the container's `:metrics true`.
+;; A management URL resolves either way — the 404 arrives later.
 (system/defcomponents :keycloak
                       {:container keycloak/container
                        :container-http-port testcontainers/mapped-exposed-port
-                       :container-auth-server-url testcontainers/uri})
+                       :container-auth-server-url testcontainers/uri
+                       :container-management-port
+                       testcontainers/mapped-exposed-port
+                       :container-management-url testcontainers/uri})
