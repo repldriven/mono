@@ -1,0 +1,11 @@
+# The command flow over Kafka. Nothing in `command` knows which transport it
+# is on — it takes a message-bus, and this one happens to be Kafka.
+system:
+  kafka: !include testcontainers/kafka-test.yml
+
+  command:
+    dispatcher: !system/component
+      system/component-kind: command/dispatcher
+      bus: !system/ref kafka.bus
+      command-channel: !keyword command
+      command-response-channel: !keyword command-response

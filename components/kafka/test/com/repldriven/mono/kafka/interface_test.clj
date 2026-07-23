@@ -5,6 +5,7 @@
 
     [com.repldriven.mono.kafka.interface :as SUT]
 
+    [com.repldriven.mono.command.interface :as command]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.message-bus.interface :as message-bus]
     [com.repldriven.mono.system.interface :as system]
@@ -97,3 +98,62 @@
        (is (= (set pets) (set @received))
            "every message arrived, including the redelivered one")
        (message-bus/unsubscribe bus :pet)))))
+
+(deftest dead-letter-test
+  (with-test-system
+   [sys "classpath:kafka/application-test.yml"]
+   (let [bus (system/instance sys [:kafka :bus])
+         dlq (system/instance sys [:kafka :consumers :pet-dlq])
+         poison (first pets)
+         attempts (atom 0)]
+     (testing "a message that exhausts its redeliveries is dead-lettered"
+       ;; pet-2 is configured with max-redeliveries 2 and a DLQ producer
+       (message-bus/subscribe bus
+                              :pet
+                              (fn [data]
+                                (when (= (:pet-id poison) (:pet-id data))
+                                  (swap! attempts inc)
+                                  ;; nosemgrep: no-raw-throw
+                                  (throw (ex-info "always fails" {})))))
+       (nom-test> [_ (message-bus/send bus :pet poison)])
+       (let [{:keys [c stop]} (SUT/receive dlq 500)
+             [v _] (async/alts!! [c (async/timeout 30000)])]
+         (try (is (some? v) "the poison message reached the dead-letter topic")
+              ;; forwarded as it arrived: bytes, not a parsed map
+              (is (bytes? (:data v)) "dead-lettered values are raw bytes")
+              (is (= 2 @attempts) "it was retried up to max-redeliveries")
+              (finally (async/put! stop :stop)
+                       (message-bus/unsubscribe bus :pet))))))))
+
+(deftest command-over-kafka-test
+  (with-test-system
+   [sys "classpath:kafka/command-test.yml"]
+   (let [bus (system/instance sys [:kafka :bus])
+         dispatcher (system/instance sys [:command :dispatcher])
+         payload (.getBytes "pet-payload" "UTF-8")]
+     (testing "a command sent over Kafka gets its reply back"
+       ;; command knows nothing about the transport: it takes a bus, and
+       ;; this one is Kafka. Nothing in the command brick changed to make
+       ;; this work.
+       (let [{:keys [stop]}
+             (command/process
+              bus
+              (fn [envelope] {:status "ACCEPTED" :payload (:payload envelope)})
+              {:command-channel :command
+               :command-response-channel :command-response})]
+         (try (let [reply (command/send dispatcher
+                                        {:id (str (random-uuid))
+                                         :command "create-pet"
+                                         :correlation-id (str (random-uuid))
+                                         :causation-id nil
+                                         :traceparent nil
+                                         :tracestate nil
+                                         :payload payload
+                                         :reply-to nil}
+                                        {:timeout-ms 30000})]
+                (is (not (error/anomaly? reply))
+                    (str "command round-tripped over Kafka: " (pr-str reply)))
+                (is (= "ACCEPTED" (:status reply)))
+                (is (= "pet-payload" (String. ^bytes (:payload reply) "UTF-8"))
+                    "the payload survived Avro serialisation both ways"))
+              (finally (when stop (stop)))))))))

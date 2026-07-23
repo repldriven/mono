@@ -18,9 +18,10 @@
     per-message negative acknowledgement. Handlers must tolerate duplicates."
   (:require
     [com.repldriven.mono.kafka.kafka.config :as config]
+    [com.repldriven.mono.kafka.kafka.producer :as producer]
+    [com.repldriven.mono.kafka.kafka.serde :as serde]
 
-    [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :refer [try-nom]]
+    [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log]
 
     [clojure.core.async :as async])
@@ -45,13 +46,13 @@
 
 ;; A handler that keeps failing would otherwise be redelivered forever, since
 ;; seeking back is the only way to redeliver. Pulsar bounds this with
-;; maxRedeliverCount and a dead-letter topic; without a DLQ, this bounds it by
-;; giving up: log loudly and commit past the message. Configurable per
-;; consumer.
+;; maxRedeliverCount and a dead-letter topic; this does the same, with
+;; `dead-letter-producer` playing the part of Pulsar's deadLetterTopic. Without
+;; one, giving up means committing past the message — it is logged, but gone.
 (def default-max-redeliveries 3)
 
 (defn create
-  [{:keys [conf topics schemas schema] :as opts}]
+  [{:keys [conf topics schemas schema dead-letter-producer] :as opts}]
   (log/info "Creating Kafka consumer:" (:name opts))
   (try-nom
    :kafka/consumer-create
@@ -63,6 +64,7 @@
       ;; Resolved here, not at receive time, so a misnamed schema fails
       ;; when the system starts rather than on the first message.
       :schema (when schema (get schemas (name schema)))
+      :dead-letter-producer dead-letter-producer
       :max-redeliveries
       (get opts :max-redeliveries default-max-redeliveries)})))
 
@@ -80,10 +82,24 @@
   [^KafkaConsumer instance ^ConsumerRecord record]
   (.seek instance (->partition record) (.offset record)))
 
+(defn- dead-letter!
+  "Forward a message that has exhausted its redeliveries. The value is sent
+  as it arrived — raw bytes, unparsed — because whatever is wrong with it is
+  exactly what someone will want to look at."
+  [producer ^ConsumerRecord record]
+  (let [result (producer/send producer (.value record))]
+    (when (error/anomaly? result)
+      (log/error "Failed to dead-letter message; committing past it anyway"
+                 {:topic (.topic record)
+                  :partition (.partition record)
+                  :offset (.offset record)
+                  :anomaly result}))
+    result))
+
 (defn- apply-ack!
   "Applies one queued acknowledgement. Runs on the polling thread, which is
   the only thread allowed to touch the consumer."
-  [{:keys [instance max-redeliveries]} attempts
+  [{:keys [instance max-redeliveries dead-letter-producer]} attempts
    {:keys [op
            ^ConsumerRecord
            record]}]
@@ -95,10 +111,17 @@
         (if (>= n max-redeliveries)
           (do (log/error "Giving up on message after"
                          n
-                         "attempts; committing past it"
+                         (if dead-letter-producer
+                           "attempts; dead-lettering it"
+                           "attempts; committing past it")
                          {:topic (.topic record)
                           :partition (.partition record)
                           :offset (.offset record)})
+              (when dead-letter-producer
+                (dead-letter! dead-letter-producer record))
+              ;; Committed either way: a message that cannot be
+              ;; dead-lettered is still one this consumer must stop
+              ;; replaying, and the log above is the record of it.
               (commit! instance record)
               (dissoc attempts k))
           (do (redeliver! instance record) (assoc attempts k n)))))))
@@ -107,7 +130,7 @@
   [schema ^ConsumerRecord record]
   {:message record
    :data (let [v (.value record)]
-           (if schema (avro/deserialize-same schema v) v))})
+           (if schema (serde/deserialize schema v) v))})
 
 (defn receive
   "Continuously poll a Kafka consumer and put messages on a channel.

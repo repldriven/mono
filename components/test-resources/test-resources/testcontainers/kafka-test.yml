@@ -34,6 +34,8 @@ topics: !system/component
       partitions: 1
     - topic: topic-pet
       partitions: 1
+    - topic: topic-pet-dlq
+      partitions: 1
 
 producers: !system/component
   system/component-kind: kafka/producers
@@ -62,6 +64,13 @@ producers: !system/component
       topic: topic-pet
       acks: all
 
+  pet-dlq:
+    _: !system/local-ref topics
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      topic: topic-pet-dlq
+      acks: all
+
 consumers: !system/component
   system/component-kind: kafka/consumers
   command:
@@ -72,6 +81,15 @@ consumers: !system/component
     conf:
       bootstrap.servers: !system/local-ref bootstrap-servers
       group.id: command-subscriber
+  command-response:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword command-response
+    topics: [topic-command-response]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: command-response-subscriber
+
   pet-1:
     _: !system/local-ref topics
     schemas: !system/local-ref schemas
@@ -85,19 +103,40 @@ consumers: !system/component
     schemas: !system/local-ref schemas
     schema: !keyword pet
     topics: [topic-pet]
+    dead-letter-producer: !system/local-ref producers.pet-dlq
+    max-redeliveries: 2
     conf:
       bootstrap.servers: !system/local-ref bootstrap-servers
       group.id: pet-subscriber-2
+
+  # Reads what the pet-2 consumer gave up on. No schema: dead-lettered values
+  # are forwarded as they arrived, which is the point of them.
+  pet-dlq:
+    _: !system/local-ref topics
+    topics: [topic-pet-dlq]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: pet-dlq-subscriber
 
 message-bus-producers: !system/component
   system/component-kind: kafka/message-bus-producers
   pet:
     producer: !system/local-ref producers.pet
+  command:
+    producer: !system/local-ref producers.command
+  command-response:
+    producer: !system/local-ref producers.command-response
 
 message-bus-consumers: !system/component
   system/component-kind: kafka/message-bus-consumers
   pet:
     consumer: !system/local-ref consumers.pet-2
+    timeout: 500
+  command:
+    consumer: !system/local-ref consumers.command
+    timeout: 500
+  command-response:
+    consumer: !system/local-ref consumers.command-response
     timeout: 500
 
 # The bus the rest of the workspace talks to: command, command-processor and

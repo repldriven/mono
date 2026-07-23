@@ -77,6 +77,10 @@
   every message after the failed one is replayed too. Handlers have to tolerate
   duplicates.
 
+  Once `max-redeliveries` is reached the message goes to the consumer's
+  `dead-letter-producer`, as raw bytes. A consumer without one drops it
+  instead, with a log line as the only record.
+
   Args:
   - handles: the map returned by `receive`.
   - message: the `ConsumerRecord` from `:message`."

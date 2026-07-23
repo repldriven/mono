@@ -91,7 +91,11 @@
    :system/config {:conf system/required-component
                    :topics system/required-component
                    :schemas nil
-                   :schema nil}
+                   :schema nil
+                   ;; A producer on the dead-letter topic. Without one, a
+                   ;; message that exhausts its redeliveries is dropped.
+                   :dead-letter-producer nil
+                   :max-redeliveries nil}
    :system/instance-schema some?})
 
 (def consumers

@@ -2,8 +2,8 @@
   (:refer-clojure :exclude [send])
   (:require
     [com.repldriven.mono.kafka.kafka.config :as config]
+    [com.repldriven.mono.kafka.kafka.serde :as serde]
 
-    [com.repldriven.mono.avro.interface :as avro]
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log])
   (:import
@@ -33,7 +33,7 @@
 
 (defn- serialize
   [{:keys [schema]} data]
-  (if schema (avro/serialize schema data) data))
+  (if schema (serde/serialize schema data) data))
 
 (defn send
   "Send `data` to the producer's topic. Returns the RecordMetadata, or an
