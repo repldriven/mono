@@ -13,7 +13,7 @@ lineNumbers: false
 ## How mono uses `donut.system` to build a system from configuration data
 
 <div class="mt-12 opacity-70 text-sm">
-  kjothen &middot; mono &middot; 31 march 2026
+  repldriven &middot; mono &middot; 23 july 2026
 </div>
 
 ---
@@ -68,13 +68,14 @@ Your system is a **map**. Components are nested inside groups.
 
 # Bookmark example
 
-Three groups. Eight components. One dependency chain.
+Three groups. Nine components. One dependency chain.
 
 ```
 fdb/container
-  └─▶ fdb/cluster-file-path
-        └─▶ fdb/record-db ────────────────┐
-              fdb/bookmark-store ─────────┤
+  └─▶ fdb/container-cluster-file-path
+        └─▶ fdb/cluster-file-path
+              └─▶ fdb/record-db ──────────┐
+                    fdb/bookmark-store ───┤
                                           ▼
                               example-bookmark/store
                                           │
@@ -705,7 +706,7 @@ mono ships registered component kinds for the full stack.
 
 <v-clicks>
 
-**`:fdb`** - `cluster-file-path` · `db` · `record-db` · `store` · `meta-store` · `watcher` · `watchers`
+**`:fdb`** - `cluster-file-path` · `container-cluster-file-path` · `db` · `record-db` · `store` · `meta-store` · `watcher` · `watchers`
 
 **`:pulsar`** - `client` · `admin` · `producer(s)` · `consumer(s)` · `reader(s)` · `schemas` · `topics` · `namespaces` · `tenants` · `broker-url` · `http-service-url` · crypto key pair/reader variants · `message-bus-producers/consumers`
 
@@ -713,7 +714,7 @@ mono ships registered component kinds for the full stack.
 
 **`:message-bus`** - `bus` (Pulsar-backed) · `local-bus` (core.async channels)
 
-**`:db`** - `datasource` · `datasources` (next.jdbc)
+**`:jdbc`** - `datasource` · `datasources` (next.jdbc)
 
 **`:migrator`** - `migrations` (Liquibase)
 
@@ -733,7 +734,7 @@ layout: center
 
 # Thanks
 
-`github.com/kjothen/mono`
+`github.com/repldriven/mono`
 
 <div class="mt-8 opacity-60 text-sm">
   donut.system &middot; aero &middot; clj-yaml &middot; Polylith
