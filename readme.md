@@ -178,6 +178,7 @@ relying on ours.
 | `event`             | Event publication and processing                   | —               | —           |
 | `event-processor`   | Bus-subscription lifecycle for event handlers      | —               | —           |
 | `event-schema`      | Event envelope Avro schema                         | —               | —           |
+| `kafka`             | Kafka producers/consumers, Avro-serialised values  | `kafka-clients` | Curated     |
 | `message-bus`       | Protocol over messaging backends — local or Pulsar | —               | Abstraction |
 | `mqtt`              | MQTT publish/subscribe                             | `machine_head`  | Curated     |
 | `processor`         | Message processor protocol                         | —               | —           |

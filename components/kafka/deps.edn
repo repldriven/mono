@@ -1,0 +1,4 @@
+{:aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
+ :deps {org.apache.kafka/kafka-clients {:mvn/version "3.9.1"}
+        org.clojure/java.data {:mvn/version "1.4.120"}}
+ :paths ["src"]}

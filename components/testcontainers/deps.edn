@@ -3,6 +3,7 @@
         org.testcontainers/testcontainers {:mvn/version "2.0.4"}
         org.testcontainers/vault {:mvn/version "1.21.4"}
         org.testcontainers/hivemq {:mvn/version "1.21.4"}
+        org.testcontainers/kafka {:mvn/version "1.21.4"}
         ;; Exclude thin clients; pulsar component uses pulsar-client-all
         org.testcontainers/pulsar {:mvn/version "1.21.4"
                                    :exclusions [org.apache.pulsar/pulsar-client

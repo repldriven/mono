@@ -18,6 +18,7 @@
     components/jdbc {:local/root "components/jdbc"}
     components/identity-provider {:local/root "components/identity-provider"}
     components/json {:local/root "components/json"}
+    components/kafka {:local/root "components/kafka"}
     components/keycloak {:local/root "components/keycloak"}
     components/log {:local/root "components/log"}
     components/message-bus {:local/root "components/message-bus"}
@@ -63,6 +64,8 @@
                        "components/fdb/test"
                        "components/fdb/test-resources"
                        "components/http-client/test"
+                       "components/kafka/test"
+                       "components/kafka/test-resources"
                        "components/jdbc/test"
                        "components/jdbc/test-resources"
                        "components/log/test"
