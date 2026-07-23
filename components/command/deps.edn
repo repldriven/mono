@@ -1,3 +1,3 @@
 {:aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
- :deps {org.clojure/data.json {:mvn/version "2.5.2"}}
+ :deps {}
  :paths ["src"]}

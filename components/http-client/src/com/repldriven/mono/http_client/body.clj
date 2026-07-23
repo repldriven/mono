@@ -6,8 +6,8 @@
   body out of it."
   (:require
     [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.json.interface :as json]
 
-    [clojure.data.json :as json]
     [clojure.string :as str]))
 
 (defn- body->string
@@ -31,15 +31,16 @@
          (nil? res)
          nil
          :else
-         (error/try-nom :http-client/body-parse
-                        "Failed to parse response body"
-                        (when-let [{:keys [body headers]} res]
-                          (when-let [body-str (body->string body)]
-                            (let [content-type (:content-type headers)]
-                              (if (and content-type
-                                       (str/includes? content-type "json"))
-                                (json/read-str body-str opts)
-                                body-str))))))))
+         (error/try-nom
+          :http-client/body-parse
+          "Failed to parse response body"
+          (when-let [{:keys [body headers]} res]
+            (when-let [body-str (body->string body)]
+              (let [content-type (:content-type headers)]
+                (if (and content-type
+                         (str/includes? content-type "json"))
+                  (apply json/read-str body-str (apply concat opts))
+                  body-str))))))))
 
 (defn res->edn
   [res]

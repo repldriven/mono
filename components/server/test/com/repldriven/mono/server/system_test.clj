@@ -7,7 +7,7 @@
      [with-test-system]]
     [reitit.http :as http]
     [reitit.ring :as ring]
-    [clojure.data.json :as json]
+    [com.repldriven.mono.json.interface :as json]
     [clojure.test :refer [deftest is testing]]))
 
 (deftest server-test

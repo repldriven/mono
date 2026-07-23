@@ -1,5 +1,4 @@
 {:aliases {:test {:extra-deps {http-kit.fake/http-kit.fake {:mvn/version "0.2.2"}}
                   :extra-paths ["test"]}}
- :deps {http-kit/http-kit {:mvn/version "2.8.1"}
-        org.clojure/data.json {:mvn/version "2.5.2"}}
+ :deps {http-kit/http-kit {:mvn/version "2.8.1"}}
  :paths ["src"]}

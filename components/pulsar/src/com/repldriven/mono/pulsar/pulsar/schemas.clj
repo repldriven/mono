@@ -1,11 +1,12 @@
 (ns com.repldriven.mono.pulsar.pulsar.schemas
   (:refer-clojure :exclude [resolve type])
   (:require
-    [clojure.data.json :as json]
+    [com.repldriven.mono.json.interface :as json]
     [clojure.java.data :as j]
     [clojure.java.io :as io]
     [com.repldriven.mono.avro.interface :as avro]
-    [com.repldriven.mono.error.interface :as error :refer [try-nom]]
+    [com.repldriven.mono.error.interface :as error :refer
+     [let-nom> nom-> try-nom]]
     [com.repldriven.mono.log.interface :as log])
   (:import
     (java.util Map)
@@ -62,10 +63,10 @@
 (defn- load-avsc
   [filename]
   (log/info "Loading Pulsar schema file:" filename)
-  (-> filename
-      io/resource
-      slurp
-      json/read-str))
+  (nom-> filename
+         io/resource
+         slurp
+         json/read-str))
 
 (defn- read-schema
   [file-or-ref]
@@ -74,12 +75,11 @@
 (defn- schema->avro
   [^Schema schema]
   (let [^SchemaInfo schema-info (.getSchemaInfo schema)]
-    (-> schema-info
-        .toString
-        json/read-str
-        (get "schema")
-        json/write-str
-        avro/json->schema)))
+    ;; See the note in producer/->avro-schema: these now short-circuit.
+    (let-nom>
+      [parsed (json/read-str (.toString schema-info))
+       schema-json (json/write-str (get parsed "schema"))]
+      (avro/json->schema schema-json))))
 
 (defn- create-schema-entry
   [type schema properties]
