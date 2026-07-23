@@ -2,7 +2,7 @@
   (:require
     com.repldriven.mono.command-processor.interface
     com.repldriven.mono.message-bus.interface
-    com.repldriven.mono.test-schema.interface
+    com.repldriven.mono.service.system
     com.repldriven.mono.testcontainers.interface
     [com.repldriven.mono.avro.interface :as avro]
     [com.repldriven.mono.command.interface :as command]

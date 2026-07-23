@@ -65,6 +65,7 @@
            (println (format "Failed to require namespace %s: %s"
                             ns-sym
                             (.getMessage e)))
+           ;; nosemgrep: no-raw-throw
            (throw e)))))
 
 (defn- find-test-vars

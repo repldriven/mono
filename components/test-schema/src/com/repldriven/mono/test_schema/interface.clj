@@ -1,7 +1,5 @@
 (ns com.repldriven.mono.test-schema.interface
   (:require
-    com.repldriven.mono.test-schema.system
-
     [com.repldriven.mono.test_schemas.pets :as pets]
 
     [protojure.protobuf :as proto])
