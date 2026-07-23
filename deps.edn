@@ -83,6 +83,7 @@
                        "components/server/test-resources"
                        "components/system/test"
                        "components/test-resources/test-resources"
+                       "components/telemetry/test"
                        "components/testcontainers/test"
                        "components/testcontainers/test-resources"
                        "components/utility/test"
