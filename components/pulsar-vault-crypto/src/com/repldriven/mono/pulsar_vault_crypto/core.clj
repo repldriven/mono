@@ -1,7 +1,8 @@
 (ns com.repldriven.mono.pulsar-vault-crypto.core
   (:require
-    [com.repldriven.mono.vault.interface :as vault]
-    [com.repldriven.mono.log.interface :as log])
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.vault.interface :as vault])
   (:import
     (org.apache.pulsar.client.api CryptoKeyReader EncryptionKeyInfo)))
 
@@ -15,21 +16,30 @@
                    (name field)
                    tenant-id
                    key-name)
-       (let
-         [path (str "tenants/" tenant-id "/keys/" key-name)
-          secret
-          (try
-            (vault/read-secret vault-client mount path)
-            (catch Exception e
-              (log/warnf
-               "pulsar-vault-crypto: vault read failed [tenant=%s, key=%s]: %s"
-               tenant-id
-               key-name
-               (.getMessage e))
-              nil))]
-         (when secret
-           (doto (EncryptionKeyInfo.)
-             (.setKey (.decode decoder (get secret field)))))))]
+       ;; Pulsar calls this from its own threads and wants an
+       ;; EncryptionKeyInfo or nil, so this is a boundary where anomalies
+       ;; stop: a failure is logged and becomes nil, which Pulsar reads as
+       ;; "no key". Decoding is inside the guard because a secret holding
+       ;; malformed base64 throws IllegalArgumentException.
+       (let [path (str "tenants/" tenant-id "/keys/" key-name)
+             secret (vault/read-secret vault-client mount path)]
+         (if (error/anomaly? secret)
+           (do (log/warnf
+                "pulsar-vault-crypto: vault read failed [tenant=%s, key=%s]: %s"
+                tenant-id
+                key-name
+                (:message (error/payload secret)))
+               nil)
+           (try
+             (doto (EncryptionKeyInfo.)
+               (.setKey (.decode decoder (get secret field))))
+             (catch Exception e
+               (log/warnf
+                "pulsar-vault-crypto: key decode failed [tenant=%s, key=%s]: %s"
+                tenant-id
+                key-name
+                (.getMessage e))
+               nil)))))]
     (reify
      CryptoKeyReader
        (getPublicKey [_ key-name _metadata] (read-key key-name :public))
