@@ -4,8 +4,10 @@ A Clojure monorepo for building production-ready distributed systems,
 following the [Polylith](https://polylith.gitbook.io/polylith) software architecture.
 
 > **Looking for Queenswood Bank?** The banking domain that was built on
-> mono is now [kjothen/queenswood](https://github.com/kjothen/queenswood)
-> — a full fork and a good example of what you can build with this repo.
+> mono now lives in its own repository,
+> [repldriven/queenswood](https://github.com/repldriven/queenswood), which
+> consumes mono as a library — so it is both a working example of what you can
+> build with this repo and the reference for how to depend on it.
 
 ## What It Is
 
