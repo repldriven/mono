@@ -1,4 +1,5 @@
 (ns com.repldriven.mono.http-client.interface-test
+  (:refer-clojure :exclude [get])
   (:require
     [com.repldriven.mono.error.interface :as err]
     [com.repldriven.mono.http-client.interface :as SUT]
@@ -68,3 +69,37 @@
              res @p]
          (is (= 200 (:status res)))
          (is (= {"result" "success"} (SUT/res->body res))))))))
+
+(deftest verb-test
+  (testing "verbs are sync, and their -async twins deliver the same value"
+    (with-fake-http
+     [{:url "http://example.com/thing" :method :get}
+      {:status 200
+       :headers {:content-type "application/json"}
+       :body "{\"result\":\"ok\"}"}
+      {:url "http://example.com/thing" :method :post}
+      {:status 201 :body "created"}
+      {:url "http://example.com/gone" :method :get}
+      {:error "Connection timeout"}]
+     (testing "sync verb returns the response itself, no deref"
+       (let [res (SUT/get "http://example.com/thing")]
+         (is (= 200 (:status res)))
+         (is (= {:result "ok"} (SUT/res->edn res)))))
+     (testing "opts reach http-kit through the verb"
+       (let [res (SUT/post "http://example.com/thing" {:body "hi"})]
+         (is (= 201 (:status res)))))
+     (testing "async verb delivers what the sync one returns"
+       (let [res @(SUT/get-async "http://example.com/thing")]
+         (is (= 200 (:status res)))))
+     (testing "a client-level failure is an anomaly in both forms"
+       (let [sync-res (SUT/get "http://example.com/gone")
+             async-res @(SUT/get-async "http://example.com/gone")]
+         (is (err/anomaly? sync-res))
+         (is (err/anomaly? async-res))
+         (is (= :http-client/request (err/kind async-res))))))))
+
+(deftest helper-test
+  (testing "url-encode and query-string are exposed"
+    ;; form encoding, so a space is +, not %20
+    (is (= "a+b" (SUT/url-encode "a b")))
+    (is (= "a=1&b=2" (SUT/query-string {:a 1 :b 2})))))
