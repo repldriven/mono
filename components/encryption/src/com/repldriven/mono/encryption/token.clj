@@ -1,16 +1,23 @@
 (ns com.repldriven.mono.encryption.token
   (:require
+    [com.repldriven.mono.error.interface :refer [try-nom]]
+
     [buddy.core.codecs :as codecs]
     [buddy.core.hash :as hash]
     [buddy.core.nonce :as nonce]))
 
 (defn generate
-  "Returns a random token string with the given prefix."
   [prefix]
-  (str prefix
-       (codecs/bytes->str (codecs/bytes->b64 (nonce/random-bytes 32) true))))
+  (try-nom :encryption/generate-token
+           "Failed to generate token"
+           (str prefix
+                (codecs/bytes->str (codecs/bytes->b64 (nonce/random-bytes 32)
+                                                      true)))))
 
+;; Hashing a nil or non-byte-able token throws out of buddy rather than
+;; returning anything, and the input is usually a token off the wire.
 (defn digest
-  "Returns the hex-encoded SHA-256 hash of a raw token."
   [raw-token]
-  (codecs/bytes->hex (hash/sha256 raw-token)))
+  (try-nom :encryption/hash-token
+           "Failed to hash token"
+           (codecs/bytes->hex (hash/sha256 raw-token))))

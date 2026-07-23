@@ -11,6 +11,12 @@
     (io.opentelemetry.api.trace Span)
     (io.opentelemetry.context.propagation TextMapGetter)))
 
+;; Degrading gracefully means the body runs exactly once whatever OpenTelemetry
+;; does, and that the caller's own exceptions reach the caller unchanged. A
+;; plain (catch Exception _ body) cannot tell the span machinery failing from
+;; the body failing, so it re-ran a body that had already thrown — charging the
+;; card twice, and swallowing the first exception. These three volatiles are
+;; how we tell the cases apart.
 (defmacro with-span
   "Add a span around code execution.
 
@@ -18,12 +24,32 @@
     (with-span [\"operation-name\" {:attr/key \"value\"}]
       (do-work))
 
-  Falls back gracefully if OpenTelemetry is not configured."
+  Falls back gracefully if OpenTelemetry is not configured: the body
+  still runs, exactly once. An exception from the body is the
+  caller's and propagates."
   [name-and-attrs & body]
-  `(try (span/with-span! ~name-and-attrs ~@body)
-        (catch Exception _e#
-          ;; Gracefully degrade if OTel not configured
-          (do ~@body))))
+  `(let [started?# (volatile! false)
+         finished?# (volatile! false)
+         result# (volatile! nil)]
+     (try (span/with-span! ~name-and-attrs
+                           (vreset! started?# true)
+                           (let [r# (do ~@body)]
+                             (vreset! finished?# true)
+                             (vreset! result# r#)
+                             r#))
+          (catch Exception e#
+            (cond
+             ;; span creation failed, so the body never ran: run it now
+             (not @started?#)
+             (do ~@body)
+             ;; the body finished and only closing the span failed:
+             ;; telemetry must not lose a result the caller already
+             ;; computed
+             @finished?#
+             @result#
+             ;; the body itself threw: that is the caller's exception
+             :else
+             (throw e#))))))
 
 (defn with-span-parent
   "Create a span with an explicit parent context.
@@ -34,14 +60,28 @@
   - attrs: Span attributes map
   - f: Function to execute within the span
 
-  Returns: Result of executing f"
+  Returns: Result of executing f, which runs exactly once. An
+  exception from f is the caller's and propagates."
   [name parent-ctx attrs f]
-  (try (span/with-span!
-        {:name name :parent parent-ctx :kind :consumer :attributes attrs}
-        (f))
-       (catch Exception _e
-         ;; Gracefully degrade if OTel not configured
-         (f))))
+  (let [started? (volatile! false)
+        finished? (volatile! false)
+        result (volatile! nil)]
+    (try (span/with-span!
+          {:name name :parent parent-ctx :kind :consumer :attributes attrs}
+          (vreset! started? true)
+          (let [r (f)]
+            (vreset! finished? true)
+            (vreset! result r)
+            r))
+         (catch Exception e
+           ;; See the note on with-span: f runs once, and its own failures
+           ;; belong to the caller.
+           (cond (not @started?)
+                 (f)
+                 @finished?
+                 @result
+                 :else
+                 (throw e))))))
 
 (defn add-event
   "Add an event to the current span with attributes.
@@ -69,25 +109,35 @@
   Options:
     :name - Instrument name (required)
     :description - Human-readable description
-    :unit - Unit of measurement"
+    :unit - Unit of measurement
+
+  Returns nil if OpenTelemetry is not configured, which the counter
+  functions below treat as a no-op."
   [opts]
-  (instrument/instrument (assoc opts :instrument-type :counter)))
+  (try (instrument/instrument (assoc opts :instrument-type :counter))
+       (catch Exception _e nil)))
 
 (defn inc-counter!
   "Increment a counter with attributes.
 
   Usage:
-    (inc-counter! my-counter {:reason :validation-failed})"
+    (inc-counter! my-counter {:reason :validation-failed})
+
+  No-op if OpenTelemetry is not configured."
   [counter attrs]
-  (instrument/add! counter {:value 1 :attributes attrs}))
+  (try (instrument/add! counter {:value 1 :attributes attrs})
+       (catch Exception _e nil)))
 
 (defn add-counter!
   "Add a value to a counter with attributes.
 
   Usage:
-    (add-counter! my-counter 5 {:operation :batch-insert})"
+    (add-counter! my-counter 5 {:operation :batch-insert})
+
+  No-op if OpenTelemetry is not configured."
   [counter value attrs]
-  (instrument/add! counter {:value value :attributes attrs}))
+  (try (instrument/add! counter {:value value :attributes attrs})
+       (catch Exception _e nil)))
 
 (defn- traceparent-from-span-context
   [span-context]

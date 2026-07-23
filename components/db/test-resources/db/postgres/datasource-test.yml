@@ -1,8 +1,0 @@
-datasource: !system/component
-  system/component-kind: db/datasource
-  database: test
-  dbtype: postgres
-  host: localhost
-  password: test
-  port: !system/ref postgres.container-mapped-exposed-port
-  user: test

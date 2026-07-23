@@ -12,7 +12,7 @@
     [com.repldriven.mono.test-system.interface
      :refer [with-test-system]]
 
-    [clojure.data.json :as json]
+    [com.repldriven.mono.json.interface :as json]
     [clojure.test :refer [deftest is testing]]))
 
 (defn- post

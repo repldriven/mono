@@ -3,7 +3,7 @@
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.http-client.interface :as http]
     [com.repldriven.mono.log.interface :as log]
-    [clojure.data.json :as json]
+    [com.repldriven.mono.json.interface :as json]
     [clojure.string :as string])
   (:import
     (org.apache.pulsar.client.admin PulsarAdmin Namespaces)))

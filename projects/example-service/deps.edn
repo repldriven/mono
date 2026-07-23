@@ -4,6 +4,7 @@
         components/error {:local/root "../../components/error"}
         components/fdb {:local/root "../../components/fdb"}
         components/http-client {:local/root "../../components/http-client"}
+        components/json {:local/root "../../components/json"}
         components/log {:local/root "../../components/log"}
         components/server {:local/root "../../components/server"}
         components/system {:local/root "../../components/system"}

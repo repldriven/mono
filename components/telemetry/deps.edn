@@ -1,4 +1,5 @@
 {:paths ["src"]
+ :aliases {:test {:extra-deps {} :extra-paths ["test"]}}
  :deps {com.github.steffan-westcott/clj-otel-api {:mvn/version "0.2.10"}
         com.github.steffan-westcott/clj-otel-sdk {:mvn/version "0.2.10"}
         io.opentelemetry/opentelemetry-exporter-otlp {:mvn/version "1.54.1"}

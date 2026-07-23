@@ -4,9 +4,9 @@
     [com.repldriven.mono.pulsar.pulsar.generic-record :as
      generic-record]
     [com.repldriven.mono.pulsar.pulsar.schemas :as schemas]
-    [com.repldriven.mono.error.interface :refer [try-nom-ex]]
+    [com.repldriven.mono.error.interface :refer [let-nom> try-nom-ex]]
     [com.repldriven.mono.log.interface :as log]
-    [clojure.data.json :as json]
+    [com.repldriven.mono.json.interface :as json]
     [clojure.java.data :as j])
   (:import
     (java.util Map)
@@ -26,13 +26,14 @@
   [^Schema pulsar-schema]
   (when (and pulsar-schema
              (= SchemaType/AVRO (.. pulsar-schema getSchemaInfo getType)))
-    (-> pulsar-schema
-        .getSchemaInfo
-        .toString
-        json/read-str
-        (get "schema")
-        json/write-str
-        org.apache.pulsar.shade.org.apache.avro.Schema/parse)))
+    ;; let-nom> rather than ->: json/read-str and json/write-str return
+    ;; anomalies where clojure.data.json threw, so a malformed schema has
+    ;; to short-circuit rather than reach Avro as a map.
+    (let-nom>
+      [info (.. pulsar-schema getSchemaInfo toString)
+       parsed (json/read-str info)
+       schema-json (json/write-str (get parsed "schema"))]
+      (org.apache.pulsar.shade.org.apache.avro.Schema/parse schema-json))))
 
 (defn- serialize
   "Serialize data to Avro GenericRecord if schema is present, otherwise return as-is."

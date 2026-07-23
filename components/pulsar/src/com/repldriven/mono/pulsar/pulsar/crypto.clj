@@ -1,7 +1,7 @@
 (ns com.repldriven.mono.pulsar.pulsar.crypto
   (:require
     [com.repldriven.mono.encryption.interface :as encryption]
-    [com.repldriven.mono.error.interface :refer [try-nom]]
+    [com.repldriven.mono.error.interface :as error :refer [let-nom> try-nom]]
     [com.repldriven.mono.log.interface :as log]
     [clojure.java.io :as io])
   (:import
@@ -29,20 +29,21 @@
   (try-nom
    :pulsar/crypto-key-pair-generator
    "Failed to generate Pulsar crypto key pairs"
-   (reduce-kv (fn [m k v]
-                (assoc m
-                       k
-                       (let [kp (encryption/create-key-pair v)]
-                         {:public-key (-> kp
-                                          (get :public-key)
-                                          (encryption/public-key->der-string))
-                          :private-key
-                          (->
-                            kp
-                            (get :private-key)
-                            (encryption/private-key->der-string))})))
-              {}
-              named-kps)))
+   ;; encryption returns anomalies rather than throwing, so each entry has
+   ;; to short-circuit: without this a bad key spec would be assoc'd into
+   ;; the map as an anomaly and travel on as if it were a key.
+   (reduce-kv
+    (fn [m k v]
+      (let [entry (let-nom>
+                    [kp (encryption/create-key-pair v)
+                     public (encryption/public-key->der-string
+                             (get kp :public-key))
+                     private (encryption/private-key->der-string
+                              (get kp :private-key))]
+                    {:public-key public :private-key private})]
+        (if (error/anomaly? entry) (reduced entry) (assoc m k entry))))
+    {}
+    named-kps)))
 
 (defn key-pair-file-reader
   [named-kps]
