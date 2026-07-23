@@ -30,7 +30,6 @@
     components/scheduler {:local/root "components/scheduler"}
     components/secret {:local/root "components/secret"}
     components/server {:local/root "components/server"}
-    components/spec {:local/root "components/spec"}
     components/sql {:local/root "components/sql"}
     components/system {:local/root "components/system"}
     components/telemetry {:local/root "components/telemetry"}
@@ -83,7 +82,6 @@
                        "components/secret/test-resources"
                        "components/server/test"
                        "components/server/test-resources"
-                       "components/spec/test"
                        "components/system/test"
                        "components/test-resources/test-resources"
                        "components/testcontainers/test"

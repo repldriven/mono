@@ -1,6 +1,10 @@
 {:aliases {:test {:extra-deps {}
                      :extra-paths ["test" "test-resources"]}}
  :deps {metosin/reitit {:mvn/version "0.10.1"}
+        ;; router.clj requires malli.error directly. reitit happens to bring
+        ;; malli too, but depending on that is depending on reitit's bundling
+        ;; rather than on malli.
+        metosin/malli {:mvn/version "0.20.1"}
         ring-logger-timbre/ring-logger-timbre {:mvn/version "0.7.6"}
         info.sunng/ring-jetty9-adapter {:mvn/version "0.39.3"}
         ring/ring-json {:mvn/version "0.5.1"
