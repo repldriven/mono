@@ -27,7 +27,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.9' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.10' \
   :name com.acme/my-thing
 ```
 
@@ -50,7 +50,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.9"
+         :git/tag "v0.0.10"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -58,7 +58,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.9"
+           :git/tag "v0.0.10"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
@@ -178,6 +178,7 @@ relying on ours.
 | `event`             | Event publication and processing                   | —               | —           |
 | `event-processor`   | Bus-subscription lifecycle for event handlers      | —               | —           |
 | `event-schema`      | Event envelope Avro schema                         | —               | —           |
+| `kafka`             | Kafka producers/consumers, Avro-serialised values  | `kafka-clients` | Curated     |
 | `message-bus`       | Protocol over messaging backends — local or Pulsar | —               | Abstraction |
 | `mqtt`              | MQTT publish/subscribe                             | `machine_head`  | Curated     |
 | `processor`         | Message processor protocol                         | —               | —           |

@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.testcontainers.system.core
   (:require
     [com.repldriven.mono.testcontainers.system.components.fdb :as fdb]
+    [com.repldriven.mono.testcontainers.system.components.kafka :as kafka]
     [com.repldriven.mono.testcontainers.system.components.keycloak :as keycloak]
     [com.repldriven.mono.testcontainers.system.components.mqtt :as mqtt]
     [com.repldriven.mono.testcontainers.system.components.postgres :as postgres]
@@ -47,6 +48,10 @@
 
 ;; FoundationDB testcontainer components
 (system/defcomponents :fdb {:container fdb/container})
+
+;; Kafka testcontainer components — the broker only; the kafka brick reads
+;; the bootstrap servers off the started container itself.
+(system/defcomponents :kafka {:container kafka/container})
 
 ;; Keycloak testcontainer components — real Keycloak realm for
 ;; high-fidelity auth tests. Point `identity-provider/client`'s

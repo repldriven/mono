@@ -9,6 +9,12 @@
            "Failed to parse Avro schema from JSON"
            (avro/json->schema json)))
 
+(defn edn-schema
+  [schema]
+  (try-nom :avro/edn-schema
+           "Failed to read Avro schema as data"
+           (avro/edn schema)))
+
 (defn serialize
   [schema data]
   (try-nom :avro/serialize

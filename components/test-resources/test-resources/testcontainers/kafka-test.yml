@@ -1,0 +1,147 @@
+# Kafka testcontainer setup: broker, admin, topics, schemas, producers,
+# consumers, and the message-bus records built from them.
+#
+# Values are Avro-serialised by the `avro` brick, so `schemas` here is the
+# same :avro/serde component every other transport uses — there is no schema
+# registry in the picture.
+
+container: !system/component
+  system/component-kind: kafka/container
+  exposed-ports: [9092]
+
+bootstrap-servers: !system/component
+  system/component-kind: kafka/bootstrap-servers
+  container: !system/local-ref container
+
+admin: !system/component
+  system/component-kind: kafka/admin
+  bootstrap-servers: !system/local-ref bootstrap-servers
+
+schemas: !system/component
+  system/component-kind: avro/serde
+  schemas:
+    command: schemas/command/command-envelope.avsc.json
+    command-response: schemas/command/command-response.avsc.json
+    pet: schemas/pets/pet.avsc.json
+
+topics: !system/component
+  system/component-kind: kafka/topics
+  admin: !system/local-ref admin
+  topics:
+    - topic: topic-command
+      partitions: 1
+    - topic: topic-command-response
+      partitions: 1
+    - topic: topic-pet
+      partitions: 1
+    - topic: topic-pet-dlq
+      partitions: 1
+
+producers: !system/component
+  system/component-kind: kafka/producers
+  command:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword command
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      topic: topic-command
+      acks: all
+  command-response:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword command-response
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      topic: topic-command-response
+      acks: all
+  pet:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword pet
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      topic: topic-pet
+      acks: all
+
+  pet-dlq:
+    _: !system/local-ref topics
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      topic: topic-pet-dlq
+      acks: all
+
+consumers: !system/component
+  system/component-kind: kafka/consumers
+  command:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword command
+    topics: [topic-command]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: command-subscriber
+  command-response:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword command-response
+    topics: [topic-command-response]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: command-response-subscriber
+
+  pet-1:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword pet
+    topics: [topic-pet]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: pet-subscriber-1
+  pet-2:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword pet
+    topics: [topic-pet]
+    dead-letter-producer: !system/local-ref producers.pet-dlq
+    max-redeliveries: 2
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: pet-subscriber-2
+
+  # Reads what the pet-2 consumer gave up on. No schema: dead-lettered values
+  # are forwarded as they arrived, which is the point of them.
+  pet-dlq:
+    _: !system/local-ref topics
+    topics: [topic-pet-dlq]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: pet-dlq-subscriber
+
+message-bus-producers: !system/component
+  system/component-kind: kafka/message-bus-producers
+  pet:
+    producer: !system/local-ref producers.pet
+  command:
+    producer: !system/local-ref producers.command
+  command-response:
+    producer: !system/local-ref producers.command-response
+
+message-bus-consumers: !system/component
+  system/component-kind: kafka/message-bus-consumers
+  pet:
+    consumer: !system/local-ref consumers.pet-2
+    timeout: 500
+  command:
+    consumer: !system/local-ref consumers.command
+    timeout: 500
+  command-response:
+    consumer: !system/local-ref consumers.command-response
+    timeout: 500
+
+# The bus the rest of the workspace talks to: command, command-processor and
+# event-processor take this, not the kafka components underneath it.
+bus: !system/component
+  system/component-kind: message-bus/bus
+  producers: !system/local-ref message-bus-producers
+  consumers: !system/local-ref message-bus-consumers
