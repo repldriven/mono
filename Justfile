@@ -5,12 +5,6 @@ DOMAIN_ALIASES := ":+example"
 list:
     just --list
 
-# DEPRECATED: use `just template-test` / the deps-new template instead.
-# Fork-and-strip gives the new repo a full copy of every shared brick, so
-# upstream fixes can only arrive by hand. See readme.md.
-fork domain:
-    bb scripts/fork-domain.bb {{ domain }}
-
 # Generate a throwaway workspace from the template and verify it end to end.
 # Uses the working copy rather than a published tag, so it can run before a
 # release exists.
