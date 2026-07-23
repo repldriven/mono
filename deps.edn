@@ -30,7 +30,6 @@
     components/scheduler {:local/root "components/scheduler"}
     components/secret {:local/root "components/secret"}
     components/server {:local/root "components/server"}
-    components/sql {:local/root "components/sql"}
     components/system {:local/root "components/system"}
     components/telemetry {:local/root "components/telemetry"}
     components/vault {:local/root "components/vault"}

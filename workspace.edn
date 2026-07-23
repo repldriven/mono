@@ -11,7 +11,7 @@
                                     "command-schema" "event-processor"
                                     "event-schema" "fdb" "jdbc" "keycloak"
                                     "migrator" "mqtt" "pulsar-vault-crypto"
-                                    "scheduler" "secret" "server" "sql"
+                                    "scheduler" "secret" "server"
                                     "test-resources"]}
             ;; mono-test-lib repeats every mono-lib component on purpose — it
             ;; is consumed by REPLACING mono-lib on the :test alias, so it has
@@ -22,8 +22,8 @@
                                          "event-schema" "fdb" "jdbc" "keycloak"
                                          "migrator" "mqtt"
                                          "pulsar-vault-crypto" "scheduler"
-                                         "secret" "server" "sql"
-                                         "test-schema" "testcontainers"]}}
+                                         "secret" "server" "test-schema"
+                                         "testcontainers"]}}
  :tag-patterns {:release "v[0-9]*" :stable "stable-*"}
  :test {:create-test-runner
         com.repldriven.mono.external-test-runner.core/create}
