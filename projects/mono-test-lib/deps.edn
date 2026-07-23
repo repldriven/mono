@@ -50,8 +50,6 @@
   {:local/root "../../components/command-processor"}
   com.repldriven.mono.components/command-schema
   {:local/root "../../components/command-schema"}
-  com.repldriven.mono.components/db
-  {:local/root "../../components/db"}
   com.repldriven.mono.components/encryption
   {:local/root "../../components/encryption"}
   com.repldriven.mono.components/env
@@ -70,6 +68,8 @@
   {:local/root "../../components/http-client"}
   com.repldriven.mono.components/identity-provider
   {:local/root "../../components/identity-provider"}
+  com.repldriven.mono.components/jdbc
+  {:local/root "../../components/jdbc"}
   com.repldriven.mono.components/json
   {:local/root "../../components/json"}
   com.repldriven.mono.components/keycloak

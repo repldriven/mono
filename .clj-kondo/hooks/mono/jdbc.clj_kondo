@@ -1,0 +1,20 @@
+(ns hooks.mono.jdbc
+  "The jdbc brick's transaction macros take next.jdbc's binding shape,
+  `[sym transactable opts]`, which no built-in :lint-as can model: let and
+  with-open both want pairs. Rewrite to a let over the first two, leaving
+  opts and body in place to be linted normally. Adapted from next.jdbc's
+  own hook, which exists for the same reason."
+  (:require
+    [clj-kondo.hooks-api :as api]))
+
+(defn with-transaction
+  [{:keys [node]}]
+  (let [[binding-vec & body] (rest (:children node))
+        [sym val opts] (:children binding-vec)]
+    (when-not (and sym val)
+      (throw (ex-info "No sym and val provided" {})))
+    {:node (api/list-node
+            (list* (api/token-node 'let)
+                   (api/vector-node [sym val])
+                   opts
+                   body))}))

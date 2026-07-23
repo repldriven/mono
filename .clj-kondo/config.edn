@@ -4,4 +4,13 @@
    ".clj-kondo/imports/"
    "components/test-schema/gen/com/repldriven/mono/test_schemas/*.*\\.cljc"
    "components/example-bookmark/gen/com/repldriven/mono/example_schemas/*.*\\.cljc"
-   "components/.*/build\\.clj"]}}
+   "components/.*/build\\.clj"]}
+
+ ;; The jdbc brick mirrors next.jdbc's `[sym transactable opts]` binding, which
+ ;; needs a hook rather than a :lint-as — see .clj-kondo/hooks/mono/jdbc.
+ :hooks
+ {:analyze-call
+  {com.repldriven.mono.jdbc.interface/with-transaction
+   hooks.mono.jdbc/with-transaction
+   com.repldriven.mono.jdbc.interface/with-transaction+options
+   hooks.mono.jdbc/with-transaction}}}

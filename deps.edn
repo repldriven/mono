@@ -7,7 +7,6 @@
     components/command {:local/root "components/command"}
     components/command-processor {:local/root "components/command-processor"}
     components/command-schema {:local/root "components/command-schema"}
-    components/db {:local/root "components/db"}
     components/encryption {:local/root "components/encryption"}
     components/env {:local/root "components/env"}
     components/error {:local/root "components/error"}
@@ -16,6 +15,7 @@
     components/event-schema {:local/root "components/event-schema"}
     components/fdb {:local/root "components/fdb"}
     components/http-client {:local/root "components/http-client"}
+    components/jdbc {:local/root "components/jdbc"}
     components/identity-provider {:local/root "components/identity-provider"}
     components/json {:local/root "components/json"}
     components/keycloak {:local/root "components/keycloak"}
@@ -58,8 +58,6 @@
                        "components/cli/test"
                        "components/command/test"
                        "components/command/test-resources"
-                       "components/db/test"
-                       "components/db/test-resources"
                        "components/encryption/test"
                        "components/env/test"
                        "components/env/test-resources"
@@ -67,6 +65,8 @@
                        "components/fdb/test"
                        "components/fdb/test-resources"
                        "components/http-client/test"
+                       "components/jdbc/test"
+                       "components/jdbc/test-resources"
                        "components/log/test"
                        "components/message-bus/test"
                        "components/message-bus/test-resources"

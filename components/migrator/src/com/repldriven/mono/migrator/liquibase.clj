@@ -1,6 +1,6 @@
 (ns com.repldriven.mono.migrator.liquibase
   (:require
-    [com.repldriven.mono.db.interface :as sql]
+    [com.repldriven.mono.jdbc.interface :as jdbc]
     [com.repldriven.mono.error.interface :refer [try-nom]]
     [clojure.java.io :as io])
   (:import
@@ -22,12 +22,13 @@
   (try-nom
    :migrator/migration-failed
    "Failed to run database migrations"
-   (with-open [conn (sql/get-connection db-spec)]
-     (let [jdbc-connection (JdbcConnection. conn)
-           ^Database database (.findCorrectDatabaseImplementation
-                               (DatabaseFactory/getInstance)
-                               jdbc-connection)
-           ^ResourceAccessor accessor (resource-accessor resource-path)
-           ^String filename (.getName (File. ^String resource-path))
-           lb (Liquibase. filename accessor database)]
-       (.update lb (Contexts.) (LabelExpression.))))))
+   (jdbc/on-connection
+    [conn db-spec]
+    (let [jdbc-connection (JdbcConnection. conn)
+          ^Database database (.findCorrectDatabaseImplementation
+                              (DatabaseFactory/getInstance)
+                              jdbc-connection)
+          ^ResourceAccessor accessor (resource-accessor resource-path)
+          ^String filename (.getName (File. ^String resource-path))
+          lb (Liquibase. filename accessor database)]
+      (.update lb (Contexts.) (LabelExpression.))))))

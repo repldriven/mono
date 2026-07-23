@@ -9,9 +9,9 @@
             "mono-lib" {:alias "lib"
                         :necessary ["cache" "cli" "command-processor"
                                     "command-schema" "event-processor"
-                                    "event-schema" "fdb" "keycloak" "migrator"
-                                    "mqtt" "pulsar-vault-crypto" "scheduler"
-                                    "secret" "server" "spec" "sql"
+                                    "event-schema" "fdb" "jdbc" "keycloak"
+                                    "migrator" "mqtt" "pulsar-vault-crypto"
+                                    "scheduler" "secret" "server" "spec" "sql"
                                     "test-resources"]}
             ;; mono-test-lib repeats every mono-lib component on purpose — it
             ;; is consumed by REPLACING mono-lib on the :test alias, so it has
@@ -19,7 +19,7 @@
             "mono-test-lib" {:alias "test-lib"
                              :necessary ["cache" "cli" "command-processor"
                                          "command-schema" "event-processor"
-                                         "event-schema" "fdb" "keycloak"
+                                         "event-schema" "fdb" "jdbc" "keycloak"
                                          "migrator" "mqtt"
                                          "pulsar-vault-crypto" "scheduler"
                                          "secret" "server" "spec" "sql"

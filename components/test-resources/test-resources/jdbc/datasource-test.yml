@@ -1,5 +1,5 @@
 datasource: !system/component
-  system/component-kind: db/datasource
+  system/component-kind: jdbc/datasource
   database: test
   dbtype: postgres
   host: localhost
