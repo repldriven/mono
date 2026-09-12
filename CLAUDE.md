@@ -182,9 +182,11 @@ that follows the Polylith architecture.
   (nom-test> [_ (operation-that-must-not-fail)])
   ```
 
-- **Test runner**: eftest runs tests in parallel out of process. Mark expensive
-  infrastructure tests with `^:eftest/synchronized` to prevent too many from
-  overwhelming CPU/memory
+- **Test runner**: eftest runs namespaces in parallel out of process, and the
+  vars within a namespace serially. Mark a namespace that boots expensive
+  infrastructure `^:eftest/synchronized`: the runner lets marked namespaces
+  run one at a time (`EFTEST_SYNCHRONIZED_PERMITS=n` allows `n` at once),
+  since eftest itself ignores the marker when namespaces run in parallel
 
 ## Code Generation
 

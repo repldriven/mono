@@ -2,7 +2,9 @@
   "JUnit XML reporter with suite-level timing and trimmed namespace names.
 
   Replaces eftest.report.junit to add:
-  - time attribute on <testsuite> elements (fixes NaN in CI reports)
+  - time attribute on <testsuite> elements (fixes NaN in CI reports),
+    measured from the suite's first test so a wait for a synchronized
+    permit is not counted
   - strips a workspace prefix from suite/classname attributes"
   (:require
     [clojure.stacktrace :as stack]
@@ -83,13 +85,13 @@
 (defmethod report :begin-test-ns
   [m]
   (let [ns-str (name (ns-name (:ns m)))
-        start-time (System/nanoTime)
         f #(test/with-test-out
-            (start-element 'testsuite
-                           {:name (trim-ns ns-str)
-                            :time (format "%.03f"
-                                          (/ (- (System/nanoTime) start-time)
-                                             1e9))}))]
+            (let [start
+                  (get-in @*context* [::suite-start ns-str] (System/nanoTime))]
+              (start-element
+               'testsuite
+               {:name (trim-ns ns-str)
+                :time (format "%.03f" (/ (- (System/nanoTime) start) 1e9))})))]
     (swap! *context* assoc-in [::deferred-report ns-str] f)))
 
 (defmethod report :end-test-ns
@@ -98,11 +100,23 @@
         g (get-in @*context* [::deferred-report ns-str])
         f #(test/with-test-out (finish-element 'testsuite))]
     (locking flush-lock (g) (f))
-    (swap! *context* update ::deferred-report dissoc ns-str)))
+    (swap! *context* (fn [c]
+                       (-> c
+                           (update ::deferred-report dissoc ns-str)
+                           (update ::suite-start dissoc ns-str))))))
 
 (defmethod report :begin-test-var
   [m]
-  (swap! *context* assoc-in [::test-start-times (:var m)] (System/nanoTime)))
+  (let [now (System/nanoTime)
+        ns-str (-> (:var m)
+                   meta
+                   :ns
+                   ns-name
+                   name)]
+    (swap! *context* (fn [c]
+                       (-> c
+                           (assoc-in [::test-start-times (:var m)] now)
+                           (update-in [::suite-start ns-str] #(or % now)))))))
 
 (defmethod report :end-test-var
   [m]
