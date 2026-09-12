@@ -113,7 +113,7 @@
         combined-reporter (multi-reporter junit-reporter)]
     (eftest/run-tests filtered-test-vars
                       {:capture-output? false
-                       :multithread? :namespaces
+                       :multithread? true
                        :report combined-reporter
                        :test-warn-time 1000})))
 

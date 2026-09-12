@@ -185,9 +185,11 @@ that follows the Polylith architecture.
   ```
 
 - **Test runner**: eftest runs namespaces in parallel out of process, and the
-  vars within a namespace serially. It ignores `^:eftest/synchronized` in
-  that mode, so the marker bounds nothing; how many test systems may be up
-  at once is `TEST_SYSTEM_PERMITS`, which `with-test-system` honours
+  vars within each namespace in parallel on a pool sized by the JVM's
+  processor count. `^:eftest/synchronized` on a namespace runs its vars one
+  at a time, for a file whose tests share state, such as a `with-redefs`;
+  how many test systems may be up at once is `TEST_SYSTEM_PERMITS`, which
+  `with-test-system` honours
 
 ## Code Generation
 

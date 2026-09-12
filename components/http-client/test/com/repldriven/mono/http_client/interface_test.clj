@@ -1,4 +1,4 @@
-(ns com.repldriven.mono.http-client.interface-test
+(ns ^:eftest/synchronized com.repldriven.mono.http-client.interface-test
   (:refer-clojure :exclude [get])
   (:require
     [com.repldriven.mono.error.interface :as err]
