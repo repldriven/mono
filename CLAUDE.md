@@ -184,9 +184,10 @@ that follows the Polylith architecture.
 
 - **Test runner**: eftest runs namespaces in parallel out of process, and the
   vars within a namespace serially. Mark a namespace that boots expensive
-  infrastructure `^:eftest/synchronized`: the runner lets marked namespaces
-  run one at a time (`EFTEST_SYNCHRONIZED_PERMITS=n` allows `n` at once),
-  since eftest itself ignores the marker when namespaces run in parallel
+  infrastructure `^:eftest/synchronized`: the runner lets as many marked
+  namespaces run at once as the JVM has processors, which `just test` caps
+  to Docker's CPU count, and `EFTEST_SYNCHRONIZED_PERMITS=n` overrides.
+  eftest itself ignores the marker when namespaces run in parallel
 
 ## Code Generation
 

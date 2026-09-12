@@ -32,7 +32,10 @@
   (when-let [s (System/getenv env-var)]
     (when-not (str/blank? s) (mapv symbol (str/split s #",")))))
 
-(def default-synchronized-permits 1)
+(defn- default-synchronized-permits
+  "The JVM's processor count, which -XX:ActiveProcessorCount caps"
+  []
+  (.availableProcessors (Runtime/getRuntime)))
 
 (defn- parse-env-permits
   "Parse a positive permit count from an environment variable, or nil"
@@ -152,7 +155,7 @@
         filtered-test-vars (synchronize-namespaces!
                             (filterv selector all-test-vars)
                             (or synchronized-permits
-                                default-synchronized-permits))
+                                (default-synchronized-permits)))
         junit-reporter (make-junit-reporter)
         combined-reporter (multi-reporter junit-reporter)]
     (eftest/run-tests filtered-test-vars
@@ -230,7 +233,8 @@
   - ENV: SKIP_META=integration,slow FOCUS_META=unit
 
   EFTEST_SYNCHRONIZED_PERMITS is how many `^:eftest/synchronized`
-  namespaces may run at once (default 1).
+  namespaces may run at once. The default is the JVM's processor count,
+  so -XX:ActiveProcessorCount bounds it along with everything else.
 
   JUNIT_NS_PREFIX trims that prefix off JUnit suite/classname attributes."
   [& args]
@@ -253,7 +257,7 @@
                       :focus-meta env-focus
                       :synchronized-permits
                       (or (parse-env-permits "EFTEST_SYNCHRONIZED_PERMITS")
-                          default-synchronized-permits)}
+                          (default-synchronized-permits))}
                 results (if coverage?
                           (run-with-coverage test-nses src-nses project opts)
                           (run-test-namespaces test-nses opts))]

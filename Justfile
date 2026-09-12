@@ -6,6 +6,12 @@ set shell := ["zsh", "-cu"]
 DOMAIN_ALIASES := ":+realworld"
 POLY_PROFILES := "+realworld"
 
+# Cap every test JVM to the CPUs Docker actually has, falling back to the
+# host's when Docker is down: an uncapped JVM sizes its pools, and the test
+# runner its synchronized-namespace permits, from the host's core count and
+# starves the VM the containers run in.
+TEST_OPTS := "JDK_JAVA_OPTIONS=\"-XX:ActiveProcessorCount=$(n=$(docker info --format '{{.NCPU}}' 2>/dev/null); if [ \"${n:-0}\" -gt 0 ] 2>/dev/null; then echo \"$n\"; else nproc 2>/dev/null || sysctl -n hw.ncpu; fi)\""
+
 list:
     just --list
 
@@ -161,9 +167,9 @@ realworld-hurl port="8091":
       --variable uid="$(date +%s)" \
       "$hurl_dir"/*.hurl
 
-# Run all polylith project tests
-test: start-docker
-    SKIP_META=repl JUNIT_NS_PREFIX=com.repldriven.mono. \
+# Run all polylith project tests; Docker is started once with start-docker
+test:
+    {{ TEST_OPTS }} SKIP_META=repl JUNIT_NS_PREFIX=com.repldriven.mono. \
       clojure -M:poly test :all {{ POLY_PROFILES }}
 
 # Check test failures from last test run
@@ -245,7 +251,7 @@ format:
 
 # Start Docker via Colima
 start-docker:
-    colima status 2>/dev/null || colima start --arch aarch64 --vm-type vz --vz-rosetta --cpu 6 --memory 12 
+    colima status 2>/dev/null || colima start --arch aarch64 --vm-type vz --vz-rosetta --cpu 9 --memory 24
     docker context use colima
 
 # Stop Docker via Colima
