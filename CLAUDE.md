@@ -148,8 +148,10 @@ that follows the Polylith architecture.
   Each brick combines this with its own
   `test-resources/<brick>/application-test.yml`
 - **with-test-system**: Starts a test system from config, asserts it started,
-  and stops it after the body. The optional second element of the binding
-  vector is a patch-fn applied to the system defs before start:
+  and stops it after the body. It holds one of `TEST_SYSTEM_PERMITS` permits
+  meanwhile, so at most that many test systems are up at once in the JVM;
+  unset, nothing waits. The optional second element of the binding vector is
+  a patch-fn applied to the system defs before start:
 
   ```clojure
   ;; Simple form
@@ -183,11 +185,9 @@ that follows the Polylith architecture.
   ```
 
 - **Test runner**: eftest runs namespaces in parallel out of process, and the
-  vars within a namespace serially. Mark a namespace that boots expensive
-  infrastructure `^:eftest/synchronized`: the runner lets as many marked
-  namespaces run at once as the JVM has processors, which `just test` caps
-  to Docker's CPU count, and `EFTEST_SYNCHRONIZED_PERMITS=n` overrides.
-  eftest itself ignores the marker when namespaces run in parallel
+  vars within a namespace serially. It ignores `^:eftest/synchronized` in
+  that mode, so the marker bounds nothing; how many test systems may be up
+  at once is `TEST_SYSTEM_PERMITS`, which `with-test-system` honours
 
 ## Code Generation
 
@@ -248,7 +248,7 @@ No brick generates code, so there is no prep step to run. If one is added:
   and MUST NOT include any other namespaces from the component.
 
   ```clojure
-  (ns ^:eftest/synchronized com.repldriven.mono.processor.interface-test
+  (ns com.repldriven.mono.processor.interface-test
     (:require
       com.repldriven.mono.testcontainers.interface  ;; extends `system/components`
 

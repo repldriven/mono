@@ -7,9 +7,8 @@ DOMAIN_ALIASES := ":+realworld"
 POLY_PROFILES := "+realworld"
 
 # Cap every test JVM to the CPUs Docker actually has, falling back to the
-# host's when Docker is down: an uncapped JVM sizes its pools, and the test
-# runner its synchronized-namespace permits, from the host's core count and
-# starves the VM the containers run in.
+# host's when Docker is down: an uncapped JVM sizes its pools from the
+# host's core count and starves the VM the containers run in.
 TEST_OPTS := "JDK_JAVA_OPTIONS=\"-XX:ActiveProcessorCount=$(n=$(docker info --format '{{.NCPU}}' 2>/dev/null); if [ \"${n:-0}\" -gt 0 ] 2>/dev/null; then echo \"$n\"; else nproc 2>/dev/null || sysctl -n hw.ncpu; fi)\""
 
 list:
