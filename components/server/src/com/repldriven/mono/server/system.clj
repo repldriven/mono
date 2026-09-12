@@ -81,6 +81,7 @@
                options (assoc options
                               :configurator
                               (fn [^Server server]
+                                (server-jetty/exclusive-ephemeral-ports! server)
                                 (.setErrorHandler server (json-error-handler))))
                ready-thunk (cond (fn? ready-fn)
                                  ready-fn

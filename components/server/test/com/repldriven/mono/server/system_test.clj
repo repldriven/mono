@@ -8,7 +8,9 @@
     [reitit.http :as http]
     [reitit.ring :as ring]
     [com.repldriven.mono.json.interface :as json]
-    [clojure.test :refer [deftest is testing]]))
+    [clojure.test :refer [deftest is testing]])
+  (:import
+    (org.eclipse.jetty.server Server ServerConnector)))
 
 (deftest server-test
   (testing "Server component system configuration and lifecycle"
@@ -18,6 +20,21 @@
                           #(assoc-in %
                             [:system/defs :server :handler]
                             (constantly handler))]]))))
+
+(deftest ephemeral-port-test
+  (testing "the adapter's port-0 connector does not share its port"
+    (let [handler (fn [_] {:status 200 :body "ok"})]
+      (with-test-system
+       [sys
+        ["classpath:server/application-test.yml"
+         #(assoc-in % [:system/defs :server :handler] (constantly handler))]]
+       (let [^Server jetty (system/instance sys
+                                            [:server
+                                             :jetty-adapter])
+             ^ServerConnector connector (first (.getConnectors jetty))]
+         (is (zero? (.getPort connector)))
+         (is (false? (.getReuseAddress connector)))
+         (is (pos? (.getLocalPort connector))))))))
 
 (deftest interceptors-test
   (testing "Ring interceptors MUST be inserted"

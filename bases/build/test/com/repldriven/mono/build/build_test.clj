@@ -1,4 +1,4 @@
-(ns com.repldriven.mono.build.build-test
+(ns ^:eftest/synchronized com.repldriven.mono.build.build-test
   (:require
     [com.repldriven.mono.build.build :as SUT]
     [org.corfield.build :as bb]
