@@ -2,6 +2,7 @@
   (:require
     [com.repldriven.mono.testcontainers.system.components.kafka :as kafka]
     [com.repldriven.mono.testcontainers.system.components.keycloak :as keycloak]
+    [com.repldriven.mono.testcontainers.system.components.mailpit :as mailpit]
     [com.repldriven.mono.testcontainers.system.components.mqtt :as mqtt]
     [com.repldriven.mono.testcontainers.system.components.postgres :as postgres]
     [com.repldriven.mono.testcontainers.system.components.pulsar :as pulsar]
@@ -21,6 +22,13 @@
 ;; Vault testcontainer components
 (system/defcomponents :vault
                       {:container vault/container
+                       :container-api-port testcontainers/mapped-exposed-port
+                       :container-api-url testcontainers/uri})
+
+;; Mailpit testcontainer components
+(system/defcomponents :mailpit
+                      {:container mailpit/container
+                       :container-smtp-port testcontainers/mapped-exposed-port
                        :container-api-port testcontainers/mapped-exposed-port
                        :container-api-url testcontainers/uri})
 
