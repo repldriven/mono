@@ -1,9 +1,9 @@
 # mono system design
 
-How a system is built from these bricks — messaging, its payloads,
-system wiring, and code generation. The choices a workspace inherits by
-depending on mono, as distinct from Polylith mechanics (`framework`) and
-Clojure conventions (`idioms`).
+How a system is built from these bricks — messaging, its payloads, system
+wiring, the containers tests run against, and code generation. The choices a
+workspace inherits by depending on mono, as distinct from Polylith mechanics
+(`framework`) and Clojure conventions (`idioms`).
 
 ## The message bus stays behind an abstraction
 
@@ -32,18 +32,40 @@ Run component lifecycle through `donut.system`, with every system
 defined in a YAML (or EDN) file the `system` and `env` bricks parse
 before handing it to donut. Two layers: a component kind is registered
 with `system/defcomponents` — its `:system/start` / `:system/stop` fns,
-configuration schema and instance schema — in the brick that owns it;
-the system file declares which components exist, of what kind, with
-what configuration, wired by the tag literals `!system/component`,
-`!system/ref`, `!system/local-ref`, `!system/required-component`,
-`!profile`, `!env`, `!include` and `!strs`. `aero` resolves `!profile`
-at load time, so a per-profile value or component group needs no source
-branch. A required component (typically the HTTP `handler`) is a slot
-the bootstrap caller fills with `assoc-in` before starting.
-Testcontainers-backed infrastructure is declared in the same file
-behind a profile, so tests boot through the production code path with a
-different profile and group.
-See [ADR-0007](../../../docs/adr/0007-system-as-data.md).
+configuration schema and instance schema — from the owning brick's
+`system.clj`, or from `system/core.clj` aggregating a `system/` folder
+once a brick has two or more definition namespaces, never from
+`interface.clj`, which bare-requires that namespace in the bracketed
+form so multimethods extend on load; the system file declares which
+components exist, of what kind, with what configuration, wired by the
+tag literals `!system/component`, `!system/ref`, `!system/local-ref`,
+`!system/required-component`, `!profile`, `!env`, `!include` and
+`!strs`. A bare string is never promoted to a ref, and an unregistered
+kind fails to start. `aero` resolves `!profile` at load time, so a
+per-profile value or component group needs no source branch. A required
+component (typically the HTTP `handler`) is a slot the bootstrap caller
+fills with `assoc-in` before starting. Don't bake an environment name
+into a shared resource component or its config. Tests consolidate
+system-component bare requires for a base or project into one
+`test/.../system.clj` namespace rather than repeating them per file.
+See [ADR-0007](../../../docs/adr/0007-system-as-data.md),
+[system-components](../../../docs/recipes/code/system-components.md),
+[system-configurations](../../../docs/recipes/code/system-configurations.md).
+
+## Testcontainer infrastructure follows the three-layer pattern
+
+Testcontainer-backed infrastructure is declared in the system file
+behind a profile, so tests boot through the production code path with
+a different profile and group, in three layers: the container itself,
+an extractor that reads runtime values (host, port, bootstrap servers)
+from the started container — living in the relevant brick's `system/`
+folder, never in `testcontainers` itself beyond its generic mapped-port
+and URI extractors — and the high-level component, which consumes
+extracted values exactly as it would a production literal and never
+branches on whether it's running against a container. The
+`testcontainers` brick may call builder-pattern setup methods during
+construction, never library methods against a started container.
+See [testcontainers](../../../docs/recipes/test/testcontainers.md).
 
 ## Code generation follows the prep-lib pattern
 

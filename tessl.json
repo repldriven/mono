@@ -5,6 +5,9 @@
     "mono/design": {
       "source": "file:./plugins/design"
     },
+    "mono/docs": {
+      "source": "file:./plugins/docs"
+    },
     "mono/framework": {
       "source": "file:./plugins/framework"
     },

@@ -1,17 +1,24 @@
 # Tessl plugins
 
 mono's [Tessl](https://tessl.io) plugins: the rules an agent loads, each
-distilled from the ADRs under `docs/adr/` that carry its
-`<!-- tessl-plugin: <name> -->` label. A workspace built on these bricks
-installs them alongside its own, so the rules travel with the docs they
+distilled from the ADRs under `docs/adr/` and the recipes under `docs/recipes/`
+that carry its `<!-- tessl-plugin: <name> -->` label. A workspace built on these
+bricks installs them alongside its own, so the rules travel with the docs they
 cite.
 
 - **design** — how a system is built from the bricks: messaging and its
-  payloads, system-as-data, code generation.
-- **framework** — Polylith itself: one brick per third-party library.
-- **idioms** — portable Clojure conventions: kebab-case keyword keys.
-- **workflow** — the checked-in git hooks, and the `sync-rules-from-docs`
-  skill that keeps a rule traceable to its docs.
+  payloads, system-as-data, testcontainers, code generation.
+- **docs** — how to write or check anything under `docs/`: the recipe
+  shape, wrap-80, link hygiene, mermaid and tone, and the `check-docs`
+  skill that verifies them.
+- **framework** — Polylith itself: components, bases, projects, and one
+  brick per third-party library.
+- **idioms** — portable Clojure conventions: anomalies, kebab-case
+  keyword keys, `utility` helpers, require order and style, comments,
+  `with-test-system`.
+- **workflow** — pulling `main` and letting Renovate own bumps, the
+  checked-in git hooks, how a `just` recipe is written, and the
+  `sync-rules-from-docs` skill that keeps a rule traceable to its docs.
 
 `plugins/profiles` names which plugins a profile links. `just
 tessl-plugins-install` installs every plugin from the working tree and

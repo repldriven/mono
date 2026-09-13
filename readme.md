@@ -83,9 +83,31 @@ source, not to how it was delivered.
 To take an upstream fix, bump the tag and sha together. Published tags never
 move; mono cuts a new one instead.
 
+## Documentation
+
+- `docs/adr/` — architecture decisions, one per load-bearing choice.
+- `docs/recipes/code/` — writing to these bricks: components, bases,
+  projects, code style, common helpers, error handling, system
+  components and system configurations.
+- `docs/recipes/test/` — test systems, and the containers they run
+  against.
+- `docs/recipes/practices/` — working on the repository itself: git
+  flow against Renovate, how a `just` recipe is written, and how these
+  documents are written.
+- `plugins/` — the Tessl rules distilled from both, loaded through
+  `AGENTS.md`; see [plugins/README.md](plugins/README.md).
+
+Every recipe keeps the same shape — `Problem`, `Solution`, `Rules`,
+`Discussion`, `References` — and carries a `<!-- tessl-plugin: <name> -->`
+label naming the rule that distils its `## Rules`. A workspace built on
+these bricks lays the ADRs and recipes down beside its own at the sha
+it pins, and installs the plugins beside its own.
+
 ## Presentations
 
-1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./docs/slides/systems-as-data/slides.md)
+1. [Systems as data](./docs/slides/systems-as-data/slides.md) — how mono
+   uses donut.system to build a system of components from configuration
+   data
 
 ## Getting Started
 
