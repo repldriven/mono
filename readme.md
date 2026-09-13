@@ -27,7 +27,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.23' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.24' \
   :name com.acme/my-thing
 ```
 
@@ -50,7 +50,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.23"
+         :git/tag "v0.0.24"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -58,7 +58,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.23"
+           :git/tag "v0.0.24"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
@@ -85,7 +85,7 @@ move; mono cuts a new one instead.
 
 ## Presentations
 
-1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./slides/systems_as_data/slides.md)
+1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./docs/slides/systems-as-data/slides.md)
 
 ## Getting Started
 

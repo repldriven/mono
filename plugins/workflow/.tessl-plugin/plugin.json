@@ -1,0 +1,6 @@
+{
+  "name": "mono/workflow",
+  "version": "0.1.0",
+  "description": "Development-workflow automation: the checked-in git hooks, and keeping Tessl rules in sync with docs/recipes and ADRs. Built with Tessl.",
+  "private": true
+}

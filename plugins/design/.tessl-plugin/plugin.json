@@ -1,0 +1,6 @@
+{
+  "name": "mono/design",
+  "version": "0.1.0",
+  "description": "How a system is built from mono's bricks: the message-bus abstraction and its backends, Avro payloads, system-as-data via donut.system and YAML, and code generation via prep-lib. Built with Tessl.",
+  "private": true
+}

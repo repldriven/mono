@@ -1,0 +1,6 @@
+{
+  "name": "mono/idioms",
+  "version": "0.1.0",
+  "description": "The portable Clojure conventions a workspace built on mono inherits: kebab-case keyword keys end to end. Built with Tessl.",
+  "private": true
+}

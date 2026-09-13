@@ -337,3 +337,5 @@ No brick generates code, so there is no prep step to run. If one is added:
   dependency updates — Clojure `deps.edn` and GitHub Actions. PRs are
   created automatically on a weekly schedule. Do NOT manually bump
   dependency versions that Renovate manages.
+
+@AGENTS.md
