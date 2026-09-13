@@ -85,7 +85,7 @@ move; mono cuts a new one instead.
 
 ## Presentations
 
-1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./slides/systems_as_data/slides.md)
+1. [Systems as data - How mono uses donut.system to build a system of components from configuration data](./docs/slides/systems-as-data/slides.md)
 
 ## Getting Started
 

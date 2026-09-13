@@ -29,6 +29,23 @@
           inherit system;
           config.allowUnsupportedSystem = true;
         };
+
+        # Tessl CLI (plugin rules and skills). Pre-built binary from
+        # install.tessl.io; darwin-arm64 to match this workspace's dev
+        # machines.
+        tessl = pkgs.stdenv.mkDerivation rec {
+          pname = "tessl";
+          version = "0.90.0";
+          src = pkgs.fetchurl {
+            url = "https://install.tessl.io/binaries/${version}/tessl-${version}-darwin-arm64.tar.gz";
+            sha256 = "1v42hrlk0gfqr098b7irhdnmz72dvab8r58dskpmf257lfykf7x3";
+          };
+          sourceRoot = ".";
+          installPhase = ''
+            mkdir -p $out/bin
+            install -m 755 tessl-${version}-darwin-arm64 $out/bin/tessl
+          '';
+        };
       in
       {
         devShells.default = pkgs.mkShell {
@@ -45,6 +62,7 @@
             pkgs.jdk21
             pkgs.jq
             pkgs.just
+            tessl
             pkgs.k6
             pkgs.openssl
             pkgs.pnpm

@@ -11,6 +11,9 @@ POLY_PROFILES := "+realworld"
 # host's core count and starves the VM the containers run in.
 TEST_OPTS := "JDK_JAVA_OPTIONS=\"-XX:ActiveProcessorCount=$(n=$(docker info --format '{{.NCPU}}' 2>/dev/null); if [ \"${n:-0}\" -gt 0 ] 2>/dev/null; then echo \"$n\"; else nproc 2>/dev/null || sysctl -n hw.ncpu; fi)\""
 
+import 'justfiles/hooks.just'
+import 'justfiles/tessl.just'
+
 list:
     just --list
 

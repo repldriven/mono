@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-files=$(git diff --cached --name-only --diff-filter=ACM \
-  | grep -E '\.(clj|cljc|cljs)$' \
-  | while read -r f; do [ -f "$f" ] && echo "$f"; done)
+. scripts/hooks/lib.sh
+
+files=$(hook_staged_clojure_files)
 
 if [ -n "$files" ]; then
-  echo "Formatting Clojure files..."
-  echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
-  echo "$files" | xargs git add
-
-  echo "Linting Clojure files..."
-  echo "$files" | xargs clojure -M:lint/clj-kondo --lint
+  hook_format "$files"
+  hook_lint "$files"
 fi
