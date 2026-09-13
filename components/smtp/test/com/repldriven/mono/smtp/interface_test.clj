@@ -1,8 +1,14 @@
 (ns com.repldriven.mono.smtp.interface-test
   (:require
+    [com.repldriven.mono.testcontainers.interface]
+
     [com.repldriven.mono.smtp.interface :as SUT]
 
     [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.http-client.interface :as http-client]
+    [com.repldriven.mono.system.interface :as system]
+    [com.repldriven.mono.test-system.interface :refer
+     [with-test-system nom-test>]]
 
     [clojure.string :as str]
     [clojure.test :refer [deftest is testing]]))
@@ -102,3 +108,84 @@
   (testing "anything else is an anomaly, never a throw"
     (is (error/anomaly? (SUT/render nil)))
     (is (error/anomaly? (SUT/render {:to "a@example.test"})))))
+
+(def ^:private test-config "classpath:smtp/application-test.yml")
+
+(defn- latest-message
+  [api-url]
+  (error/let-nom>
+    [res (http-client/get (str api-url "/api/v1/message/latest"))
+     body (http-client/res->edn res)]
+    (let [{:keys [MessageID From To Cc Bcc Subject Text HTML]} body]
+      {:message-id MessageID
+       :from {:address (:Address From) :name (:Name From)}
+       :to (mapv :Address To)
+       :cc (mapv :Address Cc)
+       :bcc (mapv :Address Bcc)
+       :subject Subject
+       :text (some-> Text
+                     str/trim)
+       :html (some-> HTML
+                     str/trim)})))
+
+(defn- clear-messages
+  [api-url]
+  (http-client/delete (str api-url "/api/v1/messages")))
+
+(defn- without-brackets [s] (subs s 1 (dec (count s))))
+
+(deftest send-test
+  (with-test-system
+   [sys test-config]
+   (let [client (system/instance sys [:smtp :client])
+         api-url (system/instance sys [:smtp :container-api-url])]
+     (testing "a text-and-HTML message is read back as sent"
+       (nom-test> [sent (SUT/send client
+                                  {:to ["reader@example.test"]
+                                   :subject "Welcome"
+                                   :text "Hello"
+                                   :html "<p>Hello</p>"})
+                   message-id (:message-id sent)
+                   _ (is (re-matches #"<[0-9a-f-]{36}@example.test>"
+                                     message-id))
+                   stored (latest-message api-url)
+                   _ (is (= (without-brackets message-id) (:message-id stored)))
+                   _ (is (= {:address "noreply@example.test" :name "Example"}
+                            (:from stored)))
+                   _ (is (= ["reader@example.test"] (:to stored)))
+                   _ (is (= "Welcome" (:subject stored)))
+                   _ (is (= "Hello" (:text stored)))
+                   _ (is (= "<p>Hello</p>" (:html stored)))]))
+     (testing "a message with cc and bcc reaches every recipient"
+       (nom-test> [cleared (clear-messages api-url)
+                   _ (is (= 200 (:status cleared)))
+                   sent (SUT/send client
+                                  {:to ["to@example.test"]
+                                   :cc ["cc@example.test"]
+                                   :bcc ["bcc@example.test"]
+                                   :subject "Copies"
+                                   :text "Hello"})
+                   _ (is (= ["to@example.test" "cc@example.test"
+                             "bcc@example.test"]
+                            (:recipients sent)))
+                   stored (latest-message api-url)
+                   _ (is (= ["to@example.test"] (:to stored)))
+                   _ (is (= ["cc@example.test"] (:cc stored)))
+                   _ (is (= ["bcc@example.test"] (:bcc stored)))])))))
+
+(deftest send-authenticate-test
+  (with-test-system
+   [sys
+    [test-config
+     (fn [defs]
+       (assoc-in defs
+        [:system/defs :smtp :client :system/config :password]
+        "wrong"))]]
+   (let [client (system/instance sys [:smtp :client])
+         result (SUT/send client
+                          {:to ["reader@example.test"]
+                           :subject "Welcome"
+                           :text "Hello"})]
+     (testing "a rejected credential is an anomaly, never a throw"
+       (nom-test> [_ (is (= :smtp/authenticate (error/kind result)))
+                   _ (is (string? (:message (error/payload result))))])))))
