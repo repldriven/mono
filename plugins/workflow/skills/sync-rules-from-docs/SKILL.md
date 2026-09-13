@@ -44,7 +44,11 @@ shapes below are specific to those two).
 
 ## Workflow
 
-1. **Discover**: `bash plugins/workflow/skills/sync-rules-from-docs/discover.sh <plugin-name> [rule-file]`
+Both scripts sit beside this file. `<skill-dir>` below is the skill's
+base directory, reported when the skill loads — the installed copy
+under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
+
+1. **Discover**: `bash <skill-dir>/discover.sh <plugin-name> [rule-file]`
    (plugin name derived from the rule file's own plugin, e.g. `idioms`
    for `plugins/idioms/rules/idioms.md` — the default rule-file path is
    `plugins/<plugin-name>/rules/<plugin-name>.md`). Also
@@ -66,7 +70,7 @@ shapes below are specific to those two).
      but labeled for a *different* plugin (or not labeled at all).
      Report it; don't act on it.
 
-2. **Run the extractor**: `bash plugins/workflow/skills/sync-rules-from-docs/extract.sh [rule-file]`
+2. **Run the extractor**: `bash <skill-dir>/extract.sh [rule-file]`
    (defaults to `plugins/idioms/rules/idioms.md`). This is a
    deterministic, judgment-free pass — it locates each rule section's
    trailing `See [...]` line, resolves every linked doc, and prints:

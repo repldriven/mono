@@ -1,30 +1,22 @@
 # Tessl plugins: the rules an agent loads, and the copy it loads them
-# from.
-#
-# `plugins/<name>/rules/<name>.md` is the tracked source. AGENTS.md
-# loads `.tessl/RULES.md`, which points at
-# `.tessl/plugins/<workspace>/<name>/rules/<name>.md` -- a gitignored,
-# per-machine copy that only an install refreshes. Editing the source
-# alone changes nothing any agent reads, and shows no diff, which is
-# what `tessl-plugins-check` is for.
-#
-# A fresh worktree has no copy at all, and memory is read before any
-# session hook runs, so the install has to happen when the tree is
-# created. The `post-checkout` hook does that -- `just install-hooks`.
-#
-# Every plugin stays installed. A profile chooses which of them
-# `.tessl/RULES.md` links, so an agent loads the rules its task needs
-# and none of the rest. `plugins/profiles` names each profile on a line
-# of its own: the profile, then its `<workspace>/<plugin>` entries in
-# the order `tessl install` writes them. A profile is read at session
-# start, so a change reaches the next agent, not the one that made it.
+# from. See plugins/README.md.
 
-# Install every plugin under plugins/ from the working tree, then re-lay the active profile.
+# Plugin roots in install order, each holding one directory per plugin.
+TESSL_PLUGIN_ROOTS := env_var_or_default("TESSL_PLUGIN_ROOTS", "plugins")
+TESSL_PROFILES := "plugins/profiles"
+
+# Install every plugin under each root from the working tree, then re-lay the active profile.
 tessl-plugins-install:
     #!/usr/bin/env zsh
     set -e
-    for d in ./plugins/*/; do
-      tessl install "file:${d%/}"
+    for root in {{ TESSL_PLUGIN_ROOTS }}; do
+      if [[ ! -d $root ]]; then
+        echo "no plugin root $root"
+        exit 1
+      fi
+      for d in $root/*/; do
+        tessl install "file:./${d%/}"
+      done
     done
     PROFILE=default
     if [[ -f .tessl/PROFILE ]]; then
@@ -34,7 +26,7 @@ tessl-plugins-install:
     # profile has to be laid back down after it.
     just tessl-profile name="$PROFILE"
 
-# Link one profile's rules from .tessl/RULES.md. name: a profile named in plugins/profiles.
+# Link one profile's rules from .tessl/RULES.md. name: a profile in plugins/profiles, `default` among them.
 tessl-profile name="default":
     #!/usr/bin/env zsh
     set -e
@@ -42,9 +34,9 @@ tessl-profile name="default":
     # the argument, so both that and the bare `infra` have to land here.
     NAME="{{ name }}"
     NAME="${NAME#name=}"
-    LINE=$(grep -E "^${NAME}( |$)" plugins/profiles || true)
+    LINE=$(grep -E "^${NAME}( |$)" {{ TESSL_PROFILES }} || true)
     if [[ -z "$LINE" ]]; then
-      KNOWN=$(cut -d' ' -f1 plugins/profiles | tr '\n' ' ')
+      KNOWN=$(cut -d' ' -f1 {{ TESSL_PROFILES }} | tr '\n' ' ')
       echo "unknown profile: $NAME (${KNOWN% })"
       exit 1
     fi
@@ -110,16 +102,18 @@ tessl-plugins-check:
       exit 0
     fi
     STALE=()
-    for SRC in plugins/*/rules/*.md; do
-      NAME=$(basename "$SRC" .md)
-      PLUGIN=$(dirname "$(dirname "$SRC")")
-      WS=$(sed -n 's/.*"name": *"\([^/"]*\)\/.*/\1/p' "$PLUGIN/.tessl-plugin/plugin.json" | head -1)
-      DEST=".tessl/plugins/$WS/$NAME/rules/$NAME.md"
-      if [[ ! -f $DEST ]]; then
-        STALE+=("$NAME (never installed)")
-      elif ! diff -q "$SRC" "$DEST" >/dev/null; then
-        STALE+=("$NAME")
-      fi
+    for root in {{ TESSL_PLUGIN_ROOTS }}; do
+      for SRC in $root/*/rules/*.md; do
+        NAME=$(basename "$SRC" .md)
+        PLUGIN=$(dirname "$(dirname "$SRC")")
+        WS=$(sed -n 's/.*"name": *"\([^/"]*\)\/.*/\1/p' "$PLUGIN/.tessl-plugin/plugin.json" | head -1)
+        DEST=".tessl/plugins/$WS/$NAME/rules/$NAME.md"
+        if [[ ! -f $DEST ]]; then
+          STALE+=("$WS/$NAME (never installed)")
+        elif ! diff -q "$SRC" "$DEST" >/dev/null; then
+          STALE+=("$WS/$NAME")
+        fi
+      done
     done
     if (( ${#STALE[@]} == 0 )); then
       echo "installed rules match their sources"
