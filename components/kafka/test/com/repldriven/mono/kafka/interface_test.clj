@@ -12,6 +12,7 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
+    [com.repldriven.mono.utility.interface :as util]
 
     [clojure.core.async :as async]
     [clojure.test :refer [deftest is testing]])
@@ -100,9 +101,8 @@
                                       (throw (ex-info "handler failed" {})))
                                   (swap! received conj data))))
        (nom-test> [_ (doseq [pet pets] (message-bus/send bus :pet pet))])
-       (let [deadline (+ (System/currentTimeMillis) 30000)]
-         (while (and (< (count @received) (count pets))
-                     (< (System/currentTimeMillis) deadline))
+       (let [deadline (+ (util/now) 30000)]
+         (while (and (< (count @received) (count pets)) (< (util/now) deadline))
            (Thread/sleep 200)))
        (is (= 1 @failures) "the handler threw once")
        (is (> @deliveries (count pets))
@@ -162,7 +162,7 @@
   "Five events for each of two entities, interleaved, so an unkeyed send
   cannot be rescued by send order."
   []
-  (let [correlation-id (str (random-uuid))]
+  (let [correlation-id (str (util/uuidv7))]
     (vec (for [n (range 5)
                id causation-ids]
            (event/envelope (str "event-" n) id correlation-id)))))
@@ -207,7 +207,7 @@
          attempts (atom 0)
          received (promise)
          envelope
-         (event/envelope "party-registered" "party-1" (str (random-uuid)))]
+         (event/envelope "party-registered" "party-1" (str (util/uuidv7)))]
      (testing "a handler that returns an anomaly gets the event again"
        ;; An anomaly is a failure the handler expected; committing it would
        ;; drop the event with nothing left to retry from. Exhausting the
@@ -239,12 +239,12 @@
          payload (.getBytes "pet-payload" "UTF-8")
          account-ids ["account-a" "account-b"]
          ;; command-id -> the account it is keyed on
-         keyed (into {} (map (fn [id] [(str (random-uuid)) id])) account-ids)
-         unkeyed-id (str (random-uuid))
+         keyed (into {} (map (fn [id] [(str (util/uuidv7)) id])) account-ids)
+         unkeyed-id (str (util/uuidv7))
          envelope (fn [id command]
                     {:id id
                      :command command
-                     :correlation-id (str (random-uuid))
+                     :correlation-id (str (util/uuidv7))
                      :causation-id nil
                      :traceparent nil
                      :tracestate nil

@@ -49,6 +49,7 @@
              @result#
              ;; the body itself threw: that is the caller's exception
              :else
+             ;; nosemgrep: no-raw-throw — the caller's exception
              (throw e#))))))
 
 (defn with-span-parent
@@ -81,6 +82,7 @@
                  @finished?
                  @result
                  :else
+                 ;; nosemgrep: no-raw-throw — the caller's exception
                  (throw e))))))
 
 (defn add-event

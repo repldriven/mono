@@ -20,6 +20,7 @@
     [com.repldriven.mono.server.interface :as server]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
+    [com.repldriven.mono.utility.interface :as util]
 
     [clojure.test :refer [deftest is testing]]))
 
@@ -49,7 +50,7 @@
 
 (defn- register!
   [url n]
-  (let [u (subs (str (random-uuid)) 0 8)
+  (let [u (util/random-suffix 8)
         res (call :post
                   url
                   "/api/users"

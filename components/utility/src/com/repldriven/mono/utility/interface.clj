@@ -124,6 +124,15 @@
 
 (def
   ^{:doc
+    "The random tail of a `uuidv7` as n hex characters, n at most 12.
+  Use to make a name unique — a test fixture, a slug — where a full
+  UUID is more than the name can carry. Args:
+  - n: length in characters, 1 to 12."}
+  random-suffix
+  util.uuid/suffix)
+
+(def
+  ^{:doc
     "Prefixed monotonic ULID, e.g. `pmt.01jsx6k7h0a…`.
   Sortable by creation time; URL-safe without escaping. Args:
   - prefix: short entity marker (`pmt`, `org`, …)."}

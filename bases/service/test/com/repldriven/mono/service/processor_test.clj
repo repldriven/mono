@@ -11,6 +11,7 @@
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
     [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
+    [com.repldriven.mono.utility.interface :as util]
     [clojure.test :refer [deftest is testing]]))
 
 (defn send-command
@@ -22,7 +23,7 @@
         schemas (system/instance sys [:avro :serde])
         schema (get schemas command-name)
         payload (avro/serialize schema data)
-        cmd-id (str (java.util.UUID/randomUUID))]
+        cmd-id (str (util/uuidv7))]
     (telemetry/with-span ["send-command" {}]
                          (command/send dispatcher
                                        {:id cmd-id
