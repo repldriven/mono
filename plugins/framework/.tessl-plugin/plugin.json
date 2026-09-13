@@ -1,6 +1,6 @@
 {
   "name": "mono/framework",
   "version": "0.1.0",
-  "description": "How to use Polylith itself in a workspace built on mono: one brick per third-party library. Built with Tessl.",
+  "description": "How to use Polylith itself in a workspace built on mono: bases, components, projects, interface.clj discipline, one brick per third-party library. Built with Tessl.",
   "private": true
 }

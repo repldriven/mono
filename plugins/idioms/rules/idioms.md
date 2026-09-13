@@ -6,20 +6,26 @@ workspace built on these bricks inherits, stated as how to write.
 ## Return anomalies, don't throw across a boundary
 
 A component `interface.clj` returns a value or an anomaly — it never
-raises. Three kinds, each with its constructor in `error`: `error/fail`
-for something genuinely wrong, `error/reject` for a request the system
-correctly declines, `error/unauthorized` for a caller with no business
-asking; the API maps them to 5xx, 4xx and 401/403, and a
-`CommandResponse` carries the same split. Convert an exception at a
-library edge with `error/try-nom` / `error/try-nom-ex`, never a bare
-`try`/`catch`, and thread fallible steps with `let-nom>` / `nom->` /
-`nom-do>`. Name a category for the call site (`:http-client/request`)
-when nobody outside the process can act on the failure, and for the
-problem when someone can — every rejection
-(`:realworld/article-not-found`), plus the closed set of storage
-failures that mean retry — with the call site moving to the payload as
-`:operation`. Every payload carries `:message`.
-See [ADR-0005](../../../docs/adr/0005-error-handling-with-anomalies.md).
+raises, directly or indirectly. Three kinds, each with its constructor
+in `error`: `error/fail` for something genuinely wrong, `error/reject`
+for a request the system correctly declines, `error/unauthorized` for a
+caller with no business asking; the API maps them to 5xx, 4xx and
+401/403, and a `CommandResponse` carries the same split. Pick the one
+kind that fits the failure, never mix them. Convert an exception at
+every Java or library edge with `error/try-nom` (catch all) /
+`error/try-nom-ex` (a specific type), never a bare `try`/`catch`, and
+thread fallible steps with `let-nom>` / `nom->` / `nom-do>`. Name a
+category for the call site (`:http-client/request`) when nobody outside
+the process can act on the failure, and for the problem when someone
+can — every rejection (`:realworld/article-not-found`), plus the closed
+set of storage failures that mean retry — with the call site moving to
+the payload as `:operation`; never by failure mode where nothing can act
+on the distinction (`:http-client/failed` says no more than
+`:http-client/request`). Every payload carries `:message`. A genuinely
+unrecoverable `throw` carries `;; nosemgrep: no-raw-throw` on the line
+above — the `no-raw-throw` semgrep rule blocks any unmarked one.
+See [ADR-0005](../../../docs/adr/0005-error-handling-with-anomalies.md),
+[error-handling](../../../docs/recipes/code/error-handling.md).
 
 ## Kebab-case keyword keys end-to-end
 
@@ -36,6 +42,47 @@ rule governs keys, not values: a code an external standard defines
 stays a string (ISO 4217 currency, `"GBP"` not `:currency-gbp`), while
 an enum variant internal to the system stays a keyword.
 See [ADR-0006](../../../docs/adr/0006-kebab-case-keyword-keys.md).
+
+## IDs and timestamps come from `utility`
+
+`util/uuidv7` for IDs, `util/now` for timestamps and `util/now-rfc3339`
+for RFC 3339 strings. Never `random-uuid`, `UUID/randomUUID`,
+`Instant/now`, or `System/currentTimeMillis` outside
+`components/utility/` — that brick is the only place those primitives
+are called, and the `no-raw-time-id` semgrep rule blocks them anywhere
+else. For any non-`clojure.core` helper, check `utility` first, then a
+helper library re-exported through `utility`; a general helper goes in
+`utility`'s sub-namespace and its interface, never ad hoc in another
+brick, and never by pulling the helper library into that brick.
+See [common-helpers](../../../docs/recipes/code/common-helpers.md),
+[code-style](../../../docs/recipes/code/code-style.md).
+
+## Requires run innermost to outermost
+
+Order `:require` in nine groups, blank line between each, alphabetical
+within: this brick's own `system` namespace; this workspace's extension
+namespaces; the upstream workspace's extension namespaces; this file's
+own package; the rest of the brick; this workspace's other interfaces;
+the upstream's interfaces; external libraries; `clojure.*`. In a flat
+component the brick is the package, so the two internal groups collapse
+into one, and in this repository the two upstream groups are empty. A
+bare require — no `:as`, no `:refer` — takes the bracketed form
+`[com.example.ns]`, never unbracketed. In a component interface test the
+SUT takes the own-package slot, aliased `SUT`, and nothing else from
+that component is required.
+See [code-style](../../../docs/recipes/code/code-style.md).
+
+## Everyday shape
+
+zprint at 80 columns, docstrings wrapped by hand; `cond->` with
+`util/assoc-some` / `util/assoc-seq` over chains of optional `assoc`,
+each predicate and action on their own lines; destructure one map level
+per `let` binding, never nested in function arguments, each binding on
+one line for zprint to wrap; `(fn [x] ...)` over `#(...)`; no `!`
+suffix on a side-effecting name; no brick name repeated in a function
+name within that brick; short-circuit an interceptor with
+`sieppari.context/terminate`, never by setting `:response` or `:error`.
+See [code-style](../../../docs/recipes/code/code-style.md).
 
 ## Comment the why, not the what
 
@@ -54,3 +101,19 @@ references to the current change, promoting a load-bearing why to the
 docstring. `;; ---` separators belong in `components.clj` and
 `interface.clj` only.
 See [ADR-0015](../../../docs/adr/0015-comments-and-docstrings.md).
+
+## Tests drive the system with `with-test-system`
+
+Manage system lifecycle in tests with `with-test-system`, which holds
+one of `TEST_SYSTEM_PERMITS` permits while its system is up, and assert
+anomaly-freeness with `nom-test>`; never `use-fixtures`. Keep per-brick
+config at `test-resources/<brick>/application-test.yml`. A raw
+`clojure -M:poly test` needs the processor cap set as `just test` sets
+it, and the permits set where a run boots more systems than the Docker
+VM can hold. Mark a namespace whose tests share state, such as a
+`with-redefs`, `^:eftest/synchronized` so its vars run one at a time,
+and never one that only boots infrastructure; inject a collaborator
+rather than `with-redefs` a var another namespace calls, since the
+redefinition is JVM-wide and namespaces run in parallel whatever the
+marker says.
+See [test-system](../../../docs/recipes/test/test-system.md).

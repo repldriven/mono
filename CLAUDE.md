@@ -1,341 +1,152 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this Clojure monorepo
-that follows the Polylith architecture.
+mono is a Clojure component library and reference implementation for
+composing systems from independently testable bricks, organised as a
+[Polylith](https://polylith.gitbook.io/polylith) workspace. A workspace
+built on it consumes `projects/mono-lib` as a pinned git dependency and
+lays the ADRs, recipes, plugins and hooks here down beside its own. See
+[readme.md](readme.md) for the bricks and how to depend on them.
 
-## Polylith Architecture
+## Topic router
 
-- **Three artifact types**: Components (reusable), Bases (entry points), Projects (deployable)
-- **Components** (`components/`):
-  - Reusable building blocks with `interface.clj` defining public API
-  - MUST defer implementation in `interface.clj` to other namespaces in the
-    component, such as `core.clj`
-  - Components that register system components MUST follow one of two patterns:
-    1. **Simple** (`system.clj`): a single file containing all `system/defcomponents`
-       calls, bare-required directly in `interface.clj`
-    2. **Structured** (`system/` folder): component defs split across multiple
-       namespaces (use this when there are at least two), with a `system/core.clj`
-       aggregating them, bare-required directly in `interface.clj`
-  - MUST NOT access other components through internal namespaces — only via
-    their `interface.clj`
-  - MUST NOT include other components in its `deps.edn` — require other
-    components through their interface namespace directly
-- **Bases** (`bases/`):
-  - Application entry points (e.g., APIs, readers, processors)
-  - Have `-main` functions and handle application bootstrap
-  - MUST NOT depend on other bases
-- **Projects** (`projects/`):
-  - Combine bases and components into deployable applications
-  - No code, just `deps.edn` files
-  - Projects do not have `-main` functions (bases do)
-  - `mono-lib` and `mono-test-lib` are **published artifacts**, not deployables.
-    They have no base, list curated bricks as `:local/root` deps, and are
-    consumed downstream as git deps via `:deps/root`. Adding or changing a brick
-    in either is release-visible: consumers pin a sha and there is no snapshot
-    channel, so it requires a new tag. Their dep keys are qualified
-    (`com.repldriven.mono.components/env`) to avoid colliding with a consumer's
-    own keys, and they are listed in `workspace.edn` with `:necessary` because a
-    base-less project trips warning 207. A component published in `mono-lib`
-    MUST be self-contained: it MUST NOT read files relative to the workspace
-    root, since a consuming workspace has no such files
-  - Both roots ship under ONE lib symbol, `com.repldriven/mono`, differing only
-    by `:deps/root`. tools.deps checks out a git dep once per lib symbol, so two
-    symbols would mean two checkouts and two irreconcilable paths for every
-    component the roots share. Because `:extra-deps` merges by lib symbol, a
-    consumer's `:test` alias REPLACES the runtime root with the test one, so
-    `mono-test-lib` MUST stay a superset of `mono-lib` — never prune a component
-    from it. The release workflow asserts this
-- **Template** (`template/`):
-  - A deps-new template that scaffolds a workspace wired to `mono-lib`
-  - Sits outside the Polylith directories, so `poly` ignores it
-  - Starter bricks are **not** committed here; they are copied from mono at
-    generation time and namespace-rewritten. Only segments listed in
-    `starter.edn` are rewritten, so references to bricks that come from
-    `mono-lib` keep pointing at `com.repldriven.mono.*`
-  - Verify with `just template-test`
+CLAUDE.md is the routing layer. Every `docs/recipes/*/*.md` and
+`docs/adr/*.md` file below is labeled `<!-- tessl-plugin: <name> -->`,
+and that plugin's rule (always loaded via `AGENTS.md`) already distills
+its `## Rules` / `## Decision` — you don't need to open the doc to
+rediscover that. Open it for the *why* behind the rule instead: Context,
+Consequences, Discussion.
 
-## Component-Based Infrastructure
+### Code
 
-- **System-as-data**: Entire systems defined in YAML/EDN configuration files: config -> system definitions -> started system
-- **System construction**: Lifecycle management, through `system` component wrapping `donut.system`
-- **Testcontainers**: Test infrastructure (DBs, message queues) defined in system
-  config. The `testcontainers` component MAY call library methods on a container
-  instance during construction (before start) — e.g. builder-pattern calls like
-  `.withVaultToken`, `.addEnv`, `.withStartupTimeout`. It MUST NOT call library
-  methods on a started container instance to extract runtime information, as this
-  creates a hidden dependency on the component's library. Any component group
-  that interrogates a running container instance (e.g. extracting a connection
-  URL or a mapped port) MUST be defined in the `system/` folder of the
-  relevant component (i.e. `system/components.clj`, registered via
-  `system/core.clj`), not in `testcontainers`
-- **Web Service Interceptors**: Server (`server` component) interceptors inject component instances into request context, such as datasources, MQTT clients, Pulsar consumers/producers
-- **Configuration**: Env (`env` component) loading supporting profiles (:dev, :test, :prod)
-- **System Multimethods**: New system components registered using `system/defcomponents` to extend system component definitions
+- **Clojure code style** — naming, requires, destructuring, anon fns,
+  `cond->`, `let`-binding format, ID generation (`util/uuidv7`),
+  timestamps (`util/now`), interceptor short-circuit
+  (`sieppari.context/terminate`).
+  See [code-style.md](docs/recipes/code/code-style.md).
+- **Common helpers** — when to add a helper to `utility`, when to
+  re-export from a library, the convergence rule.
+  See [common-helpers.md](docs/recipes/code/common-helpers.md).
+- **Component interfaces and docstrings** — `interface.clj` is the
+  documentation surface; impl files stay bare.
+  See [ADR-0015](docs/adr/0015-comments-and-docstrings.md) and
+  [components.md](docs/recipes/code/components.md).
+- **Error handling** — anomalies at component boundaries; never throw
+  from `interface.clj`; `error/try-nom` and `error/nom->` at library
+  edges. See [ADR-0005](docs/adr/0005-error-handling-with-anomalies.md)
+  and [error-handling.md](docs/recipes/code/error-handling.md).
+- **Data shapes** — kebab-case keyword keys throughout, with a code an
+  external standard defines as the exception.
+  See [ADR-0006](docs/adr/0006-kebab-case-keyword-keys.md).
 
-## Error Handling
+### Architecture
 
-- **Anomaly-based** (nom library via `error` component):
+- **Brick boundaries** — `interface.clj` discipline, one brick per
+  third-party library.
+  See [components.md](docs/recipes/code/components.md) and
+  [ADR-0011](docs/adr/0011-one-component-per-third-party-library.md).
+- **Bases and projects** — entry points, deployable projects, the
+  library projects a consumer names by `:deps/root`, library pinning.
+  See [bases.md](docs/recipes/code/bases.md) and
+  [projects.md](docs/recipes/code/projects.md).
+- **System wiring** — `system/defcomponents`, `system.clj` vs `system/`
+  folder, the test-bundle pattern, naming shared resource components.
+  See [system-components.md](docs/recipes/code/system-components.md)
+  and [ADR-0007](docs/adr/0007-system-as-data.md).
+- **System configurations** — YAML system definitions, profiles,
+  `!system/component` / `!system/ref` / `!env`, required-component
+  injection. See
+  [system-configurations.md](docs/recipes/code/system-configurations.md).
+- **Messaging** — the message bus behind an abstraction, and Avro
+  payloads. See [ADR-0003](docs/adr/0003-message-bus-abstraction.md)
+  and [ADR-0004](docs/adr/0004-avro-for-message-payloads.md).
+- **Code generation** — the prep-lib convention, for a workspace that
+  needs it; no brick here generates code.
+  See [ADR-0010](docs/adr/0010-code-generation-via-prep-lib.md).
 
-  - Component interface functions MUST NOT throw exceptions — they MUST
-    return anomalies if they fail
-  - MUST NOT use `try-catch` directly; MUST use `error/try-nom` or
-    `error/try-nom-ex` to catch exceptions and convert them to anomalies:
+### Tests
 
-    ```clojure
-    ;; Catches all exceptions
-    (error/try-nom :http-client/request
-                   "Failed to execute request"
-                   (do-the-thing))
+- **Test systems** — `with-test-system`, `nom-test>`, no
+  `use-fixtures`, per-brick test config, what bounds the runner's
+  parallelism. See [test-system.md](docs/recipes/test/test-system.md).
+- **Testcontainers** — the three-layer pattern, extractors in the
+  relevant brick's `system/` folder.
+  See [testcontainers.md](docs/recipes/test/testcontainers.md).
 
-    ;; Catches a specific exception type
-    (error/try-nom-ex :db/query
-                      SQLException
-                      "Failed to execute query"
-                      (do-the-thing))
-    ```
+### Operations
 
-  - MAY use `try/finally` in special circumstances where an anomaly is not
-    appropriate (e.g. ensuring resource cleanup)
-  - Anomaly category reflects the call site, not the failure mode — e.g.
-    `:http-client/request` not `:http-client/failed`
-  - Anomaly payloads MUST contain a `:message` key. Pass a string as
-    shorthand — `(error/fail :ns/x "message")` — or a map for additional
-    context — `(error/fail :ns/x {:message "..." :account-id id})`
+- **Git workflow** — merge `main` before committing, let Renovate own
+  dependency bumps, stage user-initiated deletions and moves with
+  `git add` not `git rm`, include the user's untracked drafts in
+  workspace-wide ops.
+  See [git-workflow.md](docs/recipes/practices/git-workflow.md).
+- **Git hooks** — what `pre-commit` and `post-checkout` run, and how a
+  workspace built on these bricks composes its own from `lib.sh`.
+  See [ADR-0012](docs/adr/0012-pre-commit-hooks.md).
+- **Justfile recipes** — the `set -e` shapes that abort silently,
+  capturing before piping, where a constant is declared, what a comment
+  in a body is for.
+  See [justfile-recipes.md](docs/recipes/practices/justfile-recipes.md).
+- **Writing docs** — the recipe shape, wrap at 80, link hygiene,
+  mermaid, tone; the `check-docs` skill that verifies them.
+  See [writing-docs.md](docs/recipes/practices/writing-docs.md).
+- **Tessl plugins** — the rules an agent loads, the roots they install
+  from, profiles. See [plugins/README.md](plugins/README.md).
 
-- **Common functions**:
-  - _Predicates and construction_:
-    - `error/anomaly?` - check if value is anomaly
-    - `error/fail` - create anomaly with category and details map
-  - _Exception catching_:
-    - `error/try-nom` - wrap body, catching all exceptions as anomalies
-    - `error/try-nom-ex` - wrap body, catching a specific exception type
-  - _Let-style bindings_:
-    - `error/let-nom>` - monadic let, short-circuits on first binding anomaly
-  - _Threading and side effects_:
-    - `error/nom->` - threading macro, short-circuits on anomalies
-    - `error/nom-do>` - execute operations sequentially, short-circuit and
-      call error-fn on first anomaly
+## What this workspace publishes
 
-## Testing
+- `projects/mono-lib` and `projects/mono-test-lib` are published
+  artifacts, not deployables. They have no base, list curated bricks as
+  `:local/root` deps, and are consumed downstream as git deps via
+  `:deps/root`. Adding or changing a brick in either is release-visible:
+  consumers pin a sha and there is no snapshot channel, so it requires a
+  new tag. Their dep keys are qualified
+  (`com.repldriven.mono.components/env`) to avoid colliding with a
+  consumer's own keys, and they are listed in `workspace.edn` with
+  `:necessary` because a base-less project trips warning 207.
+- Both roots ship under ONE lib symbol, `com.repldriven/mono`, differing
+  only by `:deps/root`. tools.deps checks out a git dep once per lib
+  symbol, so two symbols would mean two checkouts and two irreconcilable
+  paths for every component the roots share. Because `:extra-deps`
+  merges by lib symbol, a consumer's `:test` alias REPLACES the runtime
+  root with the test one, so `mono-test-lib` MUST stay a superset of
+  `mono-lib` — never prune a component from it. The release workflow
+  asserts this.
+- A component published in `mono-lib` MUST be self-contained: it MUST
+  NOT read files relative to the workspace root, since a consuming
+  workspace has no such files.
+- `template/` is a deps-new template that scaffolds a workspace wired
+  to `mono-lib`. It sits outside the Polylith directories, so `poly`
+  ignores it. Starter bricks are **not** committed here; they are copied
+  from mono at generation time and namespace-rewritten. Only segments
+  listed in `starter.edn` are rewritten, so references to bricks that
+  come from `mono-lib` keep pointing at `com.repldriven.mono.*`. Verify
+  with `just template-test`.
+- The ADRs, recipes, plugins, hook library, semgrep rules and justfiles
+  here are laid down in a consuming workspace at the sha it pins, so a
+  change to any of them is release-visible too.
 
-### Running Tests
+## Common commands
 
-- **Default project**: Always use `project:dev` unless a specific project is
-  requested
-- **Running all tests**:
+```bash
+# Run every brick's tests in every project, capped to Docker's CPUs.
+just test
 
-  ```bash
-  clojure -M:poly test project:dev
-  ```
+# Run the tests of one or more bricks in the development project.
+clojure -M:poly test brick:<brick-name> project:dev
+clojure -M:poly test brick:<brick1>:<brick2> project:dev
 
-- **Testing specific bricks**:
+# Prepare a fresh worktree: prep every brick that declares :deps/prep-lib.
+just setup
 
-  ```bash
-  clojure -M:poly test brick:<brick-name> project:dev
-  ```
+# Install the git hooks, once per clone and again after a hook changes.
+just install-hooks
 
-  Multiple bricks can be tested in one pass using colon-separated names:
+# Install the Tessl plugins from the working tree, and check them.
+just tessl-plugins-install
+just tessl-plugins-check
 
-  ```bash
-  clojure -M:poly test brick:<brick1>:<brick2> project:dev
-  ```
-
-### Writing Tests
-
-- **No test fixtures**: Do not use `use-fixtures` — manage lifecycle explicitly
-  with `with-test-system` instead
-- **Test resources**: Shared config lives in the `test-resources` component.
-  Each brick combines this with its own
-  `test-resources/<brick>/application-test.yml`
-- **with-test-system**: Starts a test system from config, asserts it started,
-  and stops it after the body. It holds one of `TEST_SYSTEM_PERMITS` permits
-  meanwhile, so at most that many test systems are up at once in the JVM;
-  unset, nothing waits. The optional second element of the binding vector is
-  a patch-fn applied to the system defs before start:
-
-  ```clojure
-  ;; Simple form
-  (with-test-system [sys "classpath:my-component/application-test.yml"]
-    (let [component (system/instance sys [:path :to :component])]
-      ;; test code
-      ))
-
-  ;; With patch-fn to inject a handler before start
-  (with-test-system [sys ["classpath:server/application-test.yml"
-                          #(assoc-in % [:system/defs :server :handler] app)]]
-    ;; test code
-    )
-  ```
-
-- **nom-test>**: Chain operations as let-style bindings, failing fast on any
-  anomaly and asserting none occurred. Use `_` for bindings whose values are
-  only needed for their side effects (e.g. `is` assertions):
-
-  ```clojure
-  (nom-test> [result1 (operation1)
-              _ (is (= expected result1))
-              result2 (operation2 result1)
-              _ (is (some? result2))])
-  ```
-
-  For a single anomaly check with no further bindings:
-
-  ```clojure
-  (nom-test> [_ (operation-that-must-not-fail)])
-  ```
-
-- **Test runner**: eftest runs namespaces in parallel out of process, and the
-  vars within each namespace in parallel on a pool sized by the JVM's
-  processor count. `^:eftest/synchronized` on a namespace runs its vars one
-  at a time, for a file whose tests share state, such as a `with-redefs`;
-  how many test systems may be up at once is `TEST_SYSTEM_PERMITS`, which
-  `with-test-system` honours
-
-## Code Generation
-
-No brick generates code, so there is no prep step to run. If one is added:
-
-- It MUST use Clojure's standard prepping libraries support, using
-  `:deps/prep-lib` in the brick's `deps.edn`, with implementation through a
-  co-located `build.clj` file, and prep it with
-  `clj -X:deps prep :aliases '[:dev]'` (`:force true` after a source change)
-- Generated code MUST follow Polylith naming conventions and remain
-  inside the brick src tree in a `gen` folder
-- Generated code MUST NOT be committed to git — use a locally scoped
-  `.gitignore` file within the brick to exclude it
-
-## Database Patterns
-
-- **db component**: PostgreSQL integration
-- **migrator component**: Liquibase-based migrations
-- **Connection pooling**: Managed by system component lifecycle
-- **Testcontainers**: Spin up PostgreSQL in tests via system config
-
-## Message Queue Patterns
-
-- **pulsar component**: Apache Pulsar integration with Avro serialization
-- **Stopping**: Send to `:stop` channel to stop receiving/reading
-- **mqtt component**: MQTT client integration for request-reply patterns
-- **command component**: Higher-level command processing over Pulsar/MQTT
-  - **Channel-based async**: Both `receive` (consumer) and `read` (reader)
-    return `{:c chan :stop chan}`
-  - **Message format**: `{:message <Message> :data <deserialized-data>}` on
-    `:c` channel
-  - `command/process` - consumes commands from Pulsar, dispatches to a
-    process-fn, publishes replies via MQTT. Returns `{:stop chan}`
-  - `command/send` - sends a command via Pulsar, awaits reply via MQTT.
-    Returns response map or anomaly
-  - `command/req->command-request` - builds wire command map from HTTP request
-  - `command/req->command-response` - builds command response from HTTP request
-    and result (anomaly-aware)
-
-## Code Formatting
-
-- **zprint**: All Clojure source is formatted with zprint, configured in `.zprint.edn`
-- **Width**: 80 characters
-- **Git hook**: `scripts/hooks/pre-commit` automatically formats staged Clojure
-  files before each commit. Install it once with:
-
-  ```bash
-  cp scripts/hooks/pre-commit .git/hooks/pre-commit
-  chmod +x .git/hooks/pre-commit
-  ```
-
-- **Namespaces**: MUST `:require` entries innermost to outermost —
-  excepting indirect interfaces which extend multi-methods MUST take precedence
-  (removing [] to make it obvious) unless they need to required by alias too -
-  then internal namespaces, then other component interfaces (and interfaces **ONLY**),
-  then external libraries, then standard libraries, separated by line-breaks. For
-  component interface tests, use MUST use the `SUT` alias for the component interface,
-  and MUST NOT include any other namespaces from the component.
-
-  ```clojure
-  (ns com.repldriven.mono.processor.interface-test
-    (:require
-      com.repldriven.mono.testcontainers.interface  ;; extends `system/components`
-
-      [com.repldriven.mono.processor.interface :as SUT]
-
-      [com.repldriven.mono.error.interface :as error]
-      [com.repldriven.mono.system.interface :as system]
-      [com.repldriven.mono.test-system.interface :refer [with-test-system nom-test>]]
-      [com.repldriven.mono.db.interface :as sql]
-      [com.repldriven.mono.env.interface :as env]
-      [com.repldriven.mono.json.interface :as json]
-
-      [clojure.test :refer [deftest is testing]]))
-  ```
-
-- **Destructuring**: MUST destructure one level at a time in `let`, not nested
-  in function args. Take the full request as a plain argument and bind each
-  level separately:
-
-  ```clojure
-  (defn create
-    [request]
-    (let [{:keys [datasource parameters]} request
-          {:keys [body path]} parameters
-          {:keys [project-id]} path
-          {:strs [account-id service-account]} body
-          {:strs [display-name description]} service-account]
-      ...))
-  ```
-
-- **Docstrings**: zprint does not reflow string content, so docstrings must be
-  manually wrapped at 80 characters. Write multi-line docstrings like:
-
-  ```clojure
-  (defn my-fn
-    "First line of docstring, kept within 80 characters.
-
-    Further detail on subsequent lines, also wrapped at 80 chars. Use
-    blank lines to separate paragraphs."
-    [args]
-    body)
-  ```
-
-## Code Linting
-
-- **clj-kondo**: Configured in `.clj-kondo/config.edn` with lint-as mappings for macros
-- **Git hook**: `scripts/hooks/pre-commit` also runs clj-kondo against the full
-  `bases`, `components`, and `projects` directories when any Clojure files
-  are staged, blocking the commit if lint errors are found
-
-## Coding Guidelines
-
-- **Naming**: Naming is hard, so try not to name at all by using thread macros.
-  Names MUST be narrow, for example, functions in command would be named
-  `processs`, `send`, etc and not `process-command`, `send-command`, etc.
-  "Elements of Clojure" by Zachary Tellman gets _everything_ right about names,
-  in particular, "if a function crosses data scope boundaries, there should
-  be a verb in the name. If it pulls data from another scope, it should
-  describe the datatype it returns. If it pushes data into another scope,
-  it should describe the effect it has.
-- **Referential transparency**: For an expression to be referentially
-  transparent, we must be able to bind the expression to a name, substitute
-  that name for any or all occurrences of the original expression (within the
-  same context), and nothing should have changed (except perhaps the execution
-  time). Prefer pure functions that return the same value for the same inputs,
-  with no observable side effects. Name functions after what they return, not
-  what they do.
-- **Keyword keys throughout**: All data — including from external systems
-  (Pulsar, MQTT, HTTP) — uses kebab-case keyword keys. Avro (Lancaster)
-  and Protojure both use keyword keys natively. Muuntaja decodes JSON
-  request bodies with `keyword` decode-key-fn. Use `{:keys [...]}`
-  destructuring everywhere. Exception: explicit JSON parsing via
-  `json/read-str` or `http-client/res->body` returns string keys
-  (clojure.data.json default) — callers of those functions check with
-  string keys.
-
-## Git Workflow
-
-- **Merge from main before committing**: Renovate automatically merges
-  dependency updates to `main`. Before committing work on a branch (or
-  on `main` directly), pull/merge from `main` to avoid conflicts with
-  Renovate's `deps.edn` and GitHub Actions updates.
-- **Dependency management**: Renovate (`renovate.json`) handles all
-  dependency updates — Clojure `deps.edn` and GitHub Actions. PRs are
-  created automatically on a weekly schedule. Do NOT manually bump
-  dependency versions that Renovate manages.
+# Generate a throwaway workspace from the template and verify it.
+just template-test
+```
 
 @AGENTS.md
