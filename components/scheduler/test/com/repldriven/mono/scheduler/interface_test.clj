@@ -32,6 +32,22 @@
              (is (= after @hits) "no further fires after unschedule")))
          (finally (SUT/stop sched)))))
 
+(deftest each-start-is-its-own-scheduler-test
+  (testing "two starts are distinct, and stopping one leaves the other ticking"
+    ;; cronut's own `scheduler` hands back Quartz's JVM-wide default, under
+    ;; which the stop below shut the other scheduler down and this
+    ;; namespace's tests took each other out when their vars ran in
+    ;; parallel.
+    (let [a (SUT/start)
+          b (SUT/start)
+          hits (atom 0)]
+      (try (is (not (identical? a b)))
+           (SUT/schedule a "tick" "* * * * * ?" (fn [] (swap! hits inc)))
+           (SUT/stop b)
+           (is (wait-until #(pos? @hits) 30) "a still fires after b stops")
+           (is (nil? (SUT/unschedule a "tick")) "and a still takes requests")
+           (finally (SUT/stop a))))))
+
 (deftest bad-cron-is-an-anomaly-test
   (testing "a malformed expression is an anomaly, not a ParseException"
     (doseq [expr ["not a cron" "" "* * * * * *"]]

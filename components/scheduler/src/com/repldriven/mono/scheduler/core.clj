@@ -2,27 +2,54 @@
   (:require
     [com.repldriven.mono.error.interface :refer [try-nom]]
     [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.utility.interface :as util]
 
     [cronut :as cronut]
+    [cronut.job :as job]
     [cronut.trigger :as trigger])
   (:import
-    (java.util Date TimeZone)
-    (org.quartz CronExpression Job)))
+    (java.util Date Properties TimeZone)
+    (org.quartz CronExpression Job Scheduler)
+    (org.quartz.impl StdSchedulerFactory)))
 
 ;; All jobs we register share one Quartz group; the caller-supplied `id`
 ;; is the job name (unique within the group). cronut/Quartz keys a job by
 ;; (name, group).
 (def ^:private group "scheduler")
 
+(defn- properties
+  "Quartz properties for one scheduler. StdSchedulerFactory keys its
+  repository by instance name, so a fresh name per call is what makes
+  each start its own scheduler. The rest is what Quartz's bundled
+  defaults would set, which an explicit Properties does not inherit."
+  ^Properties [instance-name]
+  (doto (Properties.)
+    (.setProperty "org.quartz.scheduler.instanceName" instance-name)
+    (.setProperty "org.quartz.scheduler.skipUpdateCheck" "true")
+    (.setProperty "org.quartz.threadPool.threadCount" "10")))
+
 (defn start
-  "Create and start an in-memory cronut (Quartz) scheduler. Returns the
-  scheduler, which is passed back to `schedule` / `unschedule` / `stop`."
+  "Create and start an in-memory cronut (Quartz) scheduler of its own.
+  Returns the scheduler, which is passed back to `schedule` /
+  `unschedule` / `stop`.
+
+  Not cronut's `scheduler`, which returns Quartz's JVM-wide default:
+  every start in a JVM would share one scheduler, and any stop would
+  shut it down under the rest. Two systems in one JVM, or two tests,
+  each get their own."
   []
-  (try-nom :scheduler/start
-           "Failed to start scheduler"
-           (cronut/start
-            (cronut/scheduler {:concurrent-execution-disallowed? true
-                               :update-check? false}))))
+  (try-nom
+   :scheduler/start
+   "Failed to start scheduler"
+   (let [name (str "scheduler-" (util/random-suffix 12))
+         ^Scheduler scheduler (.getScheduler (StdSchedulerFactory.
+                                              (properties name)))]
+     ;; What cronut's `scheduler` sets on the default: every job runs
+     ;; with DisallowConcurrentExecution, and jobs are built from the
+     ;; instance registered rather than a class.
+     (.put (.getContext scheduler) "concurrentExecutionDisallowed?" "true")
+     (.setJobFactory scheduler (job/factory))
+     (cronut/start scheduler))))
 
 (defn stop
   [scheduler]

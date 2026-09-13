@@ -7,7 +7,8 @@
   register triggers against the instance.
 
   In-memory only (no persistence/clustering) — persist your own job and
-  run state, and run a single scheduler instance.
+  run state. Each `start` is a scheduler of its own, so two systems in
+  one JVM neither share jobs nor stop each other.
 
   Cron expressions arrive from configuration, so a malformed one is
   input rather than a bug: every function here returns an anomaly
