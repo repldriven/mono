@@ -1,0 +1,2 @@
+system:
+  smtp: !include testcontainers/mailpit-test.yml

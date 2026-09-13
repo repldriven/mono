@@ -1,0 +1,4 @@
+{:aliases {:test {:extra-deps {metosin/malli {:mvn/version "0.20.1"}}
+                  :extra-paths ["test" "test-resources"]}}
+ :deps {org.eclipse.angus/angus-mail {:mvn/version "2.0.5"}}
+ :paths ["src"]}
