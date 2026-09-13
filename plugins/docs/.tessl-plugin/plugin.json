@@ -1,6 +1,6 @@
 {
   "name": "mono/docs",
   "version": "0.1.0",
-  "description": "How to write or check anything under docs/: the recipe shape, wrap-80, link hygiene, mermaid, and tone, with the check-docs skill that verifies them. Built with Tessl.",
+  "description": "How to write or check anything under docs/: the shape of a recipe, ADR, TDD and PRD, wrap-80, link hygiene, mermaid, and tone, with the check-docs skill that verifies them. Built with Tessl.",
   "private": true
 }

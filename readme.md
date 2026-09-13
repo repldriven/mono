@@ -27,7 +27,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.27' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.28' \
   :name com.acme/my-thing
 ```
 
@@ -50,7 +50,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.27"
+         :git/tag "v0.0.28"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -58,7 +58,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.27"
+           :git/tag "v0.0.28"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
@@ -86,6 +86,10 @@ move; mono cuts a new one instead.
 ## Documentation
 
 - `docs/adr/` — architecture decisions, one per load-bearing choice.
+- `docs/prd/` — product requirements, one per capability a workspace
+  built on these bricks gets.
+- `docs/tdd/` — technical designs, the engineering contract behind
+  each PRD.
 - `docs/recipes/code/` — writing to these bricks: components, bases,
   projects, code style, common helpers, error handling, system
   components and system configurations.

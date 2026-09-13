@@ -31,12 +31,12 @@ markdown and reports findings.
   presentations) and `docs/plan/` (in-flight plans, often containing
   quoted REPL output).
 - `readme.md` and `CLAUDE.md` at the repo root, where they exist.
-- `docs/recipes/practices/writing-docs.md`, and a workspace's own
-  `writing-prds.md` beside it, are excluded from content-pattern checks
-  (paren-adjacent links, code-as-link-text, maturity overclaim,
-  competitor names, brittle-temporal) because they document those
-  patterns by design with "Bad" / "OK" examples. Both are still subject
-  to wrap and mermaid checks.
+- The `writing-*.md` recipes under `docs/recipes/practices/` are
+  excluded from content-pattern checks (paren-adjacent links,
+  code-as-link-text, maturity overclaim, competitor names,
+  brittle-temporal) because they document those patterns by design
+  with "Bad" / "OK" examples. They are still subject to wrap and
+  mermaid checks.
 - The competitor names refused are the workspace's own, one per line in
   `.config/check-docs/names`; without that file the check passes. The
   PRD checks run only where `docs/prd/` holds files.
@@ -50,7 +50,8 @@ base directory, reported when the skill loads — the installed copy under
 1. Run `bash <skill-dir>/checks.sh` from the repository root.
 2. Treat every section that says `PASS` as a clean check.
 3. For each `FAIL` section, map the file:line reference to the relevant
-   rule in `docs/recipes/practices/writing-docs.md`. The rules and their
+   rule in `docs/recipes/practices/writing-docs.md`, or in
+   `writing-prds.md` beside it for a PRD finding. The rules and their
    rationales live there; don't restate them, just follow them.
    - Suggest a fix that follows the recipe's "OK" pattern, not its
      "Bad" pattern.
@@ -67,8 +68,8 @@ base directory, reported when the skill loads — the installed copy under
    - For brittle-temporal findings, replace counts, datestamps and
      "recently" with timeless framings ("each", "the relevant", drop
      the count).
-   - For PRD findings, prefer the product register the workspace's own
-     register recipe lists over the engineering register.
+   - For PRD findings, prefer the product register `writing-prds.md`
+     lists over the engineering register.
 4. Report a summary: one line per check (`wrap: 0`,
    `mermaid-semicolon: 0`, `paren-adjacent: 1 in tdd/idempotency.md`,
    …), then for each non-empty check the file:line refs and a suggested

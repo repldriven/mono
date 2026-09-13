@@ -16,6 +16,9 @@ its `## Rules` / `## Decision` — you don't need to open the doc to
 rediscover that. Open it for the *why* behind the rule instead: Context,
 Consequences, Discussion.
 
+`docs/prd/` and `docs/tdd/` are the exception: nothing distills them,
+so open those in full before non-trivial work on their topic.
+
 ### Code
 
 - **Clojure code style** — naming, requires, destructuring, anon fns,
@@ -62,6 +65,9 @@ Consequences, Discussion.
 - **Code generation** — the prep-lib convention, for a workspace that
   needs it; no brick here generates code.
   See [ADR-0010](docs/adr/0010-code-generation-via-prep-lib.md).
+- **Mail** — sending email through the mail server an installation
+  names, and the `smtp` brick that will do it.
+  See [mail.md](docs/prd/mail.md) and [smtp.md](docs/tdd/smtp.md).
 
 ### Tests
 
@@ -86,9 +92,14 @@ Consequences, Discussion.
   capturing before piping, where a constant is declared, what a comment
   in a body is for.
   See [justfile-recipes.md](docs/recipes/practices/justfile-recipes.md).
-- **Writing docs** — the recipe shape, wrap at 80, link hygiene,
-  mermaid, tone; the `check-docs` skill that verifies them.
-  See [writing-docs.md](docs/recipes/practices/writing-docs.md).
+- **Writing docs** — wrap at 80, link hygiene, mermaid, tone; the
+  `check-docs` skill that verifies them; then what each kind of
+  document is made of.
+  See [writing-docs.md](docs/recipes/practices/writing-docs.md),
+  [writing-recipes.md](docs/recipes/practices/writing-recipes.md),
+  [writing-adrs.md](docs/recipes/practices/writing-adrs.md),
+  [writing-tdds.md](docs/recipes/practices/writing-tdds.md) and
+  [writing-prds.md](docs/recipes/practices/writing-prds.md).
 - **Tessl plugins** — the rules an agent loads, the roots they install
   from, profiles. See [plugins/README.md](plugins/README.md).
 

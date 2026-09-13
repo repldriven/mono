@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Doc-quality checks for a workspace whose docs follow
-#   docs/recipes/practices/writing-docs.md
+#   docs/recipes/practices/writing-docs.md and the writing-* recipes
+#   beside it (recipes, ADRs, TDDs, PRDs).
 # Prints PASS/FAIL per check; FAIL includes file:line refs.
 #
 # Runs from the repository root whatever the current directory. Two
@@ -34,12 +35,11 @@ done
 PRD_MD=( $(ls docs/prd/*.md 2>/dev/null) )
 ALL_MD=( "${DOCS_MD[@]}" "${TOP_MD[@]}" )
 
-# The writing-docs recipe, and a workspace's own register recipe
-# beside it, document the patterns this script checks for, by
-# design — they show "Bad" / "OK" pairs. Exclude them from
+# The writing-* recipes document the patterns this script checks
+# for, by design — they show "Bad" / "OK" pairs. Exclude them from
 # content-pattern checks (still subject to wrap and mermaid checks).
 PATTERN_MD=( $(printf '%s\n' "${ALL_MD[@]}" \
-                 | grep -v '^docs/recipes/practices/writing-\(docs\|prds\)\.md$') )
+                 | grep -v '^docs/recipes/practices/writing-[a-z]*\.md$') )
 
 section() {
   printf '\n### %s\n\n' "$1"
