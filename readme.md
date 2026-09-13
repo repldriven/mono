@@ -86,6 +86,10 @@ move; mono cuts a new one instead.
 ## Documentation
 
 - `docs/adr/` — architecture decisions, one per load-bearing choice.
+- `docs/prd/` — product requirements, one per capability a workspace
+  built on these bricks gets.
+- `docs/tdd/` — technical designs, the engineering contract behind
+  each PRD.
 - `docs/recipes/code/` — writing to these bricks: components, bases,
   projects, code style, common helpers, error handling, system
   components and system configurations.
