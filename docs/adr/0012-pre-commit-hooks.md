@@ -38,9 +38,14 @@ extensionless file there is a hook, installed under its own name; a
 
 - **`pre-commit`** formats staged Clojure files with zprint —
   auto-fix, the reformatted files restaged, configured by
-  `.zprint.edn` at 80 columns — and lints them with clj-kondo,
-  configured by `.clj-kondo/config.edn` including `lint-as` mappings
-  for the workspace's macros. A lint error blocks the commit.
+  `.zprint.edn` at 80 columns — lints them with clj-kondo, configured
+  by `.clj-kondo/config.edn` including `lint-as` mappings for the
+  workspace's macros, and scans them with the semgrep rules in
+  `.config/semgrep/semgrep.yml`: a raw `throw`, a raw time or id
+  primitive, `use-fixtures`, an entry point outside `bases/`, a broker
+  client outside its wrapper brick. A lint error or a finding blocks
+  the commit, unless the site carries `;; nosemgrep: <rule>` with a
+  reason on the line above.
 - **`post-checkout`** lays down the Tessl rules a fresh worktree does
   not carry: `.tessl/` is gitignored, so a new worktree has no
   `RULES.md` until `just tessl-plugins-install` has run there, and
@@ -94,6 +99,6 @@ Harder:
   the whole workspace and by CI.
 - Hooks are bypassable (`--no-verify`). The hook is a discipline,
   not enforcement. CI is the gate.
-- The hook depends on `zprint` and `clj-kondo` being available
-  locally. Both come in via project tooling, but a fresh setup
-  needs both before the hook is useful.
+- The hook depends on `zprint`, `clj-kondo` and `semgrep` being
+  available locally. All three come in via the dev shell, but a fresh
+  setup needs them before the hook is useful.

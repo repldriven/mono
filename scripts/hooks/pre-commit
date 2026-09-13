@@ -8,4 +8,5 @@ files=$(hook_staged_clojure_files)
 if [ -n "$files" ]; then
   hook_format "$files"
   hook_lint "$files"
+  hook_semgrep "$files" .config/semgrep/semgrep.yml
 fi

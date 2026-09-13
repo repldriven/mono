@@ -1,0 +1,8 @@
+# Build output / deps
+target/
+classes/
+node_modules/
+
+# Tessl eval fixtures deliberately contain guardrail violations (planted
+# throws etc.) — they are test inputs, not source, so never scan them.
+evals/

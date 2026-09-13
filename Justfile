@@ -11,11 +11,17 @@ POLY_PROFILES := "+realworld"
 # host's core count and starves the VM the containers run in.
 TEST_OPTS := "JDK_JAVA_OPTIONS=\"-XX:ActiveProcessorCount=$(n=$(docker info --format '{{.NCPU}}' 2>/dev/null); if [ \"${n:-0}\" -gt 0 ] 2>/dev/null; then echo \"$n\"; else nproc 2>/dev/null || sysctl -n hw.ncpu; fi)\""
 
+import 'justfiles/gas.just'
 import 'justfiles/hooks.just'
+import 'justfiles/lint.just'
 import 'justfiles/tessl.just'
 
 list:
     just --list
+
+# Prepare a fresh worktree: prep every brick that declares :deps/prep-lib.
+setup:
+    clojure -X:deps prep :aliases '[{{ DOMAIN_ALIASES }} :dev]'
 
 # Generate a throwaway workspace from the template and verify it end to end.
 # Uses the working copy rather than a published tag, so it can run before a

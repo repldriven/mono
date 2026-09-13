@@ -8,8 +8,10 @@ loads its rules from.
 Keep the git hooks checked in under `scripts/hooks/`: an extensionless
 file is a hook, a `.sh` file is a helper a hook sources. `pre-commit`
 formats staged Clojure files with zprint (auto-fix, restaged, configured
-by `.zprint.edn` at 80 columns) and lints them with clj-kondo (blocking,
-configured by `.clj-kondo/config.edn`); its steps are functions in
+by `.zprint.edn` at 80 columns), lints them with clj-kondo (blocking,
+configured by `.clj-kondo/config.edn`) and scans them with the semgrep
+rules in `.config/semgrep/semgrep.yml`, a finding blocking unless the
+site carries `;; nosemgrep: <rule>` with a reason; its steps are functions in
 `scripts/hooks/lib.sh`, which a downstream workspace's hook sources and
 surrounds with its own steps. `post-checkout` installs the Tessl rules a
 fresh worktree lacks. Install with `just install-hooks`, once per clone

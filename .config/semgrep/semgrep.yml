@@ -1,0 +1,91 @@
+# Lint rules for semgrep (generic/token mode — Clojure has no first-class
+# semgrep parser), run over changed .clj/.cljc by the pre-commit hook and
+# over a branch by `just lint-branch`. A workspace built on these bricks
+# runs this file and its own after it.
+#
+# What belongs here: a rule decidable from one file's tokens plus its
+# path. Semgrep gives those a per-site `nosemgrep` opt-out, so a
+# legitimate exception is marked where it lives instead of pushing the
+# whole rule down to advisory. A rule needing cross-file knowledge
+# cannot be expressed here.
+rules:
+  - id: no-raw-throw
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      Raw `throw`: exceptions must not escape a brick boundary — an
+      interface returns a value or an anomaly, never raises (ADR-0005).
+      Convert exceptions at library edges with `error/try-nom` /
+      `error/try-nom-ex`, or reject via `error/reject`. If a throw is
+      genuinely required (startup fatal, InterruptedException rethrow,
+      boundary conversion, test), mark it on the line above with
+      `;; nosemgrep: no-raw-throw — <reason>`.
+    patterns:
+      - pattern: (throw ...)
+    paths:
+      include:
+        - "*.clj"
+        - "*.cljc"
+
+  - id: no-raw-time-id
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      Raw time/id primitive: IDs and timestamps come from the `utility`
+      brick, the one permitted caller of the JDK. Use `utility/uuidv7` or
+      `utility/generate-id` for identifiers, `utility/now` for epoch
+      millis, `utility/now-rfc3339` for an RFC-3339 string,
+      `utility/today` for an epoch-day. Calling the JDK directly puts a
+      second, untestable clock in the system. If a raw call is genuinely
+      required, mark it on the line above with
+      `;; nosemgrep: no-raw-time-id — <reason>`.
+    pattern-regex: '\((?:random-uuid|(?:java\.util\.)?UUID/randomUUID|(?:java\.time\.)?Instant/now|System/currentTimeMillis)\)'
+    paths:
+      include:
+        - "*.clj"
+        - "*.cljc"
+      exclude:
+        - "/components/utility/**"
+
+  - id: no-use-fixtures
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      `use-fixtures`: tests manage system lifecycle with
+      `with-test-system` from the `test-system` brick, which scopes
+      setup to the test that needs it instead of to every test in the
+      namespace. Assert anomaly-freeness with `nom-test>`.
+    pattern-regex: '\buse-fixtures\b'
+    paths:
+      include:
+        - "**/test/**"
+
+  - id: main-outside-a-base
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      `-main` or `:gen-class` outside `bases/`: a base owns the
+      application entry point, and components are libraries it composes.
+    pattern-regex: '\((?:defn -main[^a-zA-Z0-9_-]|:gen-class\))'
+    paths:
+      include:
+        - "/components/**"
+
+  - id: message-bus-backend-direct
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      Broker client referenced directly: the message bus stays behind
+      the `message-bus` brick's `Producer` / `Consumer` protocols, which
+      is what lets a deployment swap Kafka for Pulsar or for the local
+      channels backend without touching a component (ADR-0003). Consume
+      the wrapper brick's interface, never the library (ADR-0011).
+    pattern-regex: 'org\.apache\.(?:kafka|pulsar)'
+    paths:
+      include:
+        - "*.clj"
+        - "*.cljc"
+      exclude:
+        - "/components/kafka/**"
+        - "/components/pulsar/**"
+        - "/components/pulsar-vault-crypto/**"

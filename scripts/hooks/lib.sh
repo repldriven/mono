@@ -30,3 +30,16 @@ hook_lint() {
   echo "Linting Clojure files..."
   echo "$1" | xargs clojure -M:lint/clj-kondo --lint
 }
+
+# Scan the given files with the semgrep rule files named after them. A
+# finding fails the commit unless its site carries `nosemgrep: <rule>`.
+hook_semgrep() {
+  local files=$1
+  shift
+  local configs=()
+  for c in "$@"; do
+    configs+=(--config "$c")
+  done
+  echo "Scanning with semgrep..."
+  echo "$files" | xargs semgrep "${configs[@]}" --error --disable-version-check
+}
