@@ -28,6 +28,14 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
+# --- A doc this repository tracks ------------------------------------------
+
+# A doc laid down beside ours from another workspace's pinned tree is
+# that workspace's to distil; its label names a plugin there, not here.
+tracked() {
+  git ls-files --error-unmatch -- "$1" >/dev/null 2>&1
+}
+
 # --- A doc's label, if any -------------------------------------------------
 
 # Anywhere in the front matter -- after the title, before the first
@@ -61,6 +69,7 @@ if [ "${1:-}" = "--unlabeled" ]; then
   # A chapter index is navigation, not a labelled doc.
   [ "$(basename "$f")" = "readme.md" ] && continue
     [ -f "$f" ] || continue
+    if ! tracked "$f"; then continue; fi
     if [ -z "$(doc_label "$f")" ]; then
       echo "unlabeled: $f"
       unlabeled_count=$((unlabeled_count + 1))
@@ -88,6 +97,7 @@ for f in docs/recipes/*/*.md docs/recipes/*.md docs/adr/*.md; do
   # A chapter index is navigation, not a labelled doc.
   [ "$(basename "$f")" = "readme.md" ] && continue
   [ -f "$f" ] || continue
+  if ! tracked "$f"; then continue; fi
   [ "$(doc_label "$f")" = "$PLUGIN" ] && LABELED+=("$f")
 done
 
