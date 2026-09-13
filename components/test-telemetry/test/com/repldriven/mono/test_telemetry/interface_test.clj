@@ -18,14 +18,22 @@
                       (let [otel (system/instance sys [:telemetry :otel-sdk])]
                         (is (some? (:sdk otel)))
                         (SUT/clear-spans! otel)
-                        (telemetry/with-span ["in-memory-work" {}] :done)
+                        ;; Through the instance's own tracer: the default
+                        ;; tracer is process-wide, and another namespace's
+                        ;; telemetry component may have taken it since
+                        ;; start.
+                        (telemetry/with-span {:name "in-memory-work"
+                                              :tracer (SUT/tracer otel)}
+                                             :done)
                         (is (contains? (span-names otel) "in-memory-work")))))
   (testing "and the collected spans do not outlive the component"
     (let [stopped (atom nil)]
       (with-test-system [sys "classpath:test-telemetry/application-test.yml"]
                         (let [otel (system/instance sys [:telemetry :otel-sdk])]
                           (reset! stopped otel)
-                          (telemetry/with-span ["before-stop" {}] :done)
+                          (telemetry/with-span {:name "before-stop"
+                                                :tracer (SUT/tracer otel)}
+                                               :done)
                           (is (seq (SUT/finished-spans otel)))))
       (is (empty? (SUT/finished-spans @stopped))))))
 

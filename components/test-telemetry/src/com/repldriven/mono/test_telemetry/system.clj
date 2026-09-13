@@ -21,7 +21,7 @@
                                         {:span-processors
                                          [(SimpleSpanProcessor/create
                                            exporter)]}})]
-      (span/set-default-tracer! (span/get-tracer))
+      (span/set-default-tracer! (span/get-tracer {:open-telemetry otel-sdk}))
       {:sdk otel-sdk :exporter exporter})))
 
 ;; Name this component-kind where a config names `telemetry/otel-sdk` and
