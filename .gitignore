@@ -56,3 +56,10 @@ projects/**/.lsp
 
 # Generated OpenAPI spec
 docs/openapi.yaml
+
+# Factory run output, rewritten by every run: requirements, plan, decomposition
+# and work-item notes for a build driven from the factory city.
+docs/plan/gaps/
+
+# Gas City per-machine rig state, written by the factory tooling.
+.gc/
