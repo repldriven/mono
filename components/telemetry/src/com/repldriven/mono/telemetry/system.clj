@@ -37,7 +37,8 @@
                                                  :tracer-provider
                                                  {:span-processors
                                                   [{:exporters [exporter]}]}})]
-               (span/set-default-tracer! (span/get-tracer))
+               (span/set-default-tracer! (span/get-tracer {:open-telemetry
+                                                           otel-sdk}))
                {:sdk otel-sdk :exporter exporter}))))))
    :system/stop (fn [{:system/keys [instance]}]
                   (when instance

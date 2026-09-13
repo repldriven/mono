@@ -15,6 +15,7 @@
     [com.repldriven.mono.jdbc.interface :as jdbc]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
+    [com.repldriven.mono.utility.interface :as util]
 
     [clojure.set :as set]
     [clojure.test :refer [deftest is testing]]))
@@ -67,7 +68,7 @@
   "A suffix so a test's fixtures cannot collide with another's, since the
   container is shared across the namespace."
   []
-  (subs (str (random-uuid)) 24))
+  (util/random-suffix 12))
 
 (defn- with-store
   [f]
@@ -211,7 +212,7 @@
   [store author title tags]
   (SUT/create-article store
                       {:author-id (:id author)
-                       :slug (str "slug-" (subs (str (random-uuid)) 0 13))
+                       :slug (str "slug-" (util/random-suffix 12))
                        :title title
                        :description "d"
                        :body "b"
@@ -392,8 +393,8 @@
   [dispatcher command payload]
   (command/send dispatcher
                 {:command command
-                 :id (str (random-uuid))
-                 :correlation-id (str (random-uuid))
+                 :id (str (util/uuidv7))
+                 :correlation-id (str (util/uuidv7))
                  :payload payload}))
 
 (deftest command-path-test

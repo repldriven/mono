@@ -20,12 +20,13 @@
   under sdk-lock."
   []
   (GlobalOpenTelemetry/resetForTest)
-  (sdk/init-otel-sdk! "test"
-                      {:register-shutdown-hook false
-                       :tracer-provider {:span-processors
-                                         [(SimpleSpanProcessor/create
-                                           shared-exporter)]}})
-  (span/set-default-tracer! (span/get-tracer)))
+  (let [otel-sdk (sdk/init-otel-sdk! "test"
+                                     {:register-shutdown-hook false
+                                      :tracer-provider
+                                      {:span-processors
+                                       [(SimpleSpanProcessor/create
+                                         shared-exporter)]}})]
+    (span/set-default-tracer! (span/get-tracer {:open-telemetry otel-sdk}))))
 
 (def ^:private await-tries 100)
 (def ^:private await-interval-ms 20)

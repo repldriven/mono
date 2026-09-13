@@ -175,7 +175,7 @@
                   (jwt/sign (client-assertion-claims
                              {:client-id client-id
                               :audience (assertion-audience config)
-                              :jti (str (random-uuid))
+                              :jti (str (util/uuidv7))
                               :now-ms (util/now)})
                             (buddy-keys/private-key private-key-file)
                             {:alg :rs256}))

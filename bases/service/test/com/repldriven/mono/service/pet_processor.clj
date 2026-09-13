@@ -2,7 +2,8 @@
   (:require
     [com.repldriven.mono.avro.interface :as avro]
     [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
-    [com.repldriven.mono.processor.interface :as processor]))
+    [com.repldriven.mono.processor.interface :as processor]
+    [com.repldriven.mono.utility.interface :as util]))
 
 (defn- ->response
   [config result]
@@ -19,7 +20,7 @@
 (defn- create
   [pets data]
   (let [{:keys [name species age-months]} data
-        pet {:pet-id (str (java.util.UUID/randomUUID))
+        pet {:pet-id (str (util/uuidv7))
              :name name
              :species species
              :age-months age-months}]

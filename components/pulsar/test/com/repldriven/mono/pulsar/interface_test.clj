@@ -9,6 +9,7 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system]]
+    [com.repldriven.mono.utility.interface :as util]
     [clojure.core.async :as async]
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]]))
@@ -94,7 +95,7 @@
   "Five events for each of two entities, interleaved, so an unkeyed send
   cannot be rescued by send order."
   []
-  (let [correlation-id (str (random-uuid))]
+  (let [correlation-id (str (util/uuidv7))]
     (vec (for [n (range 5)
                id causation-ids]
            (event/envelope (str "event-" n) id correlation-id)))))
@@ -153,7 +154,7 @@
          attempts (atom 0)
          received (promise)
          envelope
-         (event/envelope "party-registered" "party-1" (str (random-uuid)))]
+         (event/envelope "party-registered" "party-1" (str (util/uuidv7)))]
      (testing "a handler that returns an anomaly gets the event again"
        ;; The Pulsar consumer negative-acknowledges on a throw, so the
        ;; anomaly `event/process` now rethrows becomes a redelivery here

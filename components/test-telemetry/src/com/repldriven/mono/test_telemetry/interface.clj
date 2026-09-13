@@ -27,6 +27,15 @@
   [instance]
   (core/clear-spans! instance))
 
+(defn tracer
+  "The tracer of an in-memory telemetry instance's own SDK.
+
+  Takes the `test-telemetry/otel-sdk` system instance. A span created
+  with it lands in that instance's exporter whatever the default tracer
+  is at the time. Returns nil for any other telemetry instance."
+  [instance]
+  (core/tracer instance))
+
 (defmacro with-span-tests
   "Run body under an in-memory OTel SDK, then automatically assert:
    - Each name in expected-names has a corresponding finished span

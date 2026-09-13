@@ -45,6 +45,7 @@
     (let [semaphore (Semaphore. 1 true)]
       (is (thrown? Exception
                    (core/with-permit semaphore
+                                     ;; nosemgrep: no-raw-throw — a test
                                      (fn [] (throw (ex-info "boom" {}))))))
       (is (= 1 (.availablePermits semaphore))))))
 

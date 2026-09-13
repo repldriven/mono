@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.auth.token
   (:require
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
+    [com.repldriven.mono.utility.interface :as util]
 
     [buddy.sign.jwt :as jwt]))
 
@@ -8,7 +9,7 @@
 
 (defn- now-seconds
   []
-  (quot (System/currentTimeMillis) 1000))
+  (quot (util/now) 1000))
 
 (defn sign
   [signer claims]

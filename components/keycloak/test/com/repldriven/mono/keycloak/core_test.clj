@@ -2,6 +2,8 @@
   (:require
     [com.repldriven.mono.keycloak.core :as SUT]
 
+    [com.repldriven.mono.utility.interface :as util]
+
     [buddy.core.keys :as buddy-keys]
     [buddy.sign.jwt :as jwt]
 
@@ -52,8 +54,7 @@
           claims (SUT/client-assertion-claims {:client-id "queenswood-admin"
                                                :audience "https://kc/token"
                                                :jti "a-jti"
-                                               :now-ms
-                                               (System/currentTimeMillis)})
+                                               :now-ms (util/now)})
           token (jwt/sign claims (buddy-keys/private-key path) {:alg :rs256})]
       (is (string? token))
       (is (= "queenswood-admin"
