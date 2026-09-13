@@ -220,6 +220,12 @@ relying on ours.
 | `http-client` | All of http-kit's client, returning anomalies; `-async` twins    | `http-kit`         | Facade  |
 | `server`      | Jetty with interceptor-based dependency injection and OpenAPI    | `reitit`, `jetty9` | Curated |
 
+### Mail
+
+| Component | Purpose                                           | Library      | Kind    |
+| --------- | ------------------------------------------------- | ------------ | ------- |
+| `smtp`    | Sending email over SMTP submission, text and HTML | `angus-mail` | Curated |
+
 ### Security & Cryptography
 
 | Component             | Purpose                                             | Library        | Kind        |

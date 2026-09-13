@@ -17,7 +17,7 @@
   {:from "sender@example.test"
    :to ["a@example.test" "b@example.test"]
    :cc ["c@example.test"]
-   :bcc ["d@example.test"]
+   :bcc ["hidden@example.test"]
    :reply-to "replies@example.test"
    :subject "Welcome"
    :text "Hello"})
@@ -36,7 +36,7 @@
       (is (= "Welcome" (header text "Subject"))))
     (testing "the Bcc header is omitted"
       (is (nil? (header text "Bcc")))
-      (is (not (str/includes? text "d@example.test"))))
+      (is (not (str/includes? text "hidden@example.test"))))
     (testing "the Message-ID is a uuid at the from domain"
       (is (re-matches #"<[0-9a-f-]{36}@example.test>"
                       (header text "Message-ID"))))))
