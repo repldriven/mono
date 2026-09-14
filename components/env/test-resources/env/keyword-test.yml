@@ -1,0 +1,5 @@
+system:
+  from-literal: !keyword starttls
+  from-sequence: !keyword [none]
+  from-env: !keyword [!or [!env MONO_TEST_KEYWORD_ABSENT, tls]]
+  or-alone: !or [!env MONO_TEST_KEYWORD_ABSENT, "tls"]

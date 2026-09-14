@@ -96,7 +96,10 @@ structures at load time.
 - **`!env <NAME>`** — reads an environment variable.
 - **`!or`, `!long`, `!keyword`, `!str`, `!join`, `!concat`** — aero's
   and this reader's value tags: a default for a missing variable, a
-  string coerced to a number or keyword, strings joined.
+  string coerced to a number or keyword, strings joined. `!long` and
+  `!keyword` coerce another tag's value when it is their one-item
+  sequence, since YAML allows no tag on a tagged scalar:
+  `!keyword [!or [!env SMTP_SECURITY, starttls]]`.
 - **`!strs`** — forces string keys on the subtree below. Used when a
   config map's keys must be strings.
 

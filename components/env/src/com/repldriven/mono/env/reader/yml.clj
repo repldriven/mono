@@ -64,7 +64,14 @@
   [{:keys [value]}]
   (symbol (str "#uuid " (pr-str value))))
 
-(defmethod yml-reader :!keyword [{:keys [value]}] (keyword value))
+;; `!keyword none`, or `!keyword [!or [!env SECURITY, starttls]]` to wrap
+;; another tag, as `!long` does: the sequence form defers to aero's
+;; `#keyword`, so the keyword is made from what the inner tags resolve to.
+(defmethod yml-reader :!keyword
+  [{:keys [value]}]
+  (if (sequential? value)
+    (symbol (str "#keyword " (first value)))
+    (keyword value)))
 
 (defmethod yml-reader :!keywords
   [{:keys [value]}]
