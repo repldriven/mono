@@ -38,7 +38,7 @@ functions returning values or anomalies.
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/icons/web-http-dark.svg" /><img src="docs/assets/icons/web-http.svg" alt="Web &amp; HTTP" title="Web &amp; HTTP" width="48" height="48" /></picture>
   &nbsp;&nbsp;&nbsp;
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/icons/mail-dark.svg" /><img src="docs/assets/icons/mail.svg" alt="Mail" title="Mail" width="48" height="48" /></picture>
-  <br /><br />
+  &nbsp;&nbsp;&nbsp;
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/icons/security-dark.svg" /><img src="docs/assets/icons/security.svg" alt="Security &amp; Cryptography" title="Security &amp; Cryptography" width="48" height="48" /></picture>
   &nbsp;&nbsp;&nbsp;
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/icons/serialisation-dark.svg" /><img src="docs/assets/icons/serialisation.svg" alt="Serialisation" title="Serialisation" width="48" height="48" /></picture>
