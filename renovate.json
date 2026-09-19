@@ -63,7 +63,8 @@
       "enabled": false,
       "matchPackageNames": [
         "io.opentelemetry:opentelemetry-sdk-testing",
-        "io.opentelemetry:opentelemetry-exporter-otlp"
+        "io.opentelemetry:opentelemetry-exporter-otlp",
+        "io.opentelemetry:opentelemetry-exporter-sender-jdk"
       ]
     },
     {
