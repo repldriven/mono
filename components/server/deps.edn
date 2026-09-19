@@ -1,6 +1,6 @@
 {:aliases {:test {:extra-deps {}
                      :extra-paths ["test" "test-resources"]}}
- :deps {metosin/reitit {:mvn/version "0.10.1"}
+ :deps {metosin/reitit {:mvn/version "0.11.0"}
         ;; router.clj requires malli.error directly. reitit happens to bring
         ;; malli too, but depending on that is depending on reitit's bundling
         ;; rather than on malli.
