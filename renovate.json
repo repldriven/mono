@@ -143,6 +143,15 @@
       ]
     },
     {
+      "groupName": "npm",
+      "matchManagers": [
+        "npm",
+        "pnpm"
+      ],
+      "separateMajorMinor": false,
+      "separateMinorPatch": false
+    },
+    {
       "groupName": "github-actions",
       "matchManagers": [
         "github-actions"
