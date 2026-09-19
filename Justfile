@@ -12,6 +12,7 @@ POLY_PROFILES := "+realworld"
 TEST_OPTS := "JDK_JAVA_OPTIONS=\"-XX:ActiveProcessorCount=$(n=$(docker info --format '{{.NCPU}}' 2>/dev/null); if [ \"${n:-0}\" -gt 0 ] 2>/dev/null; then echo \"$n\"; else nproc 2>/dev/null || sysctl -n hw.ncpu; fi)\""
 
 import 'justfiles/gas.just'
+import 'justfiles/github.just'
 import 'justfiles/hooks.just'
 import 'justfiles/lint.just'
 import 'justfiles/nvd.just'
