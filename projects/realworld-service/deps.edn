@@ -26,7 +26,7 @@
                                     "../../components/realworld-store"}
         bases/realworld-api {:local/root "../../bases/realworld-api"}
         org.postgresql/postgresql {:mvn/version "42.7.13"}
-        org.clojure/clojure {:mvn/version "1.12.5"}}
+        org.clojure/clojure {:mvn/version "1.12.6"}}
  :aliases
  {:test
   {:extra-deps

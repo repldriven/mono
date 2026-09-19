@@ -78,7 +78,7 @@
   {:local/root "../../components/utility"}
   com.repldriven.mono.components/vault {:local/root "../../components/vault"}
 
-  org.clojure/clojure {:mvn/version "1.12.5"}}
+  org.clojure/clojure {:mvn/version "1.12.6"}}
 
  ;; Aliases are invisible to a git-dep consumer. This one exists so that
  ;; `poly check` can satisfy the test context and `poly test project:mono-lib`
