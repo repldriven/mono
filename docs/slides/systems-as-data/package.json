@@ -2,14 +2,14 @@
   "name": "systems_as_data",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@11.17.0",
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
     "build": "slidev build",
     "dev": "slidev --open",
     "export": "slidev export"
   },
   "dependencies": {
-    "@slidev/cli": "^52.18.0",
+    "@slidev/cli": "^53.0.0",
     "@slidev/theme-default": "latest",
     "@slidev/theme-seriph": "latest",
     "slidev-theme-catppuccin-macchiato": "^0.1.0",
