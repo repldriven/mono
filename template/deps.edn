@@ -8,5 +8,5 @@
 ;; lazily through tools.gitlibs, which populates the same ~/.gitlibs checkout a
 ;; real dependency resolution would use.
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.12.5"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.6"}
         org.clojure/tools.gitlibs {:mvn/version "2.6.217"}}}

@@ -1,4 +1,4 @@
 {:paths ["src"]
- :deps {org.clojure/core.cache {:mvn/version "1.2.263"}}
+ :deps {org.clojure/core.cache {:mvn/version "1.2.999"}}
  :aliases {:test {:extra-paths ["test"]
                   :extra-deps {}}}}
