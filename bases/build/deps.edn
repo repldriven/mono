@@ -1,7 +1,9 @@
 {:aliases {:test {:extra-deps {} :extra-paths ["test"]}}
+ ;; tools.build publishes to Maven Central, so it needs no sha, and exclusions
+ ;; apply there: it ships slf4j-nop, which would otherwise win SLF4J's
+ ;; sole-provider race against logback and silence every log call
  :deps {io.github.clojure/tools.build
-        {:git/sha "1176afd38dc39cb1880bd990d85718d4a61e194d"
-         :git/tag "v0.10.14"}
+        {:mvn/version "0.10.14" :exclusions [org.slf4j/slf4j-nop]}
         io.github.seancorfield/build-clj
         {:deps/root "slim" :git/sha "9c9f078" :git/tag "v0.9.2"}
         ;; build-uber-log4j2-handler (via build-clj) ships log4j-core

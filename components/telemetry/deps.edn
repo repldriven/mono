@@ -8,5 +8,10 @@
         io.opentelemetry/opentelemetry-exporter-otlp
         {:mvn/version "1.54.1"
          :exclusions [io.opentelemetry/opentelemetry-exporter-sender-okhttp]}
-        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.66.0"}
+        ;; Every OpenTelemetry artifact here stays on the version clj-otel
+        ;; builds against: sdk-trace 1.54.1 calls into sdk-internal classes a
+        ;; newer sdk-common no longer has, so a lone bump of any one of them
+        ;; fails every tracer provider at class init. Renovate is disabled for
+        ;; them, and they move together when clj-otel itself moves
+        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.54.1"}
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}}}

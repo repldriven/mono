@@ -40,7 +40,8 @@
 
   :poly
   {:extra-deps
-   {polylith/clj-poly {:mvn/version "0.3.32"}
+   {polylith/clj-poly {:mvn/version "0.3.32"
+                       :exclusions [org.slf4j/slf4j-nop]}
     com.repldriven.mono/external-test-runner
     {{mono/test-runner-coord}}}
    :main-opts ["-m" "polylith.clj.core.poly-cli.core"]}
