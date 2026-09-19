@@ -1,5 +1,9 @@
 {:paths ["src" "resources"]
- :deps {polylith/clj-poly {:mvn/version "0.3.33"}
+ ;; clj-poly brings slf4j-nop, and SLF4J picks one provider with no say
+ ;; from us — on the test runner's classpath it silences logback and every
+ ;; test runs with no logs at all
+ :deps {polylith/clj-poly {:mvn/version "0.3.33"
+                           :exclusions [org.slf4j/slf4j-nop]}
         io.github.seancorfield/polylith-external-test-runner
         {:git/tag "v0.9.1" :git/sha "db3d338b93ae523dbf3b23298981cc277754649d" :deps/root "projects/runner"}
         cloverage/cloverage {:mvn/version "1.2.4"}

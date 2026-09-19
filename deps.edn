@@ -125,7 +125,8 @@
                       "nrepl.cmdline"
                       "--middleware"
                       "[cider.nrepl/cider-middleware]"]}
-  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.3.33"}
+  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.3.33"
+                                         :exclusions [org.slf4j/slf4j-nop]}
                       bases/external-test-runner {:local/root
                                                   "bases/external-test-runner"}}
          :main-opts ["-m" "polylith.clj.core.poly-cli.core"]}
