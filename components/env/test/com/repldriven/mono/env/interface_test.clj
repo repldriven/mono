@@ -48,6 +48,16 @@
     (testing "!or alone falls back without coercing"
       (is (= "fallback" (get-in config [:system :or-alone]))))))
 
+(deftest keyword-tag-test
+  (let [config (SUT/config "classpath:env/keyword-test.yml" :default)]
+    (testing "!keyword reads a scalar, and a one-item sequence"
+      (is (= :starttls (get-in config [:system :from-literal])))
+      (is (= :none (get-in config [:system :from-sequence]))))
+    (testing "!keyword wraps !or, so an env var can have a default and a type"
+      (is (= :tls (get-in config [:system :from-env]))))
+    (testing "!or alone falls back without coercing"
+      (is (= "tls" (get-in config [:system :or-alone]))))))
+
 (def ^:private parsed-uuid #uuid "0192f4e2-8f7a-7c3d-9b1e-2a4c6e8f0a1b")
 
 (deftest uuid-tag-test

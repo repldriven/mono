@@ -6,7 +6,7 @@
         ;; rather than on malli.
         metosin/malli {:mvn/version "0.20.1"}
         ring-logger-timbre/ring-logger-timbre {:mvn/version "0.7.6"}
-        info.sunng/ring-jetty9-adapter {:mvn/version "0.40.2"}
+        info.sunng/ring-jetty9-adapter {:mvn/version "0.40.4"}
         ring/ring-json {:mvn/version "0.5.1"
                         :exclusions [cheshire/cheshire]}
         ;; Pin cheshire to 6.1.0: ring-json 0.5.1 ships 5.10.0 which brings
