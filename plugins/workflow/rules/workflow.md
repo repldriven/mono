@@ -22,9 +22,7 @@ Cut a branch with `just gh-fresh-branch <name>`, commit and raise with
 `just gh-commit-and-pr <title> [body]`, and land with `just gh-merge`:
 each refuses rather than guesses — on a dirty tree, an existing branch
 name, a commit on `main`, a path that looks like a credential, or a PR
-that is closed or aimed at anything but `main`. Where a workspace
-publishes images, `just gh-prune-untagged` deletes orphan container
-versions from GHCR without breaking a multi-arch index.
+that is closed or aimed at anything but `main`.
 See [git-workflow](../../../docs/recipes/practices/git-workflow.md).
 
 ## The pre-commit hook formats and lints before CI sees it

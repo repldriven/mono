@@ -97,9 +97,9 @@ discovered):
 
 ### Branch, commit and merge through `just`
 
-Three recipes in `justfiles/github.just` carry the branch-to-merge
-round trip, each refusing rather than guessing when the repository is
-not in the state it expects.
+Three recipes in `justfiles/gh.just` carry the branch-to-merge round
+trip, each refusing rather than guessing when the repository is not in
+the state it expects.
 
 `just gh-fresh-branch <name>` fetches and cuts `<name>` from
 `origin/main`. It branches from the remote ref rather than local
@@ -124,13 +124,6 @@ not open, and on one targeting anything but `main`: a PR stacked on
 another branch merges its parent's commits too, and strands the rest
 when the parent lands separately.
 
-`just gh-prune-untagged` deletes the owner's orphan container versions
-from GHCR, for a workspace that publishes images. It builds the keep
-set before deleting anything: a tagged multi-arch index refers to
-per-platform manifests that are themselves untagged, and deleting one
-breaks the index. It needs a token carrying `delete:packages`, and says
-how to refresh one when it is missing.
-
 ## Rules
 
 **MUST:**
@@ -138,8 +131,7 @@ how to refresh one when it is missing.
 - Pull/merge from `main` before committing.
 - Cut a branch with `just gh-fresh-branch <name>`, commit and raise
   with `just gh-commit-and-pr <title> [body]`, and land with
-  `just gh-merge`. Prune orphan container versions with
-  `just gh-prune-untagged`.
+  `just gh-merge`.
 - Resolve conflicts with Renovate-managed files (`deps.edn`,
   `.github/workflows/*`, `flake.lock`) before pushing.
 - Stage user-initiated deletions and moves with `git add` — not

@@ -2,7 +2,7 @@ set shell := ["zsh", "-cu"]
 
 DOMAIN_ALIASES := ":+realworld"
 
-import 'justfiles/github.just'
+import 'justfiles/gh.just'
 
 list:
     just --list
