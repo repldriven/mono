@@ -35,9 +35,11 @@
     components/test-system {:local/root "../../components/test-system"}
     components/testcontainers {:local/root "../../components/testcontainers"}
     bases/external-test-runner {:local/root
-                                "../../bases/external-test-runner"}}}
-  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.12"}}
-          :extra-deps {bases/build {:local/root "../../bases/build"}}
+                                "../../bases/external-test-runner"}}
+   ;; logback-test.xml lives here, not in resources: a config on the
+   ;; deployment's own path ships inside the uberjar
+   :extra-paths ["test-resources"]}
+  :build {:extra-deps {bases/build {:local/root "../../bases/build"}}
           :ns-default com.repldriven.mono.build.build
           :exec-args {:lib com.repldriven.mono/realworld-service
                       :main com.repldriven.mono.realworld-api.main}}}}

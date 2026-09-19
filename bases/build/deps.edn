@@ -3,10 +3,5 @@
  ;; apply there: it ships slf4j-nop, which would otherwise win SLF4J's
  ;; sole-provider race against logback and silence every log call
  :deps {io.github.clojure/tools.build
-        {:mvn/version "0.10.14" :exclusions [org.slf4j/slf4j-nop]}
-        io.github.seancorfield/build-clj
-        {:deps/root "slim" :git/sha "9c9f078" :git/tag "v0.9.2"}
-        ;; build-uber-log4j2-handler (via build-clj) ships log4j-core
-        ;; exclusions don't apply to git deps - pin directly to avoid CVEs
-        org.apache.logging.log4j/log4j-core {:mvn/version "2.26.1"}}
+        {:mvn/version "0.10.14" :exclusions [org.slf4j/slf4j-nop]}}
  :paths ["src" "resources"]}
