@@ -8,5 +8,5 @@
         io.opentelemetry/opentelemetry-exporter-otlp
         {:mvn/version "1.54.1"
          :exclusions [io.opentelemetry/opentelemetry-exporter-sender-okhttp]}
-        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.54.1"}
+        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.66.0"}
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}}}
