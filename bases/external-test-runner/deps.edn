@@ -1,5 +1,5 @@
 {:paths ["src" "resources"]
- :deps {polylith/clj-poly {:mvn/version "0.3.32"}
+ :deps {polylith/clj-poly {:mvn/version "0.3.33"}
         io.github.seancorfield/polylith-external-test-runner
         {:git/tag "v0.8.0" :git/sha "2ad770c036f3e599b7b53fa1931898ccccfcb4a1" :deps/root "projects/runner"}
         cloverage/cloverage {:mvn/version "1.2.4"}
