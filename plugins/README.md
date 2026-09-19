@@ -21,8 +21,10 @@ cite.
   `sync-rules-from-docs` skill that keeps a rule traceable to its docs.
 
 `plugins/profiles` names which plugins a profile links. `just
-tessl-plugins-install` installs every plugin from the working tree and
-lays the active profile down in `.tessl/RULES.md`; `just
+tessl-plugins-install` installs every plugin from the working tree in
+one pass and lays the active profile down in `.tessl/RULES.md`, and
+does nothing where no file under a root has changed since the last
+install, which it records as a hash in `.tessl/SOURCES`; `just
 tessl-plugins-check` reports an installed copy behind its source.
 
 A workspace that installs these plugins beside its own sets
