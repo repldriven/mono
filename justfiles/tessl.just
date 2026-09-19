@@ -5,19 +5,27 @@
 TESSL_PLUGIN_ROOTS := env_var_or_default("TESSL_PLUGIN_ROOTS", "plugins")
 TESSL_PROFILES := "plugins/profiles"
 
-# Install every plugin under each root from the working tree, then re-lay the active profile.
+# Install every plugin under each root from the working tree in one pass, then re-lay the active profile; does nothing when no source changed since the last install.
 tessl-plugins-install:
     #!/usr/bin/env zsh
     set -e
+    SOURCES=()
     for root in {{ TESSL_PLUGIN_ROOTS }}; do
       if [[ ! -d $root ]]; then
         echo "no plugin root $root"
         exit 1
       fi
       for d in $root/*/; do
-        tessl install "file:./${d%/}"
+        SOURCES+=("file:./${d%/}")
       done
     done
+    HASHES=$(find {{ TESSL_PLUGIN_ROOTS }} -type f -exec shasum {} +)
+    STAMP=$(print -r -- "$HASHES" | LC_ALL=C sort | shasum | cut -d' ' -f1)
+    if [[ -f .tessl/RULES.md && -f .tessl/SOURCES && $(cat .tessl/SOURCES) == "$STAMP" ]]; then
+      echo "Tessl plugins match their sources"
+      exit 0
+    fi
+    tessl install $SOURCES
     PROFILE=default
     if [[ -f .tessl/PROFILE ]]; then
       PROFILE=$(cat .tessl/PROFILE)
@@ -25,6 +33,7 @@ tessl-plugins-install:
     # tessl install rewrites RULES.md with every plugin, so the active
     # profile has to be laid back down after it.
     just tessl-profile name="$PROFILE"
+    echo "$STAMP" > .tessl/SOURCES
 
 # Link one profile's rules from .tessl/RULES.md. name: a profile in plugins/profiles, `default` among them.
 tessl-profile name="default":
