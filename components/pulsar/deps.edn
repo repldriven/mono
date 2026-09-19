@@ -8,6 +8,6 @@
  :deps {org.clojure/core.async {:mvn/version "1.9.865"}
         com.github.ben-manes.caffeine/caffeine {:mvn/version "3.2.4"}
         org.apache.pulsar/pulsar-client-all
-        {:mvn/version "4.2.3" :exclusions [org.bouncycastle/bcprov-ext-jdk18on]}
+        {:mvn/version "4.2.4" :exclusions [org.bouncycastle/bcprov-ext-jdk18on]}
         org.clojure/java.data {:mvn/version "1.4.120"}}
  :paths ["src"]}
