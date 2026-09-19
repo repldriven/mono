@@ -1,14 +1,14 @@
 {:aliases {:test {:extra-deps [] :extra-paths ["test"]}}
  :deps {org.clojure/tools.logging {:mvn/version "1.3.1"}
-        org.slf4j/slf4j-api {:mvn/version "2.0.18"}
+        org.slf4j/slf4j-api {:mvn/version "2.0.19"}
         ;; use logback for the slf4j logging backend
-        ch.qos.logback/logback-classic {:mvn/version "1.6.0"}
+        ch.qos.logback/logback-classic {:mvn/version "1.6.3"}
         ;; json encoder for logback
         net.logstash.logback/logstash-logback-encoder {:mvn/version "9.0"}
         ;; redirect logging to the slf4j frontend
-        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.18"}
-        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.18"}
+        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.19"}
+        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.19"}
         org.apache.logging.log4j/log4j-to-slf4j {:mvn/version "2.26.1"}
-        org.slf4j/osgi-over-slf4j {:mvn/version "2.0.18"}
-        org.slf4j/jul-to-slf4j {:mvn/version "2.0.18"}}
+        org.slf4j/osgi-over-slf4j {:mvn/version "2.0.19"}
+        org.slf4j/jul-to-slf4j {:mvn/version "2.0.19"}}
  :paths ["src"]}
