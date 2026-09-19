@@ -95,11 +95,43 @@ discovered):
    next Renovate PR can either close (if you've already landed the same
    bump) or merge cleanly (if Renovate goes higher).
 
+### Branch, commit and merge through `just`
+
+Three recipes in `justfiles/gh.just` carry the branch-to-merge round
+trip, each refusing rather than guessing when the repository is not in
+the state it expects.
+
+`just gh-fresh-branch <name>` fetches and cuts `<name>` from
+`origin/main`. It branches from the remote ref rather than local
+`main`, because `main` may be checked out in another worktree and git
+refuses to check out one branch twice. It stops on a dirty tree, since
+uncommitted work is the user's to keep or discard, and on a name that
+already exists locally or on the remote.
+
+`just gh-commit-and-pr <title> [body]` stages everything, commits,
+pushes and opens a PR against `main` — or, where the branch already has
+an open PR, adds the commit to it. It pushes with `-u origin HEAD`
+because `gh-fresh-branch` leaves the upstream at `origin/main`, which a
+bare `git push` would aim the work at. It refuses on `main`, with
+nothing to commit, and on a path that looks like a credential
+(`.env`, `credentials*`, `*.key`, `*.pem`, `*.pfx`, `*.p12`), with
+`.env.example` exempt as a template.
+
+`just gh-merge` squash-merges the current branch's PR. The org ruleset
+requires linear history, hence the squash, and `--admin` bypasses the
+review rule a solo author cannot satisfy. It refuses on a PR that is
+not open, and on one targeting anything but `main`: a PR stacked on
+another branch merges its parent's commits too, and strands the rest
+when the parent lands separately.
+
 ## Rules
 
 **MUST:**
 
 - Pull/merge from `main` before committing.
+- Cut a branch with `just gh-fresh-branch <name>`, commit and raise
+  with `just gh-commit-and-pr <title> [body]`, and land with
+  `just gh-merge`.
 - Resolve conflicts with Renovate-managed files (`deps.edn`,
   `.github/workflows/*`, `flake.lock`) before pushing.
 - Stage user-initiated deletions and moves with `git add` — not

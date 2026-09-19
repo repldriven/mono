@@ -26,11 +26,12 @@
 
 (defn- explain->detail
   "Turns a reitit coercion `ex-data` map into a `:detail` string.
-  Prefers `malli.error/humanize`, but that throws
-  `IllegalArgumentException: Key must be integer` when an error's
-  `:in` path contains a non-integer segment (e.g. a bad element
-  inside a `:set`). On that failure, fall back to a compact list of
-  `{:in :value :schema}` fragments derived from `:errors`."
+  Prefers `malli.error/humanize`, which throws
+  `IllegalArgumentException: Key must be integer` when an error's `:in`
+  path holds a non-integer segment against a sequential value — a
+  `:set`-valued schema sent a JSON array puts the offending element
+  there. On that failure, fall back to a compact list of
+  `{:in :value :schema}` fragments, so what a client sent stays a 400."
   [{:keys [schema value errors]}]
   (try (pr-str (me/humanize {:schema schema :value value :errors errors}))
        (catch Exception _

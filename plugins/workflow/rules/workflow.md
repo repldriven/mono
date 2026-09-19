@@ -18,6 +18,11 @@ user-initiated deletion or move with `git add` (`-u` or `-A`), never
 Never develop new features inside the user's untracked drafts; do
 include them in workspace-wide operations (rename, dead-code cleanup,
 regeneration) so the tree stays consistent, and report what was touched.
+Cut a branch with `just gh-fresh-branch <name>`, commit and raise with
+`just gh-commit-and-pr <title> [body]`, and land with `just gh-merge`:
+each refuses rather than guesses — on a dirty tree, an existing branch
+name, a commit on `main`, a path that looks like a credential, or a PR
+that is closed or aimed at anything but `main`.
 See [git-workflow](../../../docs/recipes/practices/git-workflow.md).
 
 ## The pre-commit hook formats and lints before CI sees it
