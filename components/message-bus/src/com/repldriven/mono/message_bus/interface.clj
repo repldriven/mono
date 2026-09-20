@@ -24,7 +24,18 @@
    (core/send bus producer-name message opts)))
 
 (defn subscribe
+  "Subscribe `handler-fn` to the named consumer, and return the
+  subscription.
+
+  Every subscriber on a consumer receives every message, as a broker
+  gives each of its own subscriptions a copy. Pass the returned value to
+  `unsubscribe` to stop this subscription alone."
   [bus consumer-name handler-fn]
   (core/subscribe bus consumer-name handler-fn))
 
-(defn unsubscribe [bus consumer-name] (core/unsubscribe bus consumer-name))
+(defn unsubscribe
+  "Stop `subscription`, or every subscription on the named consumer when
+  none is given — which is what a component shutting down wants."
+  ([bus consumer-name] (core/unsubscribe bus consumer-name))
+  ([bus consumer-name subscription]
+   (core/unsubscribe bus consumer-name subscription)))

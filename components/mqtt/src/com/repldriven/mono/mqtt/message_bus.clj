@@ -18,5 +18,9 @@
                         {topic qos}
                         (fn [_ _ ^bytes payload]
                           (handler-fn (json/read-str (String. payload
-                                                              "UTF-8"))))))
-    (unsubscribe [_] (client/unsubscribe client [topic])))
+                                                              "UTF-8")))))
+      {:topic topic})
+    (unsubscribe [_] (client/unsubscribe client [topic]))
+    ;; One client subscription per topic, so stopping it by name and
+    ;; stopping the consumer's only one are the same act.
+    (unsubscribe [_ _subscription] (client/unsubscribe client [topic])))

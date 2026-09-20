@@ -15,6 +15,14 @@
     ;; which is where its ordering guarantee lives.
     (send [_ message opts] (kafka/send producer message opts)))
 
+;; A subscription is stopped by telling the polling thread to stop and
+;; forgetting its handles.
+(defn- stop-loop
+  [handles]
+  (when-let [{:keys [stop]} @handles]
+    (async/put! stop :stop)
+    (reset! handles nil)))
+
 ;; `handles` holds the {:c :stop :ack} map from receive, because Kafka's
 ;; acknowledgements are queued to the polling thread rather than called on the
 ;; consumer directly — see kafka.kafka.consumer.
@@ -34,8 +42,9 @@
                  (catch Throwable t
                    (log/error t "Consumer handler threw; asking for redelivery")
                    (kafka/negative-acknowledge hs message)))
-            (recur)))))
-    (unsubscribe [_]
-      (when-let [{:keys [stop]} @handles]
-        (async/put! stop :stop)
-        (reset! handles nil))))
+            (recur)))
+        {:stop (:stop hs)}))
+    (unsubscribe [_] (stop-loop handles))
+    ;; One consumer group member, so one subscription: stopping it by name
+    ;; and stopping the consumer's only loop are the same act.
+    (unsubscribe [_ _subscription] (stop-loop handles)))
