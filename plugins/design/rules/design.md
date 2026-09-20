@@ -40,8 +40,11 @@ form so multimethods extend on load; the system file declares which
 components exist, of what kind, with what configuration, wired by the
 tag literals `!system/component`, `!system/ref`, `!system/local-ref`,
 `!system/required-component`, `!profile`, `!env`, `!include` and
-`!strs`. A bare string is never promoted to a ref, and an unregistered
-kind fails to start. `aero` resolves `!profile` at load time, so a
+`!strs`. A bare string is never promoted to a ref, and a kind no
+`defcomponents` registered is refused by `system/defs` as
+`:system/unknown-component-kind` before anything starts, so a test or
+a main that names a brick's kinds loads that brick's `interface.clj`
+first. `aero` resolves `!profile` at load time, so a
 per-profile value or component group needs no source branch. A required
 component (typically the HTTP `handler`) is a slot the bootstrap caller
 fills with `assoc-in` before starting. Don't bake an environment name

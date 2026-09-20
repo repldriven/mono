@@ -222,6 +222,11 @@ multimethods; the aliased require lets the test call functions on it.
   (`[com.repldriven.mono.x.system]`).
 - A brick's `interface.clj` bare-requires the system namespace so
   multimethods are extended on load.
+- A configuration that names a brick's kinds is built only after that
+  brick's `interface.clj` is loaded: `system/defs` refuses a kind no
+  `defcomponents` registered as `:system/unknown-component-kind`, rather
+  than building a component nothing starts whose config would stand in
+  as its instance.
 - Tests in a base or project consolidate system-component bare
   requires into a single `test/.../system.clj` namespace; test files
   require that namespace rather than listing the bricks individually.
