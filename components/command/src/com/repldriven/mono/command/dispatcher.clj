@@ -30,7 +30,8 @@
                                     (get response "command-id"))]
                  (when-let [p (get @pending command-id)]
                    (deliver p response)))))
-        stop-fn (fn [] (message-bus/unsubscribe bus command-response-channel))]
+        stop-fn (fn []
+                  (message-bus/unsubscribe bus command-response-channel sub))]
     (if (error/anomaly? sub)
       ;; nosemgrep: no-raw-throw
       (throw (ex-info "Failed to start command dispatcher" {:anomaly sub}))

@@ -59,9 +59,11 @@ so open those in full before non-trivial work on their topic.
   `!system/component` / `!system/ref` / `!env`, required-component
   injection. See
   [system-configurations.md](docs/recipes/code/system-configurations.md).
-- **Messaging** — the message bus behind an abstraction, and Avro
-  payloads. See [ADR-0003](docs/adr/0003-message-bus-abstraction.md)
-  and [ADR-0004](docs/adr/0004-avro-for-message-payloads.md).
+- **Messaging** — the message bus behind an abstraction, Avro
+  payloads, and how a subscription fans out and stops.
+  See [ADR-0003](docs/adr/0003-message-bus-abstraction.md),
+  [ADR-0004](docs/adr/0004-avro-for-message-payloads.md) and
+  [message-bus.md](docs/tdd/message-bus.md).
 - **Code generation** — the prep-lib convention, for a workspace that
   needs it; no brick here generates code.
   See [ADR-0010](docs/adr/0010-code-generation-via-prep-lib.md).

@@ -16,6 +16,12 @@
           (pulsar/send producer message {"key" key})
           (pulsar/send producer message)))))
 
+(defn- stop-loop
+  [stop-ch]
+  (when-let [stop @stop-ch]
+    (async/put! stop :stop)
+    (reset! stop-ch nil)))
+
 (defrecord PulsarConsumer [consumer timeout stop-ch]
   message-bus/Consumer
     (subscribe [_ handler-fn]
@@ -33,8 +39,9 @@
                    (log/error t
                               "Consumer handler threw; negative-acknowledging")
                    (pulsar/negative-acknowledge consumer message)))
-            (recur)))))
-    (unsubscribe [_]
-      (when-let [stop @stop-ch]
-        (async/put! stop :stop)
-        (reset! stop-ch nil))))
+            (recur)))
+        {:stop stop}))
+    (unsubscribe [_] (stop-loop stop-ch))
+    ;; One broker consumer, so one subscription: stopping it by name and
+    ;; stopping the consumer's only loop are the same act.
+    (unsubscribe [_ _subscription] (stop-loop stop-ch)))

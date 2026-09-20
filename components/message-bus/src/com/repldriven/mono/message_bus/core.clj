@@ -16,5 +16,7 @@
   (proto/subscribe (get (:consumers bus) consumer-name) handler-fn))
 
 (defn unsubscribe
-  [bus consumer-name]
-  (proto/unsubscribe (get (:consumers bus) consumer-name)))
+  ([bus consumer-name]
+   (proto/unsubscribe (get (:consumers bus) consumer-name)))
+  ([bus consumer-name subscription]
+   (proto/unsubscribe (get (:consumers bus) consumer-name) subscription)))

@@ -73,4 +73,45 @@
            (is (not= ::timeout data)
                "second message must still be delivered after the first throws")
            (when (not= ::timeout data) (is (= "ok-2" (get data "id")))))
-         (SUT/unsubscribe bus :command))))))
+         (SUT/unsubscribe bus :command)))
+     (testing "Every subscriber on a channel receives every message"
+       ;; Taking straight from the channel would make these two compete,
+       ;; so whichever loop won a message would be the only one to see it.
+       (let [first-seen (promise)
+             second-seen (promise)]
+         (SUT/subscribe bus :command (fn [data] (deliver first-seen data)))
+         (SUT/subscribe bus :command (fn [data] (deliver second-seen data)))
+         (nom-test> [_ (SUT/send bus
+                                 :command
+                                 (assoc test-message "id" "fan-out-1"))])
+         (doseq [[label p] [["first" first-seen] ["second" second-seen]]]
+           (let [data (deref p 5000 ::timeout)]
+             (is (not= ::timeout data) (str label " subscriber saw nothing"))
+             (when (not= ::timeout data) (is (= "fan-out-1" (get data "id"))))))
+         (SUT/unsubscribe bus :command)))
+     (testing "Unsubscribing one subscription leaves the others running"
+       (let [stopped (atom [])
+             kept (promise)
+             going
+             (SUT/subscribe bus :command (fn [data] (swap! stopped conj data)))]
+         (SUT/subscribe bus :command (fn [data] (deliver kept data)))
+         (SUT/unsubscribe bus :command going)
+         (nom-test> [_ (SUT/send bus
+                                 :command
+                                 (assoc test-message "id" "one-left"))])
+         (let [data (deref kept 5000 ::timeout)]
+           (is (not= ::timeout data) "the other subscriber must still run")
+           (when (not= ::timeout data) (is (= "one-left" (get data "id")))))
+         (is (empty? @stopped) "the stopped subscriber must see nothing")
+         (SUT/unsubscribe bus :command)))
+     (testing "Unsubscribe stops every subscriber on the channel"
+       (let [delivered (atom [])]
+         (SUT/subscribe bus :command (fn [data] (swap! delivered conj data)))
+         (SUT/subscribe bus :command (fn [data] (swap! delivered conj data)))
+         (SUT/unsubscribe bus :command)
+         (nom-test> [_ (SUT/send bus
+                                 :command
+                                 (assoc test-message "id" "after-stop"))])
+         (Thread/sleep 200)
+         (is (empty? @delivered)
+             "a stopped subscriber must not keep taking messages"))))))

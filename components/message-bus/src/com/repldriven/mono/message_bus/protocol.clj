@@ -8,6 +8,10 @@
   (send [this message]
         [this message opts]))
 
+;; `subscribe` returns a subscription, which `unsubscribe` takes to stop
+;; that one alone. Without the argument it stops every subscription on the
+;; consumer, which is what a component shutting down wants.
 (defprotocol Consumer
   (subscribe [this handler-fn])
-  (unsubscribe [this]))
+  (unsubscribe [this]
+               [this subscription]))
