@@ -5,6 +5,9 @@
     [com.repldriven.mono.auth.interface :as auth]
     [com.repldriven.mono.identity-provider.interface :as idp]
 
+    [reitit.core :as r]
+    [reitit.http :as http]
+
     [clojure.test :refer [deftest is testing]]))
 
 (def ^:private signer {:secret "test-secret-not-for-production"})
@@ -81,3 +84,80 @@
     (let [realworld {:status 401 :body {:errors {:token ["is missing"]}}}
           ctx (enter SUT/require-auth {:unauthorized realworld} {:headers {}})]
       (is (= realworld (:response ctx))))))
+
+(defn- ok [_] {:status 200})
+
+(defn- router
+  "A router with `validate-security` on every route and `data` merged into
+  each route's data, as an API declares its vocabulary at the root."
+  [routes data]
+  (http/router routes
+               {:data (merge {:interceptors [SUT/validate-security]} data)}))
+
+(defn- refusal
+  "The ex-data of the refusal building the router throws, or nil when it
+  builds."
+  [routes data]
+  (try (router routes data)
+       nil
+       (catch clojure.lang.ExceptionInfo e (ex-data e))))
+
+(defn- chain-names
+  [router path method]
+  (->> (r/match-by-path router path)
+       :result
+       method
+       :interceptors
+       (map :name)))
+
+(deftest validate-security-test
+  (let [scopes #{"viewer" "developer" "admin"}
+        gated (fn [& names] [["/things"
+                              {:get {:openapi {:security [{"bearerAuth"
+                                                           (vec names)}]}
+                                     :summary "List things"
+                                     :handler ok}}]])]
+    (testing
+      "a gate inside the vocabulary builds, and validation adds nothing
+              to the chain a request runs"
+      (let [router (router (gated "viewer") {:scopes scopes})]
+        (is (= [:reitit.interceptor/handler]
+               (chain-names router "/things" :get)))))
+    (testing "an operation with no security, or an empty one, is public"
+      (doseq [routes [[["/things" {:get {:handler ok}}]]
+                      [["/things"
+                        {:get {:openapi {:security []} :handler ok}}]]]]
+        (is (nil? (refusal routes {:scopes scopes})) (pr-str routes))))
+    (testing "a scheme with no scopes is refused once a vocabulary is declared"
+      (is (= #{"bearerAuth"} (:no-scopes (refusal (gated) {:scopes scopes})))))
+    (testing "without a vocabulary a scheme with no scopes is presence alone"
+      (is (nil? (refusal (gated) {}))))
+    (testing
+      "a scope outside the vocabulary is refused, and the refusal
+              names the operation"
+      (let [refused (refusal (gated "viewer" "org") {:scopes scopes})]
+        (is (= #{"org"} (:unknown-scopes refused)))
+        (is (= "List things" (:operation refused)))))
+    (testing "a method's gate stacked on its route's is refused"
+      (let [routes [["/things"
+                     {:openapi {:security [{"bearerAuth" ["admin"]}]}
+                      :get {:openapi {:security [{"bearerAuth" ["viewer"]}]}
+                            :handler ok}}]]
+            refused (refusal routes
+                             {:scopes scopes :exclusive-scopes [scopes]})]
+        (is (= #{"admin" "viewer"} (:exclusive refused)))
+        (is (= [{"bearerAuth" ["admin"]} {"bearerAuth" ["viewer"]}]
+               (:security refused)))))
+    (testing "a method marked ^:replace declares its own gate"
+      (let [routes [["/things"
+                     {:openapi {:security [{"bearerAuth" ["admin"]}]}
+                      :get {:openapi {:security ^:replace
+                                                [{"bearerAuth" ["viewer"]}]}
+                            :handler ok}}]]]
+        (is (nil? (refusal routes
+                           {:scopes scopes :exclusive-scopes [scopes]})))))
+    (testing "a gate that is not requirement objects is refused as malformed"
+      (let [routes [["/things"
+                     {:get {:openapi {:security [{"bearerAuth" "viewer"}]}
+                            :handler ok}}]]]
+        (is (contains? (refusal routes {}) :malformed))))))

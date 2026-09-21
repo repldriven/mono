@@ -60,6 +60,34 @@
   of its routes; without one it is a 401 with an RFC-9457 body."
   interceptors/require-auth)
 
+(def validate-security
+  "Interceptor that refuses, while the router is built, an operation whose
+  OpenAPI security the chain cannot enforce. It compiles to nothing, so no
+  request sees it: reitit runs an interceptor's `:compile` once per
+  operation with that operation's merged route data, which is where a gate
+  is readable and where a fault in the route table belongs.
+
+  An operation with no `:openapi :security`, or an empty one, is public and
+  passes. Otherwise the security must be requirement objects — maps of a
+  scheme name to the scopes it requires — and is checked against what the
+  route data declares, usually once at the root of the routes:
+
+  - `:scopes`, the set of scope names a principal can carry. Declared,
+    every scheme an operation names must name at least one scope, and
+    every scope named must be in the set. Left out, a scheme with no
+    scopes is the ordinary gate of an API that enforces presence alone.
+  - `:exclusive-scopes`, sets of scopes of which an operation may name at
+    most one. Reitit concatenates a method's `:security` onto its route's
+    unless the method's vector is marked `^:replace`, so a scope declared
+    under a method stacks on the route's and the operation admits both.
+
+  Refuses by throwing `ex-info`, since a route table the service cannot
+  enforce is a programming error and the service must not start. The
+  ex-data carries each fault — `:malformed`, `:no-scopes`,
+  `:unknown-scopes`, `:exclusive` — with what caused it, the `:security`
+  as merged, and the `:operation`, its `operationId` or its summary."
+  interceptors/validate-security)
+
 (def standard-router-data core/standard-router-data)
 (def standard-executor core/standard-executor)
 (def default-exception-handlers core/default-exception-handlers)
