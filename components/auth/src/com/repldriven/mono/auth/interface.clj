@@ -72,6 +72,19 @@
   [signer jwt-string]
   (token/verify signer jwt-string))
 
+(defn unverified-claims
+  "The claims a JWT carries, read WITHOUT verifying it, or nil when they
+  cannot be read.
+
+  For choosing which verifier to ask — by `iss` — and nothing else. A
+  verifier still checks the signature and the issuer, so a forged `iss`
+  can only pick a verifier that will refuse the token.
+
+  Args:
+  - jwt-string: the encoded token, without any scheme prefix."
+  [jwt-string]
+  (token/unverified-claims jwt-string))
+
 (defn header->token
   "The credential out of an `Authorization` header value, or nil when the
   header is absent, malformed, or uses a scheme not in `schemes`.
