@@ -1,11 +1,15 @@
 (ns com.repldriven.mono.auth.token
   (:require
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
+    [com.repldriven.mono.json.interface :as json]
     [com.repldriven.mono.utility.interface :as util]
 
     [buddy.sign.jwt :as jwt]
 
-    [clojure.string :as str]))
+    [clojure.string :as str])
+  (:import
+    (java.nio.charset StandardCharsets)
+    (java.util Base64)))
 
 (def default-ttl-seconds (* 60 60 24 7))
 
@@ -57,3 +61,17 @@
        (if (error/anomaly? result)
          (error/unauthorized :auth/invalid-token "Token is invalid or expired")
          result)))))
+
+(defn unverified-claims
+  [jwt-string]
+  (when (string? jwt-string)
+    (let [[_ payload] (str/split jwt-string #"\." 3)
+          decoded (when payload
+                    (try-nom :auth/unverified-claims
+                             "Payload is not base64url"
+                             (String. (.decode (Base64/getUrlDecoder)
+                                               ^String payload)
+                                      StandardCharsets/UTF_8)))
+          claims (when (string? decoded)
+                   (json/read-str decoded :key-fn keyword))]
+      (when (and (map? claims) (not (error/anomaly? claims))) claims))))

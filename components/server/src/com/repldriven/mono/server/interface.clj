@@ -37,19 +37,59 @@
   interceptors/authenticate-with-signer)
 
 (def authenticate-with-provider
-  "Interceptor that verifies `:credential` as a JWT through the identity
-  provider under `:identity-provider` on the request, and puts its claims
-  under `:auth-claims`. `:expected-audiences`, also from the request, is
-  the set the token's `aud` must intersect; absent, any audience is
-  accepted. The `server/interceptors` component is what puts both there.
+  "Interceptor that verifies `:credential` as a JWT through an identity
+  provider on the request, and puts its claims under `:auth-claims`.
 
-  Sets nothing when there is no credential or no provider, or the token is
-  not accepted, and never terminates the request. Runs after `credential`.
+  One provider or several: among `:identity-providers`, when the request
+  carries them, the one whose issuer the token's unverified `iss` names is
+  asked, the signature and issuer being checked by that provider all the
+  same; otherwise `:identity-provider` is asked directly, so an API that
+  keeps one provider on the request for its own calls still verifies
+  against the realm that issued the token. `:expected-audiences`, also
+  from the request, is
+  the collection the token's `aud` must intersect; absent, any audience is
+  accepted. The `server/interceptors` component is what puts them there.
+
+  Sets nothing when there is no credential, when no provider answers to
+  the issuer, or when the token is not accepted — logging a warning for
+  the last two — and never terminates the request. Runs after
+  `credential`.
 
   A credential that is something else — an opaque token, or a session
   looked up in a store — takes a resolver of your own to the same contract:
   read `:credential`, set `:auth-claims`, never terminate."
   interceptors/authenticate-with-provider)
+
+(def claims->scopes
+  "Interceptor that puts the scopes `:auth-claims` grants under
+  `:auth-scopes`, a set of strings, from the standard claims: the
+  space-separated `scope` (RFC 9068) and Keycloak's `realm_access.roles`.
+  Adds to any scopes already there, so a resolver of your own — one that
+  reads a membership, say — puts its scopes under the same key before or
+  after it. Sets nothing without claims, and never terminates. Runs after
+  a resolver has set `:auth-claims`."
+  interceptors/claims->scopes)
+
+(def require-scopes
+  "Interceptor that enforces an operation's OpenAPI security against
+  `:auth-scopes`, terminating with a 401 when no resolver has set
+  `:auth-claims` and a 403 when the scopes granted do not meet the gate.
+
+  The gate is read when the router is built, from the operation's merged
+  `:openapi :security`, as OpenAPI reads it: the requirement objects are
+  alternatives, and within one every scheme's scopes are all required, so
+  `[{\"bearerAuth\" [\"admin\"]} {\"bearerAuth\" [\"org:viewer\"]}]`
+  admits either while `[{\"bearerAuth\" [\"admin\" \"org:viewer\"]}]`
+  demands both. A scheme with no scopes is met by any authenticated caller.
+  An operation with no security, or an empty one, is public and gets no
+  interceptor at all. A gate this interceptor could not enforce is refused
+  while the router is built, as `validate-security` refuses it, and against
+  the same `:scopes` and `:exclusive-scopes`.
+
+  The responses are the route data's `:unauthorized` and `:forbidden`, read
+  when the router is built, so an API with its own error contract sets them
+  once at the root of its routes; without them each is an RFC-9457 body."
+  interceptors/require-scopes)
 
 (def require-auth
   "Interceptor that terminates with a 401 unless a resolver has set
