@@ -27,6 +27,10 @@
   "Authorization schemes accepted by default, lower-cased."
   interceptors/default-schemes)
 
+(def default-credential-key
+  "Request key `credential-interceptor` sets when `opts` names none."
+  interceptors/default-credential-key)
+
 (defn hash-password
   "Hash a plaintext password for storage, or return an anomaly.
 
@@ -85,6 +89,23 @@
   - schemes: a set of accepted lower-cased scheme names."
   [header schemes]
   (interceptors/header->token header schemes))
+
+(defn credential-interceptor
+  "Interceptor that puts the `Authorization` credential on the request under
+  `:credential`, its scheme stripped, so every interceptor and handler after
+  it reads one key rather than parsing the header itself.
+
+  Does not reject when the header is absent, malformed or of a scheme not in
+  `:schemes` — it sets nothing. `token-interceptor` is this plus
+  verification, for a credential that is a JWT; an API whose credential is
+  something else, a session looked up in a store say, follows this with an
+  interceptor of its own that resolves the key.
+
+  Args:
+  - opts: `{:schemes #{\"bearer\"} :credential-key :credential}`, both
+    optional. Schemes default to `default-schemes`."
+  ([] (interceptors/credential-interceptor))
+  ([opts] (interceptors/credential-interceptor opts)))
 
 (defn token-interceptor
   "Interceptor that verifies an `Authorization` credential and assocs its

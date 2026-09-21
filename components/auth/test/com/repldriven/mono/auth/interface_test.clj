@@ -74,6 +74,25 @@
   [interceptor request]
   ((:enter interceptor) {:request request}))
 
+(deftest credential-interceptor-test
+  (let [interceptor (SUT/credential-interceptor)]
+    (testing "the credential lands on the request with its scheme stripped"
+      (let [ctx (enter interceptor {:headers {"authorization" "Bearer abc"}})]
+        (is (= "abc" (get-in ctx [:request :credential])))))
+    (testing "no header and a bad scheme set nothing and reject nothing"
+      (doseq [headers [{} {"authorization" "Basic abc"}]]
+        (let [ctx (enter interceptor {:headers headers})]
+          (is (nil? (get-in ctx [:request :credential]))
+              (str "should not set a credential for " (pr-str headers)))
+          (is (nil? (:response ctx))))))
+    (testing "the schemes and the key are parameters"
+      (let [interceptor (SUT/credential-interceptor {:schemes #{"bearer"}
+                                                     :credential-key :session})
+            bearer (enter interceptor {:headers {"authorization" "Bearer abc"}})
+            token (enter interceptor {:headers {"authorization" "Token abc"}})]
+        (is (= "abc" (get-in bearer [:request :session])))
+        (is (nil? (get-in token [:request :session])))))))
+
 (deftest token-interceptor-test
   (let [jwt (SUT/sign-token signer {:sub "user-1"})
         interceptor (SUT/token-interceptor signer)]

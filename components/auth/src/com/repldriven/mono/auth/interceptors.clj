@@ -12,6 +12,8 @@
 
 (def default-claims-key :auth-claims)
 
+(def default-credential-key :credential)
+
 (defn header->token
   "The credential out of an Authorization header value, or nil.
 
@@ -24,6 +26,26 @@
       (when (and credential (contains? schemes (str/lower-case scheme)))
         (let [credential (str/trim credential)]
           (when (seq credential) credential))))))
+
+(defn credential-interceptor
+  "Interceptor that puts the Authorization credential on the request, its
+  scheme stripped.
+
+  Extraction and nothing else: what the credential is — a JWT to verify, a
+  session to look up — is for the interceptor after it, which reads one
+  key instead of parsing the header again. Sets nothing when the header is
+  absent, malformed or of a scheme not accepted, and never rejects."
+  ([] (credential-interceptor nil))
+  ([opts]
+   (let [{:keys [schemes credential-key]} opts
+         schemes (or schemes default-schemes)
+         credential-key (or credential-key default-credential-key)]
+     {:name ::credential
+      :enter (fn [ctx]
+               (let [header (get-in ctx [:request :headers "authorization"])]
+                 (if-some [credential (header->token header schemes)]
+                   (assoc-in ctx [:request credential-key] credential)
+                   ctx)))})))
 
 (defn- ->signer
   "A signer, from either a signer or something that finds one.
