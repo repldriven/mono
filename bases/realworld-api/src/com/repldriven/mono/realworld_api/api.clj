@@ -7,7 +7,6 @@
   (:require
     [com.repldriven.mono.realworld-api.command :as cmd]
 
-    [com.repldriven.mono.auth.interface :as auth]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.realworld-domain.interface :as domain]
     [com.repldriven.mono.realworld-store.interface :as store]
@@ -247,10 +246,12 @@
 
 (defn- routes
   [ctx]
-  (let [required [(auth/require-auth domain/token-missing)]]
+  (let [required [server/require-auth]]
     [["/api"
       {:interceptors (conj (vec (:interceptors ctx))
-                           (auth/token-interceptor :signer))}
+                           server/credential
+                           server/authenticate-with-signer)
+       :unauthorized domain/token-missing}
       ["/users" {:post {:parameters {:body domain/Register} :handler register}}]
       ["/users/login"
        {:post {:parameters {:body domain/Login}

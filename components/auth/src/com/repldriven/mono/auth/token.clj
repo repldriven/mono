@@ -3,13 +3,25 @@
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
     [com.repldriven.mono.utility.interface :as util]
 
-    [buddy.sign.jwt :as jwt]))
+    [buddy.sign.jwt :as jwt]
+
+    [clojure.string :as str]))
 
 (def default-ttl-seconds (* 60 60 24 7))
+
+(def default-schemes #{"token" "bearer"})
 
 (defn- now-seconds
   []
   (quot (util/now) 1000))
+
+(defn header->token
+  [header schemes]
+  (when (string? header)
+    (let [[scheme credential] (str/split (str/trim header) #"\s+" 2)]
+      (when (and credential (contains? schemes (str/lower-case scheme)))
+        (let [credential (str/trim credential)]
+          (when (seq credential) credential))))))
 
 (defn sign
   [signer claims]

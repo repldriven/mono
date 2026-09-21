@@ -86,7 +86,7 @@ functions returning values or anomalies.
   mail
     smtp                 --c   angus-mail                  Sending email over SMTP submission, text and HTML
   security & cryptography
-    auth                 --c   buddy-hashers, buddy-sign   Password hashing, JWT, Authorization interceptors
+    auth                 --c   buddy-hashers, buddy-sign   Password hashing, JWT, Authorization parsing
     encryption           --c   buddy-core                  RSA keys, opaque tokens, constant-time comparison
     identity-provider    -a-   buddy-sign                  Service-account and token protocol, with local impl
     keycloak             --c   buddy-sign                  Keycloak-backed identity-provider implementation

@@ -1,21 +1,17 @@
 (ns com.repldriven.mono.auth.interface
-  "Password hashing, JWT signing, and the HTTP interceptors that turn a
-  credential into claims on the request.
+  "Password hashing, JWT signing and verification, and the parsing of an
+  `Authorization` header into the credential it carries.
 
-  Two things are deliberately not decided here. The Authorization scheme is
-  a set rather than a constant, because `Token` and `Bearer` are both in
-  common use and RealWorld uses the former. And the response for a missing
-  credential is a parameter, because its body belongs to the API being
-  served rather than to authentication — see `require-auth`.
+  The Authorization scheme is a set rather than a constant, because `Token`
+  and `Bearer` are both in common use and RealWorld uses the former.
 
   Everything fails as an anomaly. Verification failures are
   `:unauthorized/anomaly`, so they can be told apart from a hashing fault
   without inspecting a message: a caller presenting a bad token is an
   ordinary condition, a signer with no secret is not."
   (:require
-    com.repldriven.mono.auth.system
+    [com.repldriven.mono.auth.system]
 
-    [com.repldriven.mono.auth.interceptors :as interceptors]
     [com.repldriven.mono.auth.password :as password]
     [com.repldriven.mono.auth.token :as token]))
 
@@ -25,11 +21,7 @@
 
 (def default-schemes
   "Authorization schemes accepted by default, lower-cased."
-  interceptors/default-schemes)
-
-(def default-credential-key
-  "Request key `credential-interceptor` sets when `opts` names none."
-  interceptors/default-credential-key)
+  token/default-schemes)
 
 (defn hash-password
   "Hash a plaintext password for storage, or return an anomaly.
@@ -88,51 +80,4 @@
   - header: the raw header value, e.g. `\"Token abc.def.ghi\"`.
   - schemes: a set of accepted lower-cased scheme names."
   [header schemes]
-  (interceptors/header->token header schemes))
-
-(defn credential-interceptor
-  "Interceptor that puts the `Authorization` credential on the request under
-  `:credential`, its scheme stripped, so every interceptor and handler after
-  it reads one key rather than parsing the header itself.
-
-  Does not reject when the header is absent, malformed or of a scheme not in
-  `:schemes` — it sets nothing. `token-interceptor` is this plus
-  verification, for a credential that is a JWT; an API whose credential is
-  something else, a session looked up in a store say, follows this with an
-  interceptor of its own that resolves the key.
-
-  Args:
-  - opts: `{:schemes #{\"bearer\"} :credential-key :credential}`, both
-    optional. Schemes default to `default-schemes`."
-  ([] (interceptors/credential-interceptor))
-  ([opts] (interceptors/credential-interceptor opts)))
-
-(defn token-interceptor
-  "Interceptor that verifies an `Authorization` credential and assocs its
-  claims onto the request under `:auth-claims`.
-
-  Does not reject when the credential is absent or invalid — it simply
-  sets nothing, which is what endpoints with optional authentication need.
-  Pair it with `require-auth` where a credential is mandatory.
-
-  Args:
-  - signer: an `auth/signer` instance, or a function of the request that
-    returns one — a keyword works, so `:signer` reads it off the request.
-    Interceptors are built before a started component can reach them, so
-    the indirection is what lets a route be wired without threading the
-    component through routing.
-  - opts: `{:schemes #{\"token\"} :claims-key :auth-claims}`, both optional."
-  ([signer] (interceptors/token-interceptor signer))
-  ([signer opts] (interceptors/token-interceptor signer opts)))
-
-(defn require-auth
-  "Interceptor that terminates with `response` unless `token-interceptor`
-  has set claims.
-
-  Args:
-  - response: the Ring response to terminate with. Defaults to a 401 with
-    an RFC-9457 body; pass your own when the API has its own error shape.
-  - opts: `{:claims-key :auth-claims}`, optional."
-  ([] (interceptors/require-auth))
-  ([response] (interceptors/require-auth response))
-  ([response opts] (interceptors/require-auth response opts)))
+  (token/header->token header schemes))

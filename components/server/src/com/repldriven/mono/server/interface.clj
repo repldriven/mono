@@ -1,6 +1,8 @@
 (ns com.repldriven.mono.server.interface
   (:require
-    com.repldriven.mono.server.system
+    [com.repldriven.mono.server.system]
+
+    [com.repldriven.mono.server.actuator :as actuator]
     [com.repldriven.mono.server.core :as core]
     [com.repldriven.mono.server.cors :as cors]
     [com.repldriven.mono.server.interceptors :as interceptors]))
@@ -9,6 +11,54 @@
   "Interceptor that validates the `Idempotency-Key` header is present
   and syntactically well-formed (16-255 URL-safe ASCII chars)."
   interceptors/require-idempotency-key)
+
+(def credential
+  "Interceptor that puts the `Authorization` credential on the request under
+  `:credential`, its scheme stripped, so what follows reads one key rather
+  than parsing the header itself. Accepts the `Token` and `Bearer` schemes,
+  case-insensitively.
+
+  Sets nothing when the header is absent, malformed or of another scheme,
+  and never terminates the request. A resolver turns the credential into
+  `:auth-claims` after it — `authenticate-with-signer`,
+  `authenticate-with-provider`, or one of your own — and `require-auth`
+  refuses a request that has none."
+  interceptors/credential)
+
+(def authenticate-with-signer
+  "Interceptor that verifies `:credential` as a JWT against the `auth/signer`
+  under `:signer` on the request, and puts its claims under `:auth-claims`.
+  The `server/interceptors` component is what puts the signer there.
+
+  Sets nothing when there is no credential or no signer, or the token is
+  not accepted, and never terminates the request: an endpoint where
+  authentication is optional needs exactly that, and one that requires it
+  says so with `require-auth`. Runs after `credential`."
+  interceptors/authenticate-with-signer)
+
+(def authenticate-with-provider
+  "Interceptor that verifies `:credential` as a JWT through the identity
+  provider under `:identity-provider` on the request, and puts its claims
+  under `:auth-claims`. `:expected-audiences`, also from the request, is
+  the set the token's `aud` must intersect; absent, any audience is
+  accepted. The `server/interceptors` component is what puts both there.
+
+  Sets nothing when there is no credential or no provider, or the token is
+  not accepted, and never terminates the request. Runs after `credential`.
+
+  A credential that is something else — an opaque token, or a session
+  looked up in a store — takes a resolver of your own to the same contract:
+  read `:credential`, set `:auth-claims`, never terminate."
+  interceptors/authenticate-with-provider)
+
+(def require-auth
+  "Interceptor that terminates with a 401 unless a resolver has set
+  `:auth-claims` on the request.
+
+  The response is the route data's `:unauthorized`, read when the router
+  is built, so an API with its own error contract sets it once at the root
+  of its routes; without one it is a 401 with an RFC-9457 body."
+  interceptors/require-auth)
 
 (def standard-router-data core/standard-router-data)
 (def standard-executor core/standard-executor)
@@ -42,25 +92,7 @@
   any IDeref to a thunk) so readiness stays DOWN until webhook
   registration succeeds."
   [ctx]
-  (let [ready-fn (or (:ready-fn ctx) (constantly true))
-        json {"content-type" "application/json"}
-        liveness (fn [_] {:status 200 :headers json :body {:status "UP"}})
-        readiness (fn [_]
-                    (if (ready-fn)
-                      {:status 200 :headers json :body {:status "UP"}}
-                      {:status 503 :headers json :body {:status "DOWN"}}))
-        aggregate (fn [_]
-                    (let [ready? (boolean (ready-fn))]
-                      {:status (if ready? 200 503)
-                       :headers json
-                       :body {:status (if ready? "UP" "DOWN")
-                              :components
-                              {:liveness {:status "UP"}
-                               :readiness {:status
-                                           (if ready? "UP" "DOWN")}}}}))]
-    [["/actuator/health" {:get {:no-doc true :handler aggregate}}]
-     ["/actuator/health/liveness" {:get {:no-doc true :handler liveness}}]
-     ["/actuator/health/readiness" {:get {:no-doc true :handler readiness}}]]))
+  (actuator/health-routes ctx))
 
 (defn wrap-cors
   "Wrap `handler` so browsers may call it from `:origins`.
