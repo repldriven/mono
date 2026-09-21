@@ -86,7 +86,7 @@ functions returning values or anomalies.
   mail
     smtp                 --c   angus-mail                  Sending email over SMTP submission, text and HTML
   security & cryptography
-    auth                 --c   buddy-hashers, buddy-sign   Password hashing, JWT, Authorization interceptors
+    auth                 --c   buddy-hashers, buddy-sign   Password hashing, JWT, Authorization parsing
     encryption           --c   buddy-core                  RSA keys, opaque tokens, constant-time comparison
     identity-provider    -a-   buddy-sign                  Service-account and token protocol, with local impl
     keycloak             --c   buddy-sign                  Keycloak-backed identity-provider implementation
@@ -128,7 +128,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.35' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.36' \
   :name com.acme/my-thing
 ```
 
@@ -152,7 +152,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.35"
+         :git/tag "v0.0.36"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -160,7 +160,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.35"
+           :git/tag "v0.0.36"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```

@@ -54,8 +54,9 @@
   (errors/reason->response reason))
 
 (def token-missing
-  "The 401 body for a request with no usable credential. Handed to
-  `auth/require-auth`, which does not decide response shapes itself."
+  "The 401 for a request with no usable credential. Set as the route
+  data's `:unauthorized`, which `server/require-auth` terminates with
+  rather than deciding a response shape itself."
   errors/token-missing)
 
 ;; --- views ---------------------------------------------------------------

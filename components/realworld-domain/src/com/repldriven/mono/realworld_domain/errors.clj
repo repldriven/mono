@@ -101,6 +101,6 @@
   (->response (get by-reason reason)))
 
 (def token-missing
-  "The 401 an unauthenticated request gets. Passed to `auth/require-auth`,
-  which has no opinion about the body."
+  "The 401 an unauthenticated request gets: the route data's
+  `:unauthorized`, which `server/require-auth` terminates with."
   (kind->response :realworld/token-missing))

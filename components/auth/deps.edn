@@ -1,8 +1,4 @@
 {:aliases {:test {:extra-deps {} :extra-paths ["test"]}}
- ;; sieppari is here for `sc/terminate` in the require-auth interceptor. It
- ;; arrives transitively with reitit anyway, but this brick is usable without
- ;; the server brick and should not rely on that.
  :deps {buddy/buddy-hashers {:mvn/version "2.0.167"}
-        buddy/buddy-sign {:mvn/version "3.6.1-359"}
-        metosin/sieppari {:mvn/version "0.0.0-alpha13"}}
+        buddy/buddy-sign {:mvn/version "3.6.1-359"}}
  :paths ["src"]}

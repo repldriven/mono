@@ -10,6 +10,8 @@
                                       "../../components/command-processor"}
         components/env {:local/root "../../components/env"}
         components/error {:local/root "../../components/error"}
+        components/identity-provider {:local/root
+                                      "../../components/identity-provider"}
         components/jdbc {:local/root "../../components/jdbc"}
         components/json {:local/root "../../components/json"}
         components/log {:local/root "../../components/log"}

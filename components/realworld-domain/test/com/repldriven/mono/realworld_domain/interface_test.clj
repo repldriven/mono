@@ -116,7 +116,7 @@
     (is (nil? (SUT/reason->response "realworld/article-not-found"))
         "without the colon it is not a kind we produced")
     (is (nil? (SUT/reason->response nil))))
-  (testing "token-missing is the body handed to require-auth"
+  (testing "token-missing is the 401 require-auth terminates with"
     (is (= {:status 401 :body {:errors {:token ["is missing"]}}}
            SUT/token-missing))))
 
