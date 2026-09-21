@@ -54,6 +54,18 @@
     (is (error/error? (SUT/sign-token {} {:sub "user-1"})))
     (is (error/error? (SUT/verify-token {} "any.token.here")))))
 
+(deftest unverified-claims-test
+  (testing "the claims come back without the signature being checked"
+    (let [jwt (SUT/sign-token {:secret "another-secret"}
+                              {:sub "user-1" :iss "https://a"})]
+      (is (= "https://a" (:iss (SUT/unverified-claims jwt))))
+      (is (= "user-1" (:sub (SUT/unverified-claims jwt))))))
+  (testing "anything that is not a JWT with a JSON payload is nil"
+    (doseq [garbage [nil "" "not.a.jwt" "a.b" "a.!!!.c" (str "a." "e30" ".c")]]
+      (is (or (nil? (SUT/unverified-claims garbage))
+              (= {} (SUT/unverified-claims garbage)))
+          (pr-str garbage)))))
+
 (deftest header->token-test
   (testing "both Token and Bearer are accepted, case-insensitively"
     (is (= "abc" (SUT/header->token "Token abc" SUT/default-schemes)))

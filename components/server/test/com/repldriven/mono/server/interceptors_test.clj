@@ -71,6 +71,103 @@
           (is (nil? (get-in ctx [:request :auth-claims])) (pr-str request))
           (is (nil? (:response ctx))))))))
 
+(deftest authenticate-with-many-providers-test
+  (let [a (idp/local-provider {:issuer "https://a.test"})
+        b (idp/local-provider {:issuer "https://b.test"})
+        account (idp/create-service-account b
+                                            {:bank-id "bank-b" :audience "api"})
+        token (:access_token (idp/exchange-client-credentials b account))]
+    (testing "the provider whose issuer the token names is the one asked"
+      (let [ctx (enter SUT/authenticate-with-provider
+                       {:identity-providers [a b] :credential token})]
+        (is (= "bank-b" (get-in ctx [:request :auth-claims :sub])))))
+    (testing "a token from an issuer no provider answers to sets nothing"
+      (let [ctx (enter SUT/authenticate-with-provider
+                       {:identity-providers [a] :credential token})]
+        (is (nil? (get-in ctx [:request :auth-claims])))
+        (is (nil? (:response ctx)))))
+    (testing "the set decides even when one provider is on the request too"
+      (let [ctx (enter SUT/authenticate-with-provider
+                       {:identity-provider a
+                        :identity-providers [a b]
+                        :credential token})]
+        (is (= "bank-b" (get-in ctx [:request :auth-claims :sub])))))
+    (testing "expected audiences may be any collection"
+      (let [ctx (enter SUT/authenticate-with-provider
+                       {:identity-providers [a b]
+                        :expected-audiences ["api"]
+                        :credential token})]
+        (is (= "bank-b" (get-in ctx [:request :auth-claims :sub])))))))
+
+(deftest claims->scopes-test
+  (testing "the scope claim and the realm roles become scopes"
+    (let [ctx (enter SUT/claims->scopes
+                     {:auth-claims {:scope "openid read:things"
+                                    :realm_access {:roles ["admin"]}}})]
+      (is (= #{"openid" "read:things" "admin"}
+             (get-in ctx [:request :auth-scopes])))))
+  (testing "scopes already granted are kept"
+    (let [ctx (enter SUT/claims->scopes
+                     {:auth-claims {:scope "openid"}
+                      :auth-scopes #{"org:viewer"}})]
+      (is (= #{"openid" "org:viewer"} (get-in ctx [:request :auth-scopes])))))
+  (testing "no claims sets nothing"
+    (is (nil? (get-in (enter SUT/claims->scopes {}) [:request :auth-scopes])))))
+
+(deftest require-scopes-test
+  (let [gate (fn [& objects] {:openapi {:security (vec objects)}})
+        viewer (gate {"bearerAuth" ["viewer"]})
+        either (gate {"bearerAuth" ["admin"]} {"bearerAuth" ["viewer"]})
+        both (gate {"bearerAuth" ["admin" "viewer"]})
+        claims {:sub "user-1"}
+        granted (fn [& scopes] {:auth-claims claims :auth-scopes (set scopes)})]
+    (testing "an operation with no security compiles to nothing"
+      (is (nil? ((:compile SUT/require-scopes) {:openapi {}} nil)))
+      (is (nil? ((:compile SUT/require-scopes) {:openapi {:security []}} nil))))
+    (testing "no claims is a 401, in the route's own shape when it has one"
+      (let [ctx (enter SUT/require-scopes viewer {})]
+        (is (= 401 (get-in ctx [:response :status])))
+        (is (= "server/unauthorized" (get-in ctx [:response :body :type]))))
+      (let [mine {:status 401 :body {:errors {:token ["is missing"]}}}]
+        (is (= mine
+               (:response (enter SUT/require-scopes
+                                 (assoc viewer :unauthorized mine)
+                                 {}))))))
+    (testing "scopes meeting the gate pass, and others are a 403"
+      (is (nil? (:response
+                 (enter SUT/require-scopes viewer (granted "viewer")))))
+      (let [ctx (enter SUT/require-scopes viewer (granted "other"))]
+        (is (= 403 (get-in ctx [:response :status])))
+        (is (= "server/forbidden" (get-in ctx [:response :body :type]))))
+      (let [mine {:status 403 :body {:errors {:role ["is insufficient"]}}}]
+        (is (= mine
+               (:response (enter SUT/require-scopes
+                                 (assoc viewer :forbidden mine)
+                                 (granted)))))))
+    (testing
+      "requirement objects are alternatives, and the scopes within
+              one are all required"
+      (is (nil? (:response
+                 (enter SUT/require-scopes either (granted "viewer")))))
+      (is (nil? (:response
+                 (enter SUT/require-scopes either (granted "admin")))))
+      (is (= 403
+             (get-in (enter SUT/require-scopes both (granted "viewer"))
+                     [:response :status])))
+      (is (nil? (:response
+                 (enter SUT/require-scopes both (granted "admin" "viewer"))))))
+    (testing "a scheme with no scopes is met by any authenticated caller"
+      (is (nil? (:response (enter SUT/require-scopes
+                                  (gate {"bearerAuth" []})
+                                  {:auth-claims claims})))))
+    (testing
+      "a gate outside the vocabulary is refused while the router is
+              built"
+      (is (thrown? clojure.lang.ExceptionInfo
+                   ((:compile SUT/require-scopes)
+                    (assoc viewer :scopes #{"admin"})
+                    nil))))))
+
 (deftest require-auth-test
   (testing "a request without claims is terminated with a 401"
     (let [ctx (enter SUT/require-auth {:headers {}})]
