@@ -1,0 +1,31 @@
+system:
+  keycloak:
+    container: !system/component
+      system/component-kind: keycloak/container
+      realm-import-files:
+        - keycloak/realm-test.json
+
+    container-http-port: !system/component
+      system/component-kind: keycloak/container-http-port
+      container: !system/local-ref container
+      exposed-port: 8080
+
+    container-auth-server-url: !system/component
+      system/component-kind: keycloak/container-auth-server-url
+      port: !system/local-ref container-http-port
+
+    identity-provider: !system/component
+      system/component-kind: keycloak/identity-provider
+      base-url: !system/local-ref container-auth-server-url
+      realm: mono
+      admin-client-id: mono-admin
+      admin-client-secret: mono-admin-test-secret
+
+    # May read clients and not change them, so a write is refused
+    # however fresh its token.
+    viewer: !system/component
+      system/component-kind: keycloak/identity-provider
+      base-url: !system/local-ref container-auth-server-url
+      realm: mono
+      admin-client-id: mono-viewer
+      admin-client-secret: mono-viewer-test-secret
