@@ -51,7 +51,7 @@ functions returning values or anomalies.
 </p>
 
 ```text
-  components: 37   facade: 2   abstraction: 4   curated: 22   own: 9
+  components: 38   facade: 2   abstraction: 4   curated: 22   own: 10
 
   kind: f = facade   a = abstraction   c = curated   - = no library
 
@@ -83,6 +83,7 @@ functions returning values or anomalies.
   web & http
     http-client          f--   http-kit                    All of http-kit's client, returning anomalies
     server               --c   reitit, jetty9              Jetty with interceptor-based DI and OpenAPI
+    sse                  ---   -                           Server-sent event streams by topic, and their response
   mail
     smtp                 --c   angus-mail                  Sending email over SMTP submission, text and HTML
   security & cryptography
@@ -128,7 +129,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.37' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.38' \
   :name com.acme/my-thing
 ```
 
@@ -152,7 +153,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.37"
+         :git/tag "v0.0.38"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -160,7 +161,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.37"
+           :git/tag "v0.0.38"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```

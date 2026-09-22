@@ -97,6 +97,8 @@
   {:local/root "../../components/server"}
   com.repldriven.mono.components/smtp
   {:local/root "../../components/smtp"}
+  com.repldriven.mono.components/sse
+  {:local/root "../../components/sse"}
   com.repldriven.mono.components/system
   {:local/root "../../components/system"}
   com.repldriven.mono.components/telemetry

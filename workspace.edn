@@ -14,7 +14,7 @@
                                     "keycloak" "migrator" "mqtt"
                                     "pulsar-vault-crypto"
                                     "scheduler" "secret" "server" "smtp"
-                                    "test-resources"]}
+                                    "sse" "test-resources"]}
             ;; mono-test-lib repeats every mono-lib component on purpose — it
             ;; is consumed by REPLACING mono-lib on the :test alias, so it has
             ;; to be a superset. See its deps.edn header.
@@ -25,7 +25,7 @@
                                          "event-schema" "jdbc" "kafka"
                                          "keycloak" "migrator" "mqtt"
                                          "pulsar-vault-crypto" "scheduler"
-                                         "secret" "server" "smtp"
+                                         "secret" "server" "smtp" "sse"
                                          "test-resources" "test-telemetry"
                                          "testcontainers"]}}
  :tag-patterns {:release "v[0-9]*" :stable "stable-*"}
