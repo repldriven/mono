@@ -218,117 +218,138 @@
                   (token-error-detail body)))))))
 
 (defn- admin-token!
-  "Return a valid admin access token, refreshing if expired."
-  [client]
-  (let [config (-config client)
-        a (-admin-token-atom client)
-        cached @a]
-    (if-not (admin-token-expired? cached (util/now))
-      (:access-token cached)
-      (let [fresh (fetch-admin-token config)]
-        (if (error/anomaly? fresh)
-          fresh
-          (do (reset! a fresh) (:access-token fresh)))))))
+  "Return a valid admin access token, refreshing if expired, or always
+  when `refresh?`."
+  ([client] (admin-token! client false))
+  ([client refresh?]
+   (let [config (-config client)
+         a (-admin-token-atom client)
+         cached @a]
+     (if (and (not refresh?) (not (admin-token-expired? cached (util/now))))
+       (:access-token cached)
+       (let [fresh (fetch-admin-token config)]
+         (if (error/anomaly? fresh)
+           fresh
+           (do (reset! a fresh) (:access-token fresh))))))))
 
 (defn- admin-headers
   [token]
   {"authorization" (str "Bearer " token)
    "content-type" "application/json"})
 
+(defn- send-admin
+  [opts token]
+  (http/request (assoc opts :headers (admin-headers token))))
+
+(defn- admin-request!
+  "Send an Admin REST request under the cached admin token, and once more
+  under a fresh one where Keycloak answers 401: a token cached for its
+  lifetime goes on being refused once the Keycloak that signed it has
+  new keys, as after a restart that lost them. Answers the response, or
+  a `:keycloak/admin-request` anomaly for a status that is neither 2xx
+  nor one of `accepted`."
+  ([client opts] (admin-request! client opts #{}))
+  ([client opts accepted]
+   (let-nom>
+     [token (admin-token! client)
+      res (send-admin opts token)
+      res (if (= 401 (:status res))
+            (let-nom> [fresh (admin-token! client true)]
+              (send-admin opts fresh))
+            res)
+      status (:status res)]
+     (if (or (<= 200 status 299) (contains? accepted status))
+       res
+       (error/fail :keycloak/admin-request
+                   {:message (str "Keycloak Admin REST answered " status)
+                    :status status
+                    :method (:method opts)
+                    :url (:url opts)
+                    :body (http/res->body res)})))))
+
+(defn- find-client
+  "The ClientRepresentation whose clientId is `client-id`, or nil."
+  [client client-id]
+  (let-nom> [res (admin-request! client
+                                 {:method :get
+                                  :url (admin-url (-config client)
+                                                  "/clients?clientId="
+                                                  client-id)})
+             clients (http/res->edn res)]
+    (first clients)))
+
+(defn- client-not-found
+  [client-id]
+  (error/reject :keycloak/client-not-found
+                {:message "No Keycloak client matches client-id"
+                 :client-id client-id}))
+
 (defn create-client
   "Create a Keycloak client for `bank-id`. Returns
   `{:client-id …}` (the secret is fetched separately via
-  `client-secret`) or an anomaly."
+  `client-secret`) or an anomaly. A client already there under the id
+  is the state asked for, so a 409 answers the same."
   [client {:keys [bank-id name audience]}]
-  (let [config (-config client)]
-    (let-nom>
-      [token (admin-token! client)
-       _ (http/request
-          {:method :post
-           :url (admin-url config "/clients")
-           :headers (admin-headers token)
-           :body (json/write-str
-                  (new-client-representation
-                   {:bank-id bank-id
-                    :name name
-                    :audience audience}))})]
-      {:client-id bank-id})))
+  (let-nom>
+    [_ (admin-request! client
+                       {:method :post
+                        :url (admin-url (-config client) "/clients")
+                        :body (json/write-str
+                               (new-client-representation
+                                {:bank-id bank-id
+                                 :name name
+                                 :audience audience}))}
+                       #{409})]
+    {:client-id bank-id}))
 
 (defn client-secret
   "Fetch the current client_secret for a given Keycloak clientId. The
   Admin API requires the Keycloak UUID, not the clientId — we look it
   up first."
   [client client-id]
-  (let [config (-config client)]
-    (let-nom>
-      [token (admin-token! client)
-       list-res (http/request
-                 {:method :get
-                  :url (admin-url config "/clients?clientId=" client-id)
-                  :headers (admin-headers token)})
-       clients (http/res->edn list-res)
-       uuid (some-> clients
-                    first
-                    :id)
-       _ (when-not uuid
-           (error/reject :keycloak/client-not-found
-                         {:message "No Keycloak client matches client-id"
-                          :client-id client-id}))
-       sec-res (http/request
-                {:method :get
-                 :url (admin-url config "/clients/" uuid "/client-secret")
-                 :headers (admin-headers token)})
-       sec (http/res->edn sec-res)]
-      {:client-id client-id :client-secret (:value sec)})))
+  (let-nom>
+    [representation (find-client client client-id)
+     _ (when-not representation (client-not-found client-id))
+     res (admin-request! client
+                         {:method :get
+                          :url (admin-url (-config client)
+                                          "/clients/"
+                                          (:id representation)
+                                          "/client-secret")})
+     sec (http/res->edn res)]
+    {:client-id client-id :client-secret (:value sec)}))
 
 (defn delete-client
   "Delete the Keycloak client matching `client-id`. Idempotent: a
   404 is treated as success (already gone)."
   [client client-id]
-  (let [config (-config client)]
-    (let-nom>
-      [token (admin-token! client)
-       list-res (http/request
-                 {:method :get
-                  :url (admin-url config "/clients?clientId=" client-id)
-                  :headers (admin-headers token)})
-       clients (http/res->edn list-res)
-       uuid (some-> clients
-                    first
-                    :id)]
-      (if uuid
-        (let-nom>
-          [_ (http/request
-              {:method :delete
-               :url (admin-url config "/clients/" uuid)
-               :headers (admin-headers token)})]
-          {:client-id client-id})
-        {:client-id client-id}))))
+  (let-nom>
+    [representation (find-client client client-id)]
+    (if representation
+      (let-nom>
+        [_ (admin-request! client
+                           {:method :delete
+                            :url (admin-url (-config client)
+                                            "/clients/"
+                                            (:id representation))}
+                           #{404})]
+        {:client-id client-id})
+      {:client-id client-id})))
 
 (defn regenerate-secret
   "Rotate the client_secret for a given Keycloak clientId."
   [client client-id]
-  (let [config (-config client)]
-    (let-nom>
-      [token (admin-token! client)
-       list-res (http/request
-                 {:method :get
-                  :url (admin-url config "/clients?clientId=" client-id)
-                  :headers (admin-headers token)})
-       clients (http/res->edn list-res)
-       uuid (some-> clients
-                    first
-                    :id)
-       _ (when-not uuid
-           (error/reject :keycloak/client-not-found
-                         {:message "No Keycloak client matches client-id"
-                          :client-id client-id}))
-       res (http/request
-            {:method :post
-             :url (admin-url config "/clients/" uuid "/client-secret")
-             :headers (admin-headers token)})
-       sec (http/res->edn res)]
-      {:client-id client-id :client-secret (:value sec)})))
+  (let-nom>
+    [representation (find-client client client-id)
+     _ (when-not representation (client-not-found client-id))
+     res (admin-request! client
+                         {:method :post
+                          :url (admin-url (-config client)
+                                          "/clients/"
+                                          (:id representation)
+                                          "/client-secret")})
+     sec (http/res->edn res)]
+    {:client-id client-id :client-secret (:value sec)}))
 
 (defn update-client-audience
   "Point the Keycloak client matching `client-id` at `audience`: replace
@@ -339,29 +360,21 @@
   target-state idempotent — a redelivered call converges on the same
   result."
   [client client-id audience]
-  (let [config (-config client)]
-    (let-nom>
-      [token (admin-token! client)
-       list-res (http/request
-                 {:method :get
-                  :url (admin-url config "/clients?clientId=" client-id)
-                  :headers (admin-headers token)})
-       clients (http/res->edn list-res)
-       representation (first clients)
-       _ (when-not representation
-           (error/reject :keycloak/client-not-found
-                         {:message "No Keycloak client matches client-id"
-                          :client-id client-id}))
-       _ (http/request
-          {:method :put
-           :url (admin-url config "/clients/" (:id representation))
-           :headers (admin-headers token)
-           :body (json/write-str
-                  (assoc
-                   representation
-                   :defaultClientScopes
-                   (cond-> ["service-accounts"] audience (conj audience))))})]
-      {:client-id client-id})))
+  (let-nom>
+    [representation (find-client client client-id)
+     _ (when-not representation (client-not-found client-id))
+     _ (admin-request! client
+                       {:method :put
+                        :url (admin-url (-config client)
+                                        "/clients/"
+                                        (:id representation))
+                        :body (json/write-str
+                               (assoc representation
+                                      :defaultClientScopes
+                                      (cond-> ["service-accounts"]
+                                              audience
+                                              (conj audience))))})]
+    {:client-id client-id}))
 
 (defn- fetch-jwks
   [config]

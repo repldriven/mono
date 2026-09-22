@@ -1,0 +1,53 @@
+{
+  "realm": "mono",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 3600,
+  "clients": [
+    {
+      "clientId": "mono-admin",
+      "secret": "mono-admin-test-secret",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "mono-viewer",
+      "secret": "mono-viewer-test-secret",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-mono-admin",
+      "enabled": true,
+      "serviceAccountClientId": "mono-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-clients",
+          "view-clients"
+        ]
+      }
+    },
+    {
+      "username": "service-account-mono-viewer",
+      "enabled": true,
+      "serviceAccountClientId": "mono-viewer",
+      "clientRoles": {
+        "realm-management": [
+          "view-clients"
+        ]
+      }
+    }
+  ]
+}

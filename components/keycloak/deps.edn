@@ -2,6 +2,6 @@
                   ;; validates it. donut happens to bring malli, but
                   ;; depending on that is depending on donut's bundling.
                   :extra-deps {metosin/malli {:mvn/version "0.20.1"}}
-                  :extra-paths ["test"]}}
+                  :extra-paths ["test" "test-resources"]}}
  :deps {buddy/buddy-sign {:mvn/version "3.6.1-359"}}
  :paths ["src"]}

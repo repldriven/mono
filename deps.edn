@@ -64,6 +64,8 @@
                        "components/http-client/test"
                        "components/kafka/test"
                        "components/kafka/test-resources"
+                       "components/keycloak/test"
+                       "components/keycloak/test-resources"
                        "components/jdbc/test"
                        "components/jdbc/test-resources"
                        "components/log/test"
