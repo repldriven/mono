@@ -5,7 +5,8 @@
     [com.repldriven.mono.server.actuator :as actuator]
     [com.repldriven.mono.server.core :as core]
     [com.repldriven.mono.server.cors :as cors]
-    [com.repldriven.mono.server.interceptors :as interceptors]))
+    [com.repldriven.mono.server.interceptors :as interceptors]
+    [com.repldriven.mono.server.streaming :as streaming]))
 
 (def require-idempotency-key
   "Interceptor that validates the `Idempotency-Key` header is present
@@ -179,3 +180,15 @@
     `:origins` is required."
   [handler opts]
   (cors/wrap-cors handler opts))
+
+(defn streaming-body
+  "A Ring response body that holds the response open for as long as
+  `write` runs, handing it the response's output stream, and closes the
+  stream once `write` returns. For a response written as it happens
+  rather than all at once, such as a server-sent event stream.
+
+  Args:
+  - write: a function of one argument, the `java.io.OutputStream`. What
+    it returns is not read."
+  [write]
+  (streaming/body write))

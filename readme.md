@@ -51,7 +51,7 @@ functions returning values or anomalies.
 </p>
 
 ```text
-  components: 37   facade: 2   abstraction: 4   curated: 22   own: 9
+  components: 38   facade: 2   abstraction: 4   curated: 22   own: 10
 
   kind: f = facade   a = abstraction   c = curated   - = no library
 
@@ -83,6 +83,7 @@ functions returning values or anomalies.
   web & http
     http-client          f--   http-kit                    All of http-kit's client, returning anomalies
     server               --c   reitit, jetty9              Jetty with interceptor-based DI and OpenAPI
+    sse                  ---   -                           Server-sent event streams by topic, and their response
   mail
     smtp                 --c   angus-mail                  Sending email over SMTP submission, text and HTML
   security & cryptography

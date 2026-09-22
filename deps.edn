@@ -32,6 +32,7 @@
     components/secret {:local/root "components/secret"}
     components/server {:local/root "components/server"}
     components/smtp {:local/root "components/smtp"}
+    components/sse {:local/root "components/sse"}
     components/system {:local/root "components/system"}
     components/telemetry {:local/root "components/telemetry"}
     components/vault {:local/root "components/vault"}
@@ -83,6 +84,7 @@
                        "components/server/test-resources"
                        "components/smtp/test"
                        "components/smtp/test-resources"
+                       "components/sse/test"
                        "components/system/test"
                        "components/test-resources/test-resources"
                        "components/telemetry/test"
