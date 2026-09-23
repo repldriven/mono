@@ -194,11 +194,16 @@ At the REPL, the same calls reach the same code through the base's
   a `system/component-kind` value naming a registered kind.
 - `!system/required-component` slots are injected by the bootstrap
   before `system/start` is called.
+- Wrap a tagged scalar another tag coerces in a one-item sequence —
+  `!keyword [!or [!env SMTP_SECURITY, starttls]]` — since YAML allows
+  no tag on a tagged scalar.
+- Force string keys on a subtree with `!strs` where a config map's
+  keys must be strings.
 
 **MUST NOT:**
 
-- Reference an unregistered component kind — the system will fail to
-  start with a "no method" error.
+- Reference an unregistered component kind — `system/defs` refuses it
+  as `:system/unknown-component-kind` before anything starts.
 - Reference another component by bare string where a `!system/ref` is
   intended; the resolver will not promote strings to refs.
 
@@ -207,6 +212,17 @@ At the REPL, the same calls reach the same code through the base's
 - Split large configurations into per-group sub-files via `!include`.
 - Profile-gate testcontainers infrastructure groups so tests and prod
   can share the same top-level configuration.
+- Keep a system configuration beside the brick or base it belongs to —
+  `resources/<base>/application.yml` at runtime,
+  `test-resources/<name>/application-test.yml` for tests — loaded by
+  classpath URL.
+
+**MAY:**
+
+- Write a system configuration in EDN; the reader and the tag literals
+  are the same.
+- Inline a test configuration's testcontainer groups rather than
+  `!include` them, where no shared `test-resources` brick exists.
 
 ## Discussion
 

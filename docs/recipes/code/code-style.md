@@ -308,9 +308,13 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
   external libraries, standard libraries) with blank lines between
   groups, alphabetical within each group. The bare requires and the
   rest both run outwards the same way: this file, then the brick, then
-  the workspace, then beyond.
+  the workspace, then beyond. A group with no entries doesn't appear:
+  in a flat component the brick is the package, so own package and
+  rest of the brick are one group, and in this repository the two
+  upstream groups are empty.
 - Bare requires — no `:as`, no `:refer` — use the bracketed form
-  `[com.example.ns]`.
+  `[com.example.ns]`. Unbracketed ones remain in this repository's
+  own code from before the change: bracket what you touch.
 - Component interface tests alias the SUT as `SUT` and require no
   other namespaces from the same component.
 - Use `util/uuidv7` for new IDs.
@@ -318,6 +322,13 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
   RFC 3339 strings).
 - Anonymous functions use `(fn [x] ...)`.
 - Destructure one level at a time in `let`.
+- Keep a `let` binding's value on the same line as its name, and any
+  form inside `[]` on one line, for zprint to wrap; wrap by hand only
+  where a binding clearly exceeds 80 columns, since zprint treats
+  manual formatting inside `[]` as deliberate.
+- A macro declares how clj-kondo reads it in its own metadata
+  (`{:clj-kondo/lint-as 'clojure.core/let}`); a macro whose shape no
+  core form matches gets a hook under `.clj-kondo/hooks/`.
 
 **MUST NOT:**
 
@@ -332,7 +343,9 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
 - Use `(System/currentTimeMillis)`, `(Instant/now)`, or other platform
   clock APIs directly anywhere outside `components/utility/` — that
   brick is `util/now`'s one permitted caller of the raw primitive. Go
-  through `util/now` everywhere else.
+  through `util/now` everywhere else. The `no-raw-time-id` semgrep
+  rule in the pre-commit hook blocks the raw ID and clock primitives
+  outside that brick.
 - Repeat the brick name in function names within that brick
   (`process-command` in `command`, `send-message` in `message-bus`,
   and so on).

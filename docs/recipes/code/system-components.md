@@ -230,6 +230,10 @@ multimethods; the aliased require lets the test call functions on it.
 - Tests in a base or project consolidate system-component bare
   requires into a single `test/.../system.clj` namespace; test files
   require that namespace rather than listing the bricks individually.
+- Mark a config slot that must come from YAML, or be injected by the
+  caller, with `system/required-component`.
+- Discriminate environments through env vars and deployment values,
+  never through component names.
 
 **MUST NOT:**
 
@@ -238,12 +242,23 @@ multimethods; the aliased require lets the test call functions on it.
 - Use the unbracketed bare-require form.
 - Bake an environment name (`prod`, `dev`, `staging`) into a shared
   resource component or config. Name by concern (e.g. `resources`).
+- Promote a `system.clj` into a `system/` folder before a second
+  cluster of definitions exists.
 
 **SHOULD:**
 
 - Use the simple `system.clj` pattern when a brick has one
   defcomponents namespace; switch to a `system/` folder when there are
   two or more.
+- Start a component with `(or instance ...)`, so a prior instance
+  survives a hot-reload.
+
+**MAY:**
+
+- Name a component `*-test-resources`: `test` there is the runtime
+  mode, not a deployment environment.
+- Require a component both bare, in the test bundle, and aliased,
+  where the test calls it.
 
 ## Discussion
 

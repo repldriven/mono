@@ -71,20 +71,18 @@ Two layers, one per concern:
   (`!system/component`, `!system/ref`, `!system/local-ref`,
   `!system/required-component`, `!profile`, `!env`, `!include`,
   `!strs`) cover the wiring vocabulary.
-
-Profiles are resolved by `aero` at load time. `!profile` selects
-values — or whole component groups — per profile, with no source
-branching.
-
-Required components (typically the HTTP `handler`) are slots: the
-YAML marks them `!system/required-component`, the bootstrap caller
-injects the value via `assoc-in` before starting the system.
-
-Testcontainers-backed infrastructure (a database, the message bus,
-Vault, and so on) is declared in the same system file as everything
-else, gated behind a profile. Tests boot through the same code path
-as production — just with a different profile and a different
-database / message-bus group.
+  - **Profiles** are resolved by `aero` at load time. `!profile`
+    selects values — or whole component groups — per profile, with no
+    source branching.
+  - **Required components** (typically the HTTP `handler`) are slots:
+    the YAML marks them `!system/required-component`, the bootstrap
+    caller injects the value via `assoc-in` before starting the
+    system.
+  - **Testcontainers-backed infrastructure** (a database, the message
+    bus, Vault, and so on) is declared in the same system file as
+    everything else, gated behind a profile. Tests boot through the
+    same code path as production — just with a different profile and
+    a different database / message-bus group.
 
 ## Consequences
 

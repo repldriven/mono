@@ -34,7 +34,9 @@ The shortlist:
 
 We will keep the git hooks checked in under `scripts/hooks/`. An
 extensionless file there is a hook, installed under its own name; a
-`.sh` file is a helper a hook sources. Two hooks ship:
+`.sh` file is a helper a hook sources.
+
+Two hooks ship, with how they are composed, installed and gated:
 
 - **`pre-commit`** formats staged Clojure files with zprint —
   auto-fix, the reformatted files restaged, configured by
@@ -51,26 +53,24 @@ extensionless file there is a hook, installed under its own name; a
   `RULES.md` until `just tessl-plugins-install` has run there, and
   the hook runs it through the dev shell when a branch or worktree
   checkout finds none. It never fails the checkout.
-
-The steps `pre-commit` runs are shell functions in
-`scripts/hooks/lib.sh`, and the hook itself only sources the file and
-calls them in order. A workspace built on these bricks sources the
-same file from its own `pre-commit` and puts its own steps around
-them, in its own order, rather than copying the hook and editing it.
-
-Installation is `just install-hooks`, once per clone and again
-whenever a hook changes — the installed files are copies rather than
-symlinks, so an edit under `scripts/hooks/` changes nothing until it
-runs again. `.envrc` runs it on entering the primary checkout, which
-is what arms them. There is one hooks directory per clone, so an
-install covers every worktree, and the recipe refuses to run from a
-linked worktree, whose checkout is whatever commit a work item landed
-on.
-
-The hook is a local convenience. The actual gate is CI, which runs
-the same checks. Bypassing the hook (`git commit --no-verify`)
-produces a commit that CI will reject if it has formatting or lint
-issues.
+- **Composition.** The steps `pre-commit` runs are shell functions in
+  `scripts/hooks/lib.sh`, and the hook itself only sources the file
+  and calls them in order. A workspace built on these bricks sources
+  the same file from its own `pre-commit` and puts its own steps
+  around them, in its own order, rather than copying the hook and
+  editing it.
+- **Installation** is `just install-hooks`, once per clone and again
+  whenever a hook changes — the installed files are copies rather than
+  symlinks, so an edit under `scripts/hooks/` changes nothing until it
+  runs again. `.envrc` runs it on entering the primary checkout, which
+  is what arms them. There is one hooks directory per clone, so an
+  install covers every worktree, and the recipe refuses to run from a
+  linked worktree, whose checkout is whatever commit a work item
+  landed on.
+- **The gate.** The hook is a local convenience. The actual gate is
+  CI, which runs the same checks. Bypassing the hook
+  (`git commit --no-verify`) produces a commit that CI will reject if
+  it has formatting or lint issues.
 
 ## Consequences
 

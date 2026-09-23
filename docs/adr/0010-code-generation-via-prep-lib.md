@@ -53,11 +53,11 @@ code generation. The pattern, applied per brick:
   clj -X:deps prep :aliases '[:dev]' :force true
   ```
 
-Every brick is on the `:dev` alias, or on one of a workspace's domain
-aliases, in the top-level `deps.edn`, so the alias set generation
-needs is the one everything else already uses. The template's
-`setup` and `force-prep` recipes carry that set, and prep every brick
-declaring `:deps/prep-lib` — a no-op until one does.
+  Every brick is on the `:dev` alias, or on one of a workspace's
+  domain aliases, in the top-level `deps.edn`, so the alias set
+  generation needs is the one everything else already uses. The
+  template's `setup` and `force-prep` recipes carry that set, and prep
+  every brick declaring `:deps/prep-lib` — a no-op until one does.
 
 ## Consequences
 

@@ -30,20 +30,22 @@ tests, REPL work, and small-footprint deployments.
 
 We will keep the message bus behind an abstraction. The `message-bus`
 brick exposes two small protocols — `Producer` and `Consumer` — and
-the operations over them: `send`, `subscribe` and `unsubscribe`. Two
-kinds of backend implement the protocols:
+the operations over them: `send`, `subscribe` and `unsubscribe`.
 
-- A broker backend for production. Each broker is its own brick —
+Two kinds of backend implement the protocols, and two rules bind them:
+
+- **A broker backend for production.** Each broker is its own brick —
   `kafka`, `pulsar`, `mqtt` — and extends the protocols in its own
   `message-bus` namespace.
-- A Clojure-channels backend (the `local` namespace inside
+- **A Clojure-channels backend** (the `local` namespace inside
   `message-bus`), used in tests and small-footprint deployments.
-
-Component code (`command`, `event`, and so on) consumes the
-abstraction only. No component requires a broker brick or `local`
-directly. The system definition decides which backend a given producer
-or consumer binds to at startup; a base bare-requires the backend
-bricks it may bind, so their component kinds register.
+- **Components consume the abstraction only.** Component code
+  (`command`, `event`, and so on) consumes the abstraction only. No
+  component requires a broker brick or `local` directly.
+- **The system definition binds the backend.** The system definition
+  decides which backend a given producer or consumer binds to at
+  startup; a base bare-requires the backend bricks it may bind, so
+  their component kinds register.
 
 ## Consequences
 

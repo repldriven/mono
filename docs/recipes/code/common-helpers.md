@@ -111,6 +111,10 @@ would want goes in a brick of its own.
   sub-namespace and re-export from `utility.interface`.
 - Re-export from a helper library where the function already exists
   there, instead of reimplementing.
+- In a workspace built on these bricks, add a helper that is not
+  domain-specific here, released and pulled down by a bump, and keep a
+  helper only that workspace's domain would want in a brick of its
+  own.
 
 **MUST NOT:**
 

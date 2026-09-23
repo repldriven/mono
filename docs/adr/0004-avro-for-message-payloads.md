@@ -40,15 +40,18 @@ The shortlist for messaging:
 ## Decision
 
 We will use Avro for all command and event payloads on the message
-bus, via Lancaster on the Clojure side. Schemas live in schema bricks
-of their own — `command-schema` and `event-schema` here — as resources,
-never beside the producer or consumer that binds to them. Producers and
-consumers bind to a schema at registration; mismatch is caught at
-startup, not in production.
+bus, via Lancaster on the Clojure side.
 
-If the bricks were built around gRPC we would likely have chosen
-protobuf and taken the gRPC service framework along with it. They
-aren't, so Avro is the better fit.
+Three parts:
+
+- **Where schemas live.** Schemas live in schema bricks of their own —
+  `command-schema` and `event-schema` here — as resources, never
+  beside the producer or consumer that binds to them.
+- **When they bind.** Producers and consumers bind to a schema at
+  registration; mismatch is caught at startup, not in production.
+- **Why not protobuf.** If the bricks were built around gRPC we would
+  likely have chosen protobuf and taken the gRPC service framework
+  along with it. They aren't, so Avro is the better fit.
 
 ## Consequences
 

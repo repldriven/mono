@@ -3,7 +3,7 @@
     [com.repldriven.mono.keycloak.interface]
     [com.repldriven.mono.testcontainers.interface]
 
-    [com.repldriven.mono.keycloak.core :as core]
+    [com.repldriven.mono.keycloak.protocol :as protocol]
 
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.identity-provider.interface :as SUT]
@@ -20,7 +20,7 @@
   "Cache a token Keycloak did not sign, as one minted before its keys
   changed is by the time it is next used."
   [client]
-  (reset! (core/-admin-token-atom client)
+  (reset! (protocol/-admin-token-atom client)
     {:access-token "stale" :expires-in 3600 :fetched-at (util/now)}))
 
 (deftest admin-test
@@ -51,7 +51,7 @@
                                                        {:bank-id "bnk.c"})
                    _ (is (= "bnk.c" (:client-id created)))
                    _ (is (not= "stale"
-                               (:access-token @(core/-admin-token-atom
+                               (:access-token @(protocol/-admin-token-atom
                                                 client))))]))
      (testing "a refusal a fresh token does not cure is an anomaly"
        (let [refused (SUT/create-service-account viewer {:bank-id "bnk.d"})]

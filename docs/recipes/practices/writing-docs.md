@@ -369,7 +369,8 @@ contract, and the body text gives the framing.
 
 **MUST:**
 
-- Hard-wrap markdown at 80 columns under `docs/`.
+- Hard-wrap markdown at 80 columns under `docs/`, indenting a bullet's
+  continuation lines by two spaces.
 - Write in the fewest words that stay precise — the facts and the
   instructions, and nothing else.
 - Use the canonical reference-list pattern for ADR / recipe / TDD /
@@ -431,6 +432,16 @@ contract, and the body text gives the framing.
   more clearly as a single line.
 - Cite public specs / RFCs / standards rather than vendors
   when an industry reference is useful.
+- Verify with the `check-docs` skill, whose wrap check applies the
+  exemptions below.
+
+**MAY:**
+
+- Leave a fenced block, a table row, an HTML tag or a link's target
+  past 80 columns: a line is measured with its `](...)` targets
+  removed, and none of the four is measured at all.
+- Keep a count or date that is external rather than project state — a
+  regulator threshold, a fixed-cardinality enum.
 
 ## Discussion
 

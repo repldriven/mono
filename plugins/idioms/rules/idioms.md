@@ -52,8 +52,12 @@ for RFC 3339 strings. Never `random-uuid`, `UUID/randomUUID`,
 are called, and the `no-raw-time-id` semgrep rule blocks them anywhere
 else. For any non-`clojure.core` helper, check `utility` first, then a
 helper library re-exported through `utility`; a general helper goes in
-`utility`'s sub-namespace and its interface, never ad hoc in another
-brick, and never by pulling the helper library into that brick.
+`utility`'s sub-namespace and its interface, hoisted there once a
+second brick would plausibly want it, never ad hoc in another brick,
+and never by pulling the helper library into that brick. A workspace
+built on these bricks adds a helper that is not domain-specific here,
+released and pulled down by a bump, and keeps one only its domain
+would want in a brick of its own.
 See [common-helpers](../../../docs/recipes/code/common-helpers.md),
 [code-style](../../../docs/recipes/code/code-style.md).
 
@@ -67,9 +71,10 @@ the upstream's interfaces; external libraries; `clojure.*`. In a flat
 component the brick is the package, so the two internal groups collapse
 into one, and in this repository the two upstream groups are empty. A
 bare require — no `:as`, no `:refer` — takes the bracketed form
-`[com.example.ns]`, never unbracketed. In a component interface test the
-SUT takes the own-package slot, aliased `SUT`, and nothing else from
-that component is required.
+`[com.example.ns]`, never unbracketed; unbracketed ones remain in this
+repository's own code from before the change, so bracket what you
+touch. In a component interface test the SUT takes the own-package
+slot, aliased `SUT`, and nothing else from that component is required.
 See [code-style](../../../docs/recipes/code/code-style.md).
 
 ## Everyday shape
@@ -77,11 +82,17 @@ See [code-style](../../../docs/recipes/code/code-style.md).
 zprint at 80 columns, docstrings wrapped by hand; `cond->` with
 `util/assoc-some` / `util/assoc-seq` over chains of optional `assoc`,
 each predicate and action on their own lines; destructure one map level
-per `let` binding, never nested in function arguments, each binding on
-one line for zprint to wrap; `(fn [x] ...)` over `#(...)`; no `!`
-suffix on a side-effecting name; no brick name repeated in a function
-name within that brick; short-circuit an interceptor with
-`sieppari.context/terminate`, never by setting `:response` or `:error`.
+per `let` binding, never nested in function arguments, over `get` /
+`get-in` chains; each binding, and any form inside `[]`, on one line
+for zprint to wrap, wrapped by hand only where it clearly exceeds 80;
+a thread macro over intermediate `let` bindings when the chain is the
+value; `(fn [x] ...)` over `#(...)`; no `!` suffix on a side-effecting
+name; no brick name repeated in a function name within that brick;
+short-circuit an interceptor with `sieppari.context/terminate`, never
+by setting `:response` or `:error`; a macro declares how clj-kondo
+reads it in its own metadata (`{:clj-kondo/lint-as 'clojure.core/let}`)
+and gets a hook under `.clj-kondo/hooks/` where no core form matches
+its shape.
 See [code-style](../../../docs/recipes/code/code-style.md).
 
 ## Comment the why, not the what
@@ -106,14 +117,21 @@ See [ADR-0015](../../../docs/adr/0015-comments-and-docstrings.md).
 
 Manage system lifecycle in tests with `with-test-system`, which holds
 one of `TEST_SYSTEM_PERMITS` permits while its system is up, and assert
-anomaly-freeness with `nom-test>`; never `use-fixtures`. Keep per-brick
-config at `test-resources/<brick>/application-test.yml`. A raw
-`clojure -M:poly test` needs the processor cap set as `just test` sets
-it, and the permits set where a run boots more systems than the Docker
-VM can hold. Mark a namespace whose tests share state, such as a
+anomaly-freeness with `nom-test>`; never `use-fixtures`. A patch-fn as
+the second element of `with-test-system`'s binding vector, applied to
+the system defs before start, injects an HTTP handler or swaps a
+component for a test double. Keep per-brick config at
+`test-resources/<brick>/application-test.yml`, and shared test
+configuration — container groups, common schemas — in the
+`test-resources` brick, which a brick's `:test` alias puts on the
+classpath. Start Docker once before a run; no test recipe starts it. A
+raw `clojure -M:poly test` against a Docker VM with fewer CPUs than the
+host needs the processor cap and the permits set as the test recipe
+sets them. Mark a namespace whose tests share state, such as a
 `with-redefs`, `^:eftest/synchronized` so its vars run one at a time,
 and never one that only boots infrastructure; inject a collaborator
 rather than `with-redefs` a var another namespace calls, since the
 redefinition is JVM-wide and namespaces run in parallel whatever the
 marker says.
+Commands: `just start-docker`, `just test`.
 See [test-system](../../../docs/recipes/test/test-system.md).

@@ -124,16 +124,25 @@ name there when one turns up in a draft.
 - Structure a PRD as Objective, Users and stakeholders, Goals,
   Non-goals, Functional scope, User journeys, Open questions,
   References.
+- Say in the Objective where the line between this PRD and its
+  neighbours falls.
 - Take a PRD's personas from the workspace's platform PRD where one
   exists, and describe each as what they do and care about.
-- Draw a user journey as user-visible beats.
+- Write Goals, Non-goals and Open questions as bold-labelled bullets, a
+  non-goal naming where the thing lives if it lives somewhere and an
+  open question saying what is assumed meanwhile.
+- Draw a user journey as a numbered `###` section holding a mermaid
+  sequence diagram of user-visible beats and a paragraph reading it.
 - Use non-technical product language in a PRD, and describe what a
   user does via "the API" rather than the call it makes.
 - State a library workspace's PRD as the capability every workspace
   built on its bricks gets, with the developer as its one persona and
   every journey the developer's.
+- List in References the neighbouring PRDs with what each holds, and
+  the TDD that serves this one.
 - Keep the competitor names the `check-docs` skill refuses in
-  `.config/check-docs/names`.
+  `.config/check-docs/names`, adding a name there when one turns up in
+  a draft.
 
 **MUST NOT:**
 
@@ -142,6 +151,9 @@ name there when one turns up in a draft.
 - Name specific operations (`create-organization`, `submit-payment`,
   etc.) in a PRD.
 - Draw internal hops between components in a PRD's sequence diagram.
+- Make a counterparty the platform integrates with, or a vendor an
+  installation might use, a persona: the first is a stakeholder where
+  it appears, the second a worked example.
 - Label a PRD `tessl-plugin`.
 - Name a consuming workspace in a library workspace's PRD.
 
@@ -149,6 +161,15 @@ name there when one turns up in a draft.
 
 - Use the project's vocabulary in TDDs and recipes (`changelog relay`,
   `brick`, `interceptor`); reserve product-shaped phrasing for PRDs.
+
+**MAY:**
+
+- List a call's inputs and outputs as what the call accepts and
+  returns.
+- Say "all-or-nothing", with a gloss, where atomicity matters — better
+  still, what does and does not come up as a result.
+- Name a workspace's own personas and its own installation where the
+  workspace is itself the product.
 
 ## Discussion
 

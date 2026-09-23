@@ -114,7 +114,8 @@ extension of what it does.
 **MUST:**
 
 - Testcontainer-backed infrastructure follows the three-layer pattern:
-  container, extractor, high-level component.
+  container, extractor, high-level component, all declared in YAML and
+  wired by `!system/local-ref`.
 - Extractor components — those that interrogate a running container —
   live in the relevant brick's `system/` folder.
 - High-level components consume extracted values the same way they
