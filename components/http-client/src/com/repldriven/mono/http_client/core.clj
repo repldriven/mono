@@ -2,8 +2,11 @@
   (:refer-clojure :exclude [get])
   (:require
     [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.telemetry.interface :as telemetry]
 
-    [org.httpkit.client :as client]))
+    [org.httpkit.client :as client])
+  (:import
+    (java.net URI)))
 
 ;; http-kit reports client-level failures — DNS, connection refused, timeout —
 ;; as an :error key on an otherwise ordinary response, rather than by throwing.
@@ -16,11 +19,30 @@
                 {:message "HTTP request failed" :error err :res res})
     res))
 
+;; The span carries the method, host, port and path, never the query
+;; string: a path is what a reader groups requests by, and a query can
+;; carry a token.
+(defn- span-attributes
+  [{:keys [method url]}]
+  (let [uri (try (URI. (str url)) (catch Exception _ nil))]
+    (cond-> {:http.request.method (.toUpperCase (name (or method :get)))}
+            uri
+            (assoc :server.address (.getHost uri)
+                   :server.port (.getPort uri)
+                   :url.path (or (.getPath uri) "")))))
+
 (defn request
   [opts]
-  (error/try-nom :http-client/request
-                 "HTTP request threw an exception"
-                 (->result @(client/request opts))))
+  (telemetry/with-span
+   {:name "http-request"
+    :kind :client
+    :attributes (span-attributes opts)}
+   (let [res (error/try-nom :http-client/request
+                            "HTTP request threw an exception"
+                            (->result @(client/request opts)))]
+     (when-let [status (:status res)]
+       (telemetry/set-attribute :http.response.status_code status))
+     res)))
 
 ;; The callback's return value is what http-kit delivers to the promise, so
 ;; passing the conversion as the callback is all it takes for an async caller
