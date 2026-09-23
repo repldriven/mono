@@ -20,6 +20,18 @@
         :else
         false))
 
+;; Reuse finds only a container that has finished starting, so boots
+;; racing in parallel would each create one and the rest sit idle for
+;; good. Reusable starts take this lock, so the first completes before
+;; the next looks; starts that are not reusable stay parallel.
+(def ^:private reusable-start-lock (Object.))
+
+(defn- start-container!
+  [container reuse?]
+  (if reuse?
+    (locking reusable-start-lock (.start container))
+    (.start container)))
+
 (defn start!
   "Starts a testcontainer and returns a map of the container
   instance and its mapped ports. With `:reuse?` the container is
@@ -29,7 +41,7 @@
   ([container exposed-ports {:keys [reuse?]}]
    (.withExposedPorts container (->integer-array exposed-ports))
    (when reuse? (.withReuse container true))
-   (.start container)
+   (start-container! container reuse?)
    {:container container
     :reused? (boolean reuse?)
     :mapped-ports (into {}

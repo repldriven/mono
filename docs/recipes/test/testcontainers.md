@@ -124,7 +124,13 @@ With the variable set, the first boot marks the container reusable
 and every later boot with the same configuration, in this JVM or the
 next, finds it running rather than starting another; the component's
 stop leaves it, since the library stops a reusable container when
-asked. Without the variable the value is nil and nothing changes. A
+asked. Without the variable the value is nil and nothing changes.
+Reuse finds only a container that has finished starting, so reusable
+starts are serialised within the JVM: boots racing in parallel would
+otherwise each create one, and the rest sit idle for good, since Ryuk
+leaves a reusable container alone. A reused container also keeps
+everything written to it; remove it with `docker rm -f` to start
+clean. A
 container carries its state across boots, so a component MUST NOT take
 `reuse` unless every rig that shares it keeps its own data apart —
 FoundationDB's per-boot keyspace prefix is the model. Kafka takes none:
