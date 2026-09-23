@@ -40,7 +40,7 @@ permissions:
 jobs:
   validate:
     name: Validate publishable artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -233,7 +233,7 @@ jobs:
     name: Tag and publish
     needs: validate
     if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
 

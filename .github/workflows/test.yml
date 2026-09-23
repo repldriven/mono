@@ -17,7 +17,9 @@ permissions:
 
 jobs:
   discover:
-    runs-on: ubuntu-latest
+    # Pinned, here and in every workflow: a pinned label moves when a
+    # change says so rather than on the date GitHub moves ubuntu-latest.
+    runs-on: ubuntu-26.04
 
     outputs:
       projects: ${{ steps.projects.outputs.matrix }}
@@ -45,7 +47,7 @@ jobs:
   # Validates the whole workspace, including the base-less library projects
   # that the test matrix skips. Needs no Docker: poly check is static analysis.
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
@@ -88,7 +90,7 @@ jobs:
 
   test:
     needs: discover
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     strategy:
       fail-fast: false
@@ -185,7 +187,7 @@ jobs:
   tests:
     if: always()
     needs: [check, test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check test results
         run: |
