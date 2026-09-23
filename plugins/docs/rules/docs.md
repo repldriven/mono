@@ -113,8 +113,8 @@ presented as it. Write the Consequences as `Easier:` and `Harder:` lists, and
 acknowledge drift under Harder, naming the audit that makes it visible.
 Supersede a decision that no longer holds with a new number rather than
 rewriting it: mark the replaced ADR **Superseded by** its successor and leave
-its Context, Decision and Consequences as they were. See
-[writing-adrs](../../../docs/recipes/practices/writing-adrs.md).
+its Context, Decision and Consequences as they were.
+See [writing-adrs](../../../docs/recipes/practices/writing-adrs.md).
 
 ## A TDD is a Status banner and six sections
 
