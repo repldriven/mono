@@ -20,13 +20,17 @@
                (doto (.withEnv "MP_SMTP_AUTH" ^String smtp-auth)
                      (.withEnv "MP_SMTP_AUTH_ALLOW_INSECURE" "true")
                      (.withStartupTimeout (Duration/ofSeconds 60)))
-               (container/start! exposed-ports)))))
+               (container/start! exposed-ports
+                                 {:reuse? (container/reuse? config)})))))
    :system/stop (fn [{:system/keys [instance]}]
                   (log/info "Stopping mailpit container")
                   (container/stop! instance))
    :system/config {:docker-image-name default-docker-image-name
                    :exposed-ports default-exposed-ports
-                   :smtp-auth default-smtp-auth}
+                   :smtp-auth default-smtp-auth
+                   :reuse nil}
    :system/config-schema [:map [:docker-image-name string?]
-                          [:exposed-ports [:vector int?]] [:smtp-auth string?]]
+                          [:exposed-ports [:vector int?]] [:smtp-auth string?]
+                          [:reuse {:optional true}
+                           [:maybe [:or boolean? string?]]]]
    :system/instance-schema map?})

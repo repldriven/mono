@@ -19,16 +19,20 @@
            (log/info "Starting" docker-image-name "container")
            (-> (GenericContainer. ^String docker-image-name)
                (doto (.withStartupTimeout (Duration/ofSeconds startup-timeout)))
-               (container/start! exposed-ports)))))
+               (container/start! exposed-ports
+                                 {:reuse? (container/reuse? config)})))))
    :system/stop (fn [{:system/keys [config instance]}]
                   (log/info "Stopping" (:docker-image-name config) "container")
                   (container/stop! instance))
    :system/config {:docker-image-name system/required-component
                    :exposed-ports system/required-component
-                   :startup-timeout 60}
+                   :startup-timeout 60
+                   :reuse nil}
    :system/config-schema [:map [:docker-image-name string?]
                           [:exposed-ports [:vector int?]]
-                          [:startup-timeout int?]]
+                          [:startup-timeout int?]
+                          [:reuse {:optional true}
+                           [:maybe [:or boolean? string?]]]]
    :system/instance-schema map?})
 
 (def mapped-ports

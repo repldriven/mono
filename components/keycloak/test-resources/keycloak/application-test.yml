@@ -2,6 +2,7 @@ system:
   keycloak:
     container: !system/component
       system/component-kind: keycloak/container
+      reuse: !env TESTCONTAINERS_REUSE_ENABLE
       realm-import-files:
         - keycloak/realm-test.json
 
