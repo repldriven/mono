@@ -81,9 +81,10 @@ Name an ADR `NNNN-slug.md` with the next free number — never reuse
 one — and title it `# N. Title` with the decision as the title.
 Structure it as Status, Context, Decision, Consequences. Open the
 Decision with the decision in one paragraph and, where it has parts,
-introduce them with a line ending in a colon and a list, keeping every
-part in that list as an item or its indented continuation, since only
-the lead and the list are distilled; a worked example follows the rule
+introduce them with one unwrapped line ending in a colon and a list,
+keeping every part in that list as an item or its indented
+continuation, since only the lead and the list are distilled and a
+wrapped colon line loses the list; a worked example follows the rule
 and is never presented as it. Write the
 Consequences as `Easier:` and `Harder:` lists, and acknowledge drift
 under Harder. Mark a replaced ADR **Superseded by** its successor and

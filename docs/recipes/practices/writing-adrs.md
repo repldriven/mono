@@ -66,9 +66,10 @@ and names the audit that makes drift visible.
   its parts, where it has parts, with a line ending in a colon and a
   list.
 - Keep every part of the Decision in that list, as an item or its
-  indented continuation. Only the lead paragraph and the list are
-  distilled into agent context, so a paragraph after the list reaches
-  no agent.
+  indented continuation, and keep the colon line to one physical line.
+  Only the lead paragraph and the list are distilled into agent
+  context, so a paragraph after the list reaches no agent, and a
+  wrapped colon line loses the list.
 - Write the Consequences as `Easier:` and `Harder:` lists, and
   acknowledge drift under Harder.
 - Mark a replaced ADR **Superseded by** its successor, and leave the

@@ -79,7 +79,9 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
      and its one colon-introduced list, printed with line numbers.
      Reshape the Decision so every normative part is an item of that
      list, or an indented continuation of one; a paragraph after the
-     list, or between the lead and the list, reaches no rule.
+     list, or between the lead and the list, reaches no rule, and the
+     colon line is one physical line — wrapped, it ends the extraction
+     and the whole list goes with it.
    - **`read: <recipe>`** — every linked recipe, with the sentences of
      its Solution, Failures and Discussion that carry a modal as a
      starting point. Read those against the Rules block and add any
