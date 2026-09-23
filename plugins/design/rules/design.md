@@ -83,7 +83,12 @@ extractors — and the high-level component, which consumes extracted
 values exactly as it would a production literal and never branches on
 whether it's running against a container. The `testcontainers` brick
 may call builder-pattern setup methods during construction, never
-library methods against a started container.
+library methods against a started container. A container component
+may take `reuse` from `!env TESTCONTAINERS_REUSE_ENABLE`, which both
+asks the library to keep the container across boots and tells the
+component not to stop what it finds, but only where every rig sharing
+it keeps its own data apart — never Kafka, whose fixed topic and group
+names would have two rigs in one consumer group.
 See [testcontainers](../../../docs/recipes/test/testcontainers.md).
 
 ## Code generation follows the prep-lib pattern

@@ -104,6 +104,7 @@
                     host-port theme-resource theme-name vault-dir vault-secrets
                     env metrics]}
             config
+            reuse? (container/reuse? config)
             ;; Singular `:realm-import-file` stays supported for
             ;; back-compat; `:realm-import-files` (vector) wins when
             ;; both are set, so a system YAML can mount multiple
@@ -157,7 +158,8 @@
           ;; start! snapshots the mapped ports into the instance map, so
           ;; nothing downstream has to interrogate a running container.
           (container/start! c
-                            [default-exposed-port default-management-port])))))
+                            [default-exposed-port default-management-port]
+                            {:reuse? reuse?})))))
    :system/stop (fn [{:system/keys [instance]}]
                   (log/info "Stopping keycloak container")
                   (container/stop! instance))
@@ -170,5 +172,6 @@
                    :vault-dir nil
                    :vault-secrets nil
                    :env {}
-                   :metrics false}
+                   :metrics false
+                   :reuse nil}
    :system/instance-schema map?})

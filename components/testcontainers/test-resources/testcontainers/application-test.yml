@@ -2,6 +2,7 @@ system:
   helloworld:
     container: !system/component
       system/component-kind: testcontainers/container
+      reuse: !env TESTCONTAINERS_REUSE_ENABLE
       docker-image-name: testcontainers/helloworld:1.1.0
       exposed-ports:
         - 8080

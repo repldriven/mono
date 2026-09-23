@@ -3,6 +3,7 @@
   (:require
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.message-bus.interface :as message-bus]
+    [com.repldriven.mono.telemetry.interface :as telemetry]
     [com.repldriven.mono.utility.interface :as utility]))
 
 (defn start
@@ -74,11 +75,15 @@
      (swap! pending assoc command-id p)
      ;; Only `:key` goes to the bus. `:timeout-ms` here is how long to
      ;; wait for the reply, which is not the producer's ack timeout.
-     (let [pub (message-bus/send bus command-channel command {:key key})]
-       (if (error/anomaly? pub)
-         (do (swap! pending dissoc command-id) pub)
-         (let [result (deref p timeout-ms ::timeout)]
-           (swap! pending dissoc command-id)
-           (if (= result ::timeout)
-             (error/fail :command/timeout {:message "Command reply timed out"})
-             result)))))))
+     (telemetry/with-span
+      {:name "command-send"
+       :attributes {:command (str (:command command))}}
+      (let [pub (message-bus/send bus command-channel command {:key key})]
+        (if (error/anomaly? pub)
+          (do (swap! pending dissoc command-id) pub)
+          (let [result (deref p timeout-ms ::timeout)]
+            (swap! pending dissoc command-id)
+            (if (= result ::timeout)
+              (error/fail :command/timeout
+                          {:message "Command reply timed out"})
+              result))))))))

@@ -21,6 +21,10 @@
 (def default-exposed-port 9092)
 (def default-exposed-ports [default-exposed-port])
 
+;; Never reused, whatever `TESTCONTAINERS_REUSE_ENABLE` says: a rig's
+;; topics and consumer groups carry fixed names, and test namespaces run
+;; in parallel, so two rigs on one broker would be one consumer group
+;; taking each other's commands. Reuse waits on per-boot topic names.
 (defn- start-container
   [config]
   (let [{:keys [docker-image-name exposed-ports]} config]

@@ -32,11 +32,12 @@
        (nom-test> [created (SUT/create-service-account client
                                                        {:bank-id "bnk.a"
                                                         :name "A"})
-                   _ (is (= "bnk.a" (:client-id created)))
-                   _ (is (string? (:client-secret created)))
+                   _ (is (= {:client-id "bnk.a"} created)
+                         "a create hands back no credential")
                    rotated (SUT/rotate-secret client "bnk.a")
-                   _ (is (not= (:client-secret created)
-                               (:client-secret rotated)))
+                   _ (is (string? (:client-secret rotated)))
+                   again (SUT/rotate-secret client "bnk.a")
+                   _ (is (not= (:client-secret rotated) (:client-secret again)))
                    _ (SUT/update-service-account-audience client "bnk.a" "aud")
                    _ (SUT/revoke-service-account client "bnk.a")])
        (is (= :keycloak/client-not-found

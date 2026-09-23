@@ -109,6 +109,34 @@ brick already legitimately depends on the library. The `kafka` brick
 depends on the Kafka client; reading a bootstrap address is a natural
 extension of what it does.
 
+### Reuse across boots
+
+A container component takes `reuse`, and a rig sets it from the
+variable the library itself reads:
+
+```yaml
+container: !system/component
+  system/component-kind: mailpit/container
+  reuse: !env TESTCONTAINERS_REUSE_ENABLE
+```
+
+With the variable set, the first boot marks the container reusable
+and every later boot with the same configuration, in this JVM or the
+next, finds it running rather than starting another; the component's
+stop leaves it, since the library stops a reusable container when
+asked. Without the variable the value is nil and nothing changes.
+Reuse finds only a container that has finished starting, so reusable
+starts are serialised within the JVM: boots racing in parallel would
+otherwise each create one, and the rest sit idle for good, since Ryuk
+leaves a reusable container alone. A reused container also keeps
+everything written to it; remove it with `docker rm -f` to start
+clean. A
+container carries its state across boots, so a component MUST NOT take
+`reuse` unless every rig that shares it keeps its own data apart —
+FoundationDB's per-boot keyspace prefix is the model. Kafka takes none:
+a rig's topics and consumer groups carry fixed names, and two rigs on
+one broker would be one consumer group taking each other's commands.
+
 ## Rules
 
 **MUST:**
@@ -127,6 +155,10 @@ extension of what it does.
 - Call library methods on a *started* container instance from the
   `testcontainers` brick, beyond the generic mapped-port and URI
   extractors it owns.
+- Give a container component `reuse` unless every rig sharing the
+  container keeps its own data apart, since a reused container carries
+  its state across boots and runs; Kafka's fixed topic and group names
+  rule it out there.
 - Make high-level components testcontainer-aware. They should not
   branch on whether they're running against a container or a real
   cluster.
@@ -135,6 +167,9 @@ extension of what it does.
 
 - Call builder-pattern setup methods on a container instance during
   construction (before start).
+- Set a container component's `reuse` from
+  `!env TESTCONTAINERS_REUSE_ENABLE`, so one variable both asks the
+  library to reuse and tells the component not to stop what it finds.
 - Profile-gate whole infrastructure groups so a single configuration
   serves dev/test and prod.
 

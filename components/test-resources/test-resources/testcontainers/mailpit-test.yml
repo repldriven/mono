@@ -1,5 +1,6 @@
 container: !system/component
   system/component-kind: mailpit/container
+  reuse: !env TESTCONTAINERS_REUSE_ENABLE
 
 container-smtp-port: !system/component
   system/component-kind: mailpit/container-smtp-port

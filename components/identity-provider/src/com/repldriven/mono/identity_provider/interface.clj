@@ -29,9 +29,9 @@
   local/->client)
 
 (defn create-service-account
-  "Create a service-account client for a bank. Returns
-  `{:client-id … :client-secret …}` (the secret is only available
-  at creation time) or an anomaly.
+  "Create a service-account client for a bank. Returns `{:client-id …}`
+  or an anomaly. The client carries no usable credential until
+  `rotate-secret` mints one, which is the only way to read a secret.
 
   Args:
   - client: identity-provider component.
