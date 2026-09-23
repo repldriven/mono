@@ -44,7 +44,7 @@ shapes below are specific to those two).
 
 ## Workflow
 
-Both scripts sit beside this file. `<skill-dir>` below is the skill's
+The scripts sit beside this file. `<skill-dir>` below is the skill's
 base directory, reported when the skill loads — the installed copy
 under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
 
@@ -61,16 +61,35 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
      references it yet. This is now a well-founded case for authoring
      a *new* section — the doc has both real `## Rules` /
      `## Decision` content and an explicit label, so treat it exactly
-     like an existing section for steps 2–4 and 6 below: extract,
-     compose, leave nothing untraceable, write. Step 5 doesn't apply —
-     there's no existing heading or `See [...]` line to leave
+     like an existing section for steps 2–5 and 7 below: prepare,
+     extract, compose, leave nothing untraceable, write. Step 6 doesn't
+     apply — there's no existing heading or `See [...]` line to leave
      untouched, so write a brand-new heading and `See [...]` line as
-     part of step 6 instead.
+     part of step 7 instead.
    - **`mismatched: <doc>`** — currently linked from a rule section,
      but labeled for a *different* plugin (or not labeled at all).
      Report it; don't act on it.
 
-2. **Run the extractor**: `bash <skill-dir>/extract.sh [rule-file]`
+2. **Prepare the sources**: `bash <skill-dir>/prepare.sh [rule-file]`
+   reports what the extractor would not reach, so the docs are fixed
+   before the sync rather than reported as untraceable after it. Fix
+   each finding in the doc, per the `writing-recipes` and
+   `writing-adrs` recipes, and re-run until it reports nothing:
+   - **`unreached: <adr>`** — Decision lines outside the lead paragraph
+     and its one colon-introduced list, printed with line numbers.
+     Reshape the Decision so every normative part is an item of that
+     list, or an indented continuation of one; a paragraph after the
+     list, or between the lead and the list, reaches no rule.
+   - **`read: <recipe>`** — every linked recipe, with the sentences of
+     its Solution, Failures and Discussion that carry a modal as a
+     starting point. Read those against the Rules block and add any
+     MUST, MUST NOT or MAY the Rules omit: only the Rules block is
+     distilled, so a norm stated anywhere else reaches no agent. The
+     sentences are a hint, never a finding — most restate a bullet.
+
+   A doc edit here is part of the sync's diff, reviewed with it.
+
+3. **Run the extractor**: `bash <skill-dir>/extract.sh [rule-file]`
    (defaults to `plugins/idioms/rules/idioms.md`). This is a
    deterministic, judgment-free pass — it locates each rule section's
    trailing `See [...]` line, resolves every linked doc, and prints:
@@ -85,7 +104,7 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
    re-run `extract.sh`, and continue once that section extracts
    cleanly. Don't guess at what the rule should say.
 
-3. **For each section, compose the rule body from the extracted
+4. **For each section, compose the rule body from the extracted
    material only.** This is the one step that needs judgment — a
    readable rule can't be a raw bullet dump — but every factual claim
    in the composed prose (a function name, a forbidden call, a file
@@ -109,7 +128,7 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
      names are what an agent needs ambiently, and how to read their
      output belongs in the recipe behind the `See` link.
 
-4. **Flag untraceable claims.** Before rewriting a section, diff its
+5. **Flag untraceable claims.** Before rewriting a section, diff its
    *current* body against the extracted material. If the current text
    asserts something with no matching bullet or Decision lead anywhere
    in the extraction, call it out explicitly in the report — don't
@@ -118,18 +137,18 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
    for whoever reviews the diff, not for this skill to make
    unilaterally.
 
-5. **Leave the section heading and the trailing `See [...]` line
+6. **Leave the section heading and the trailing `See [...]` line
    untouched.** They're already the pointer to source; only the body
    paragraph between them gets rewritten. This step doesn't apply to a
    brand-new section authored from an `unlinked` finding — there's no
-   existing heading or `See [...]` line yet, so step 6 writes both for
+   existing heading or `See [...]` line yet, so step 7 writes both for
    the first time instead of preserving them.
 
-6. **Write the file.** No interactive confirmation gate — this
+7. **Write the file.** No interactive confirmation gate — this
    produces a normal git diff for review via the usual PR flow.
    Don't run `git commit` yourself; that's a separate, explicit step.
 
-7. **Reinstall the plugins from local files** so the edited rule
+8. **Reinstall the plugins from local files** so the edited rule
    reaches the copy agents actually load:
 
    ```bash
@@ -146,16 +165,21 @@ under `.tessl/plugins/<workspace>/workflow/skills/sync-rules-from-docs`.
    reading the pre-sync rule. The `file:` refs install from the
    working tree rather than the registry, so this needs no network and
    no login. It touches only gitignored paths, so it never shows up in
-   the diff from step 6.
+   the diff from step 7.
 
 ## Output
 
-Start with the discovery findings, then the per-section sync report.
+Start with the discovery findings, then what the sources needed before
+they could be read, then the per-section sync report.
 
 **Discovery**: list every `unlinked` and `mismatched` finding from
 step 1. For each `unlinked` finding that became a new section, say so
 inline; for each `mismatched` finding, note that it was reported only
 — no file changed as a result.
+
+**Prepared**: each `unreached` ADR reshaped and each recipe whose Rules
+gained a bullet, naming what moved; "none" where the sources were
+already complete.
 
 **Per section**: which doc(s) it extracted from, a short summary of
 what changed (or "unchanged" if the compressed prose already matched,
@@ -172,6 +196,10 @@ Example:
 Discovery
   unlinked: docs/recipes/code/system-configurations.md (labeled 'idioms', no rule section links it) -> authored new section below
   mismatched: none
+
+Prepared
+  docs/adr/0005-error-handling-with-anomalies.md: two paragraphs after the list moved into it
+  docs/recipes/code/error-handling.md: Rules gained "never rethrow across interface.clj" from its Discussion
 
 Return anomalies, don't throw across a boundary
   Sources: docs/recipes/code/error-handling.md, ADR-0005
