@@ -71,15 +71,27 @@ design.
 
 - Structure a TDD as a Status banner, Objective, Background, Proposed
   Solution, Alternatives Considered, Known Limitations, References.
-- Open the Status banner with **proposal** or **implemented**. A
-  proposal's banner names what exists, says the Proposed Solution is
-  the build list, and names the section that says what comes first.
+- Open the Status banner — a blockquote under the title — with
+  **proposal** or **implemented**. A proposal's banner names what
+  exists, says the Proposed Solution is the build list, and names the
+  section that says what comes first; an implemented TDD's banner is
+  the one line.
 - Open the Objective's scope paragraphs with `In scope:` and
   `Out of scope:`, and link the document that decides each thing left
   out.
-- End the Proposed Solution with a first-slice section and `### Tests`.
-- Give each rejected alternative its reason in the sentence that
-  rejects it.
+- Write Background and Known Limitations as bullets opening with a
+  bold label, a Background bullet naming where the thing lives.
+- Give the Proposed Solution one `###` per design area, each naming
+  the files it touches and the operations, anomalies, config keys and
+  schemas it adds.
+- End the Proposed Solution with a first-slice section and `### Tests`,
+  one bullet per brick or base saying what its tests cover.
+- List each alternative as `**The alternative.** Rejected:` and the
+  reason in that sentence, saying which part where one is taken in
+  part.
+- List the PRD the design serves first in References, then sibling
+  TDDs, ADRs, recipes and external specifications, each as
+  `[id](path) — gloss` saying what the document gives the design.
 - Rename Proposed Solution to Solution once the design is implemented,
   and the banner with it.
 

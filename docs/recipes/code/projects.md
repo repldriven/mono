@@ -120,8 +120,26 @@ ships. Every project therefore repeats `org.clojure/clojure`.
 - Projects use `:local/root` paths for components and bases.
 - A project that produces a deployable artefact has a `:build` alias
   pointing at `bases/build`.
+- A project's `:test` alias carries the bricks only tests need —
+  `test-resources`, `test-system`, `testcontainers` — and the test
+  runner, `external-test-runner`.
+- A library project carries no `:build` alias, an empty `:paths`, and
+  dep keys qualified with the workspace top namespace, so a consumer's
+  own key cannot clash.
+- `mono-test-lib` is a superset of `mono-lib`; the release workflow
+  asserts it.
+- A library project keeps `logback-test.xml` off `:paths` and on the
+  `:test` alias's `:extra-paths`: a library's `:paths` join every
+  consumer's classpath, and logback prefers a `logback-test.xml` found
+  anywhere on it.
+- A version several bricks or projects must agree on is declared
+  once: a project-level pin in `:deps` holds it for one deployable,
+  and a shim under `deps/`, referenced by `:local/root` under a `pin/`
+  key, holds it for every project that references the shim.
 - Every project repeats the `org.clojure/clojure` pin: the CLI makes
   Clojure a direct dependency, so nothing one level down can hold it.
+- Profiles (`:dev`, `:test`, `:prod`) are encoded inside the system
+  YAML with `aero` `!profile` tags, not as separate files.
 
 **MUST NOT:**
 
@@ -136,6 +154,9 @@ ships. Every project therefore repeats `org.clojure/clojure`.
 - Projects have a `resources/` folder for deployment-scoped resources:
   `application.yml` (the system definition), `logback.xml` and
   `logback-test.xml`.
+- A deployable's system YAML sit under the base's own
+  `resources/<base>/` rather than the project's `resources/`; the
+  runtime names it with `--config-file` and `--profile`.
 - A project have no base, when it is a library another workspace
   consumes by `:deps/root`.
 

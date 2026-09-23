@@ -119,6 +119,8 @@ check with no further bindings:
   of storage failures that mean retry, such as a store's contention and
   timeout kinds. The call site moves to the payload as `:operation`.
 - Anomaly payloads contain `:message`.
+- Use `nom-test>` in a test for an assertion chain that includes
+  anomaly-returning calls.
 - Mark a genuinely unrecoverable `throw` with
   `;; nosemgrep: no-raw-throw` on the line above — the `no-raw-throw`
   semgrep rule blocks any unmarked one.

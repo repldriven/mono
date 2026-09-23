@@ -49,7 +49,7 @@ maps; destructuring everywhere is `{:keys [...]}`. The rule governs
 map *keys*, not values — a code an external standard defines stays a
 string (detail below).
 
-Boundary handling:
+Boundary handling, and the one value the rule leaves string-typed:
 
 - **HTTP / JSON via Reitit + Muuntaja.** The `server` brick
   configures Muuntaja's JSON decoder with `keyword` as
@@ -70,23 +70,23 @@ Boundary handling:
   but are rarely used; when they are, callers destructure with string
   keys *locally* and convert before handing the data to anything
   else.
+- **Codes an external standard defines.** The rule is about *map
+  keys*, not all values. A value that is a code an external standard
+  defines stays string-typed, because every wire boundary expects the
+  standard's spelling. ISO 4217 currency codes are the usual case:
+  `"GBP"`, not `:currency-gbp`, since a keyword form would force
+  translation at every wire boundary.
 
-The rule is about *map keys*, not all values. A value that is a code
-an external standard defines stays string-typed, because every wire
-boundary expects the standard's spelling. ISO 4217 currency codes are
-the usual case: `"GBP"`, not `:currency-gbp`, since a keyword form
-would force translation at every wire boundary.
+  ```clojure
+  ;; OK
+  {:account-id "..." :currency "GBP" :amount 1000}
 
-```clojure
-;; OK
-{:account-id "..." :currency "GBP" :amount 1000}
+  ;; Not OK
+  {:account-id "..." :currency :currency-gbp :amount 1000}
+  ```
 
-;; Not OK
-{:account-id "..." :currency :currency-gbp :amount 1000}
-```
-
-Enum variants internal to the system keep the keyword form; only a
-code an external standard defines stays a string.
+  Enum variants internal to the system keep the keyword form; only a
+  code an external standard defines stays a string.
 
 ## Consequences
 

@@ -142,10 +142,12 @@ ends with the check — which CI calls and a person rarely does.
 - Use whatever the caller supplied, and discover only what they did
   not.
 - Declare an overridable variable with `env_var_or_default`. A
-  workspace built on these bricks redeclares it in its root Justfile
-  after the `import?` of the file that reads it.
-- Put a recipe in the justfile for the domain it acts on, prefixed with
-  that domain's name. The prefix is what groups it in `just --list`.
+  workspace built on these bricks redeclares it in its root Justfile,
+  under `set allow-duplicate-variables`, after the `import?` of the
+  file that reads it.
+- Name a recipe for what it acts on, not for what it is made of, and
+  put it in the justfile for that domain, prefixed with the domain's
+  name. The prefix is what groups it in `just --list`.
 - Give every recipe a one-line comment naming its parameters, and the
   values a parameter takes where they are fixed. That line is what
   `just --list` shows.
@@ -154,9 +156,11 @@ ends with the check — which CI calls and a person rarely does.
 - Declare a constant in the file that reads it, and in the root
   Justfile — or a `vars.just` holding nothing else — where more than
   one does or where it has to agree with one already there. Put a
-  private helper with the domain it is about, whoever calls it.
-- Pass the identity a recipe acts as rather than discovering it, and
-  stop rather than guessing where none is given.
+  private helper with the domain it is about, whoever calls it, and
+  have it take what varies as an argument.
+- Pass the identity a recipe acts as rather than discovering it, name
+  the fallback where a recipe can act as you and needs one, and stop
+  rather than guessing where none is given.
 
 **MUST NOT:**
 
@@ -169,6 +173,12 @@ ends with the check — which CI calls and a person rarely does.
 - Comment a recipe body except where a reader would otherwise make an
   edit that breaks it. Why it is that way belongs in the recipe under
   `docs/`.
+
+**MAY:**
+
+- Keep `install-hooks` unprefixed: every clone's `.envrc` and
+  `post-checkout`, and every workspace built on these bricks, call it
+  by that name.
 
 ## Discussion
 

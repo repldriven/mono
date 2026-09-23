@@ -91,13 +91,17 @@ and each of those in exactly one brick — see
 - If the symbol you need isn't yet on another component's
   `interface.clj`, add it there first — never reach around the
   interface to get it.
+- Hold only third-party libraries in a brick's `deps.edn`, each in
+  exactly one brick: Polylith resolves brick dependencies from
+  interface references in source.
 
 **MUST NOT:**
 
 - Implement logic directly in `interface.clj`.
 - Reach into another component's internal namespaces.
 - Require any other component from `interface.clj` — including that
-  component's own `interface.clj`.
+  component's own `interface.clj`, and including a library-wrapper
+  brick like `error` or `utility`.
 - Include other components in `deps.edn`.
 
 ## Discussion

@@ -128,14 +128,22 @@ when the parent lands separately.
 
 **MUST:**
 
-- Pull/merge from `main` before committing.
+- Pull/merge from `main` before committing, and re-run the tests
+  after the merge.
 - Cut a branch with `just gh-fresh-branch <name>`, commit and raise
   with `just gh-commit-and-pr <title> [body]`, and land with
-  `just gh-merge`.
+  `just gh-merge`. Each refuses rather than guesses: the first on a
+  dirty tree or a name that already exists, the second on `main`, with
+  nothing to commit, or on a path that looks like a credential, and the
+  third on a PR that is not open or targets anything but `main`.
 - Resolve conflicts with Renovate-managed files (`deps.edn`,
   `.github/workflows/*`, `flake.lock`) before pushing.
+- Check for an open Renovate PR before bumping a version manually,
+  and keep a manual bump narrowly scoped so the next Renovate PR can
+  close or merge cleanly.
 - Stage user-initiated deletions and moves with `git add` — not
-  `git rm`.
+  `git rm`, which is for a deletion you are yourself initiating.
+  Stage both ends of a move so git records it as a rename.
 
 **MUST NOT:**
 

@@ -123,7 +123,12 @@ boots infrastructure, which the permit bounds:
 - Manage system lifecycle in tests with `with-test-system`.
 - Use `nom-test>` for assertions over anomaly-returning calls.
 - Place per-brick test config at
-  `test-resources/<brick>/application-test.yml`.
+  `test-resources/<brick>/application-test.yml`, and shared test
+  configuration (container groups, common schemas) in the
+  `test-resources` brick, which a brick's `:test` alias puts on the
+  classpath.
+- Start Docker once with `just start-docker` before a test run; no
+  test recipe starts it.
 - Set `TEST_SYSTEM_PERMITS` and the processor cap as `just test` does
   when running `clojure -M:poly test` directly against a Docker VM
   with fewer CPUs than the host.
@@ -139,6 +144,12 @@ boots infrastructure, which the permit bounds:
 - Use `use-fixtures` for system lifecycle.
 - Mark a namespace `^:eftest/synchronized` to bound how many systems
   it boots; the permit does that, and the marker only slows the file.
+
+**MAY:**
+
+- Pass a patch-fn as the second element of `with-test-system`'s
+  binding vector, applied to the system defs before start, to inject
+  an HTTP handler or swap a component for a test double.
 
 ## Discussion
 

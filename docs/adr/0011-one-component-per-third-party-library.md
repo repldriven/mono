@@ -42,35 +42,30 @@ excluding standard core Clojure libraries — has exactly one
 Polylith brick as its consumer. Other bricks depend on the wrapping
 component's `interface.clj`, never on the library directly.
 
-Worked examples already in the codebase:
+The parts of the decision:
 
-- `avro` wraps Lancaster.
-- `http-client` wraps http-kit.
-- `jdbc` wraps next.jdbc.
-- `vault` wraps `amperity/vault-clj`.
-- `error` wraps `de.otto/nom`.
-- `env` wraps aero and clj-yaml.
-
-The visual check: `clj -M:poly libs` prints a matrix with libraries
-as rows and bricks (components and bases) as columns. The principle
-is **one X in each library row.** Reality is messier — over the
-lifetime of a codebase, libraries occasionally find their way into
-more than one brick (the `buddy-sign`, `sieppari` and `java.data`
-rows each have more than one X). We treat such rows as targets for
-cleanup during ordinary development: consolidate the import behind
-one component, or, where there is a real reason for the exception,
-accept it and move on. The discipline is the principle, not a CI
-gate.
-
-Adding a new library either creates a new component or extends an
-existing one; the placement question is "what is the conceptual
-boundary this library sits behind." When in doubt, a new
-single-purpose component is the safer answer.
-
-The exception is core Clojure libraries (`clojure.core`,
-`clojure.string`, `clojure.set`, `clojure.walk`,
-`clojure.spec.alpha`, and so on). They are the project's lingua
-franca and not subject to this rule.
+- **The exception.** Core Clojure libraries (`clojure.core`,
+  `clojure.string`, `clojure.set`, `clojure.walk`,
+  `clojure.spec.alpha`, and so on) are the project's lingua franca
+  and not subject to this rule.
+- **Adding a new library** either creates a new component or extends
+  an existing one; the placement question is "what is the conceptual
+  boundary this library sits behind." When in doubt, a new
+  single-purpose component is the safer answer.
+- **The visual check.** `clj -M:poly libs` prints a matrix with
+  libraries as rows and bricks (components and bases) as columns. The
+  principle is **one X in each library row.** Reality is messier —
+  over the lifetime of a codebase, libraries occasionally find their
+  way into more than one brick (the `buddy-sign`, `sieppari` and
+  `java.data` rows each have more than one X). We treat such rows as
+  targets for cleanup during ordinary development: consolidate the
+  import behind one component, or, where there is a real reason for
+  the exception, accept it and move on. The discipline is the
+  principle, not a CI gate.
+- **Worked examples** already in the codebase: `avro` wraps
+  Lancaster, `http-client` wraps http-kit, `jdbc` wraps next.jdbc,
+  `vault` wraps `amperity/vault-clj`, `error` wraps `de.otto/nom`,
+  and `env` wraps aero and clj-yaml.
 
 ## Consequences
 

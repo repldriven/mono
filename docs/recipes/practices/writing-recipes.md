@@ -250,17 +250,30 @@ Three things look alike here and belong in three places:
   sentence or two.
 - Open a procedure's `## Status` with **Verified**, **Untested** or
   **Superseded**. A recipe describing a convention has no Status.
+- Say in a Status what was run and when, what the steps were derived
+  from, or what still holds, and stop there.
+- Mark a procedure written up after the act **Untested** until somebody
+  has worked from the document.
 - Key a Failures entry on what the reader observes, never on its
   cause.
+- Keep a recovery for one step beside that step in the Solution, a
+  failure that reports as something else in Failures, and why the
+  system can fail that way in Discussion.
 - Open a step-based Solution with `### Prerequisites`.
 - Export a value a step produces at that step. `### Prerequisites`
   carries what is known before step 1.
 - Keep `### Prerequisites` to what no step supplies. A value a step's
   own recipe names is that step's.
+- Lead a Prerequisites line with the step it applies to, and give the
+  shell the steps assume as `export` lines with an example value.
 - Say where each way into a recipe starts, in a sentence.
 - Keep a step to its instruction, its command, and what the output
   should say.
-- Open a Discussion with a short unbolded summary of what was done.
+- Name a file in full in every step that touches it, and let each step
+  stand alone in a new shell.
+- Mark a step whose damage does not undo with a `[!WARNING]` alert.
+- Open a Discussion with a short unbolded summary of what was done, in
+  the first person plural.
 - Keep rationale out of the Solution. A reader following steps has
   not asked for it.
 - State in Rules every MUST, MUST NOT or MAY the Solution, Failures or
@@ -269,9 +282,15 @@ Three things look alike here and belong in three places:
 - Name a `just` recipe in the Rules bullet whose action it performs.
   The Rules block is the only part of a recipe distilled into agent
   context, so a command named only in a step reaches nobody.
+- Name the recipe in the bullet and nothing more: which column to
+  read, what an empty result means and which flag it passes belong in
+  the Solution.
 - Make a step's command a `just` recipe where it needs more than a
   line or two of shell. An inline block cannot be named in a bullet,
   so it never travels.
+- Wrap a step that only reads — what is not ready, which policies are
+  live — in a `just` recipe: it is safe to run unread, and safe to run
+  twice.
 
 **MUST NOT:**
 
@@ -279,6 +298,8 @@ Three things look alike here and belong in three places:
 - Explain a step inside the step. Mechanism and rationale are the
   Discussion's.
 - Split `### Prerequisites` into a block per reader.
+- Let a command carry a placeholder.
+- Put a comment after the command it explains.
 - Wrap a step that writes in a `just` recipe for brevity alone. A
   write stays inline, where the reader sees it before running it,
   unless the recipe is what makes the write safe.

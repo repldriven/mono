@@ -116,17 +116,36 @@ its interface from the base is registration, not ownership.
 **MUST:**
 
 - Bases live in `bases/`.
+- Each runnable application has exactly one base.
 - A base has a `-main` function in its entry namespace and uses
   `(:gen-class)`.
+- A base's `main.clj` defines `start`, which builds the system
+  definition from a YAML config, injects any
+  `!system/required-component` slots and calls `system/start`, and
+  `-main`, which parses CLI args and calls `start`.
 - Bases access components via `interface.clj`.
 - Bases bare-require every brick whose system multimethods need to
-  extend at runtime.
+  extend at startup.
 
 **MUST NOT:**
 
 - Bases depend on other bases.
 - Bases share code with each other except through components.
-- A base own a store. Persistence belongs in a component.
+- A base own a store. Persistence belongs in a component:
+  `component → base` is not a dependency Polylith allows, so a store
+  behind an entry point is unreachable by every component.
+  Bare-requiring a storage brick's interface from the base to register
+  its component kinds is registration, not ownership.
+
+**MAY:**
+
+- A workspace built on these bricks compose several bases into one
+  process — for local development, or an end-to-end test rig —
+  through one designated aggregator that reaches each composed base by
+  a declared surface, and writes that convention down as its own.
+  Nothing here composes bases.
+- Tests consolidate the bare-requires into a single
+  `test/.../system.clj`.
 
 ## Discussion
 

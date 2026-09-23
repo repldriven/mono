@@ -62,16 +62,24 @@ and names the audit that makes drift visible.
 - Name an ADR `NNNN-slug.md` with the next free number, and title it
   `# N. Title` with the decision as the title.
 - Structure an ADR as Status, Context, Decision, Consequences.
+- Give `## Status` one word as its own paragraph: **Proposed**,
+  **Accepted**, or **Superseded by** and a link to the successor.
+- Give the Context the property wanted, what happens without it, and
+  the shortlist as `**The option.**` bullets, a rejected option saying
+  why in its sentence and the chosen one last.
 - Open the Decision with the decision in one paragraph, and introduce
   its parts, where it has parts, with a line ending in a colon and a
-  list.
+  list, normative and in the imperative.
 - Keep every part of the Decision in that list, as an item or its
   indented continuation, and keep the colon line to one physical line.
   Only the lead paragraph and the list are distilled into agent
   context, so a paragraph after the list reaches no agent, and a
   wrapped colon line loses the list.
 - Write the Consequences as `Easier:` and `Harder:` lists, and
-  acknowledge drift under Harder.
+  acknowledge drift under Harder, naming the audit that makes it
+  visible.
+- Supersede a decision that no longer holds with a new number rather
+  than rewriting it.
 - Mark a replaced ADR **Superseded by** its successor, and leave the
   rest of it as it was.
 
@@ -80,6 +88,12 @@ and names the audit that makes drift visible.
 - Reuse an ADR number.
 - Edit a superseded ADR's Context, Decision or Consequences.
 - Present a worked example as the rule.
+
+**MAY:**
+
+- Carry `###` sub-sections in a long Decision, one per aspect, where
+  the parts have rationale of their own. A Decision with sub-sections
+  is distilled whole.
 
 ## Discussion
 
