@@ -62,9 +62,11 @@ than `[!WARNING]`.
 Key a Failures entry on what the reader observes, never on its cause,
 and give no entry to a failure whose message already names it.
 
-Name a `just` recipe in the Rules bullet whose action it performs. The
-Rules block is the only part of a recipe distilled into agent context,
-so a command named only in a step reaches nobody — which is also why a
+State in Rules every MUST, MUST NOT or MAY the Solution, Failures or
+Discussion carries, and name a `just` recipe in the Rules bullet whose
+action it performs. The Rules block is the only part of a recipe
+distilled into agent context, so a norm stated anywhere else, or a
+command named only in a step, reaches nobody — which is also why a
 step needing more than a line or two of shell becomes a recipe rather
 than an inline block, since an inline block cannot be named in a bullet
 and so never travels. Wrap what reads. A step that writes usually stays
@@ -79,8 +81,10 @@ Name an ADR `NNNN-slug.md` with the next free number — never reuse
 one — and title it `# N. Title` with the decision as the title.
 Structure it as Status, Context, Decision, Consequences. Open the
 Decision with the decision in one paragraph and, where it has parts,
-introduce them with a line ending in a colon and a list; a worked
-example follows the rule and is never presented as it. Write the
+introduce them with a line ending in a colon and a list, keeping every
+part in that list as an item or its indented continuation, since only
+the lead and the list are distilled; a worked example follows the rule
+and is never presented as it. Write the
 Consequences as `Easier:` and `Harder:` lists, and acknowledge drift
 under Harder. Mark a replaced ADR **Superseded by** its successor and
 leave its Context, Decision and Consequences as they were.

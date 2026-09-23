@@ -263,6 +263,9 @@ Three things look alike here and belong in three places:
 - Open a Discussion with a short unbolded summary of what was done.
 - Keep rationale out of the Solution. A reader following steps has
   not asked for it.
+- State in Rules every MUST, MUST NOT or MAY the Solution, Failures or
+  Discussion carries. Only the Rules block is distilled into agent
+  context, so a norm stated anywhere else reaches no agent.
 - Name a `just` recipe in the Rules bullet whose action it performs.
   The Rules block is the only part of a recipe distilled into agent
   context, so a command named only in a step reaches nobody.
