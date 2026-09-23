@@ -5,6 +5,8 @@
   same way `pulsar/message-bus.clj` wraps the raw Pulsar SDK to
   satisfy `message-bus`'s Producer/Consumer protocols."
   (:require
+    [com.repldriven.mono.keycloak.protocol :as protocol]
+
     [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
     [com.repldriven.mono.http-client.interface :as http]
     [com.repldriven.mono.json.interface :as json]
@@ -24,14 +26,6 @@
   "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 
 (def client-assertion-ttl-ms (* 60 1000))
-
-;; Internal accessor protocol — `KeycloakIdentityProvider` extends it
-;; so these helpers can pull config / cached-token atoms off the
-;; record without depending on its field shape.
-(defprotocol Client
-  (-config [_])
-  (-admin-token-atom [_])
-  (-jwks-atom [_]))
 
 (defn- realm-url
   [{:keys [base-url realm]} & path-parts]
@@ -133,7 +127,7 @@
   raw Keycloak response body (snake-case keys preserved) or an
   anomaly."
   [client creds]
-  (exchange-client-credentials* (-config client) creds))
+  (exchange-client-credentials* (protocol/-config client) creds))
 
 (defn client-assertion-claims
   "Claims for an RFC 7523 client assertion: the client authenticates as
@@ -222,8 +216,8 @@
   when `refresh?`."
   ([client] (admin-token! client false))
   ([client refresh?]
-   (let [config (-config client)
-         a (-admin-token-atom client)
+   (let [config (protocol/-config client)
+         a (protocol/-admin-token-atom client)
          cached @a]
      (if (and (not refresh?) (not (admin-token-expired? cached (util/now))))
        (:access-token cached)
@@ -272,7 +266,7 @@
   [client client-id]
   (let-nom> [res (admin-request! client
                                  {:method :get
-                                  :url (admin-url (-config client)
+                                  :url (admin-url (protocol/-config client)
                                                   "/clients?clientId="
                                                   client-id)})
              clients (http/res->edn res)]
@@ -293,7 +287,7 @@
   (let-nom>
     [_ (admin-request! client
                        {:method :post
-                        :url (admin-url (-config client) "/clients")
+                        :url (admin-url (protocol/-config client) "/clients")
                         :body (json/write-str
                                (new-client-representation
                                 {:bank-id bank-id
@@ -312,7 +306,7 @@
      _ (when-not representation (client-not-found client-id))
      res (admin-request! client
                          {:method :get
-                          :url (admin-url (-config client)
+                          :url (admin-url (protocol/-config client)
                                           "/clients/"
                                           (:id representation)
                                           "/client-secret")})
@@ -329,7 +323,7 @@
       (let-nom>
         [_ (admin-request! client
                            {:method :delete
-                            :url (admin-url (-config client)
+                            :url (admin-url (protocol/-config client)
                                             "/clients/"
                                             (:id representation))}
                            #{404})]
@@ -344,7 +338,7 @@
      _ (when-not representation (client-not-found client-id))
      res (admin-request! client
                          {:method :post
-                          :url (admin-url (-config client)
+                          :url (admin-url (protocol/-config client)
                                           "/clients/"
                                           (:id representation)
                                           "/client-secret")})
@@ -365,7 +359,7 @@
      _ (when-not representation (client-not-found client-id))
      _ (admin-request! client
                        {:method :put
-                        :url (admin-url (-config client)
+                        :url (admin-url (protocol/-config client)
                                         "/clients/"
                                         (:id representation))
                         :body (json/write-str
@@ -393,8 +387,8 @@
   truthy, bypass the cache (used when a `kid` is unknown)."
   ([client] (jwks! client false))
   ([client force-refresh?]
-   (let [config (-config client)
-         a (-jwks-atom client)
+   (let [config (protocol/-config client)
+         a (protocol/-jwks-atom client)
          cached @a]
      (if (and (not force-refresh?)
               (not (jwks-stale? cached (util/now) jwks-ttl-ms)))
@@ -407,4 +401,4 @@
 (defn issuer
   "Configured issuer URL for the realm."
   [client]
-  (realm-url (-config client)))
+  (realm-url (protocol/-config client)))

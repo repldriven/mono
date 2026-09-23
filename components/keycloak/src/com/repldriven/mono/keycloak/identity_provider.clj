@@ -13,6 +13,7 @@
   (:require
     [com.repldriven.mono.identity-provider.interface :as identity-provider]
     [com.repldriven.mono.keycloak.core :as core]
+    [com.repldriven.mono.keycloak.protocol :as protocol]
 
     [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
 
@@ -50,7 +51,7 @@
                   ;; hostname is what ends up in tokens). An explicit
                   ;; `:expected-issuer` on the client config overrides
                   ;; the base-url-derived default for this check.
-                  expected-iss (or (:expected-issuer (core/-config client))
+                  expected-iss (or (:expected-issuer (protocol/-config client))
                                    (core/issuer client))
                   claims (jwt/unsign jwt-string
                                      public-key
@@ -71,7 +72,7 @@
                                    (.getMessage e))}))))
 
 (defrecord KeycloakIdentityProvider [config admin-token jwks]
-  core/Client
+  protocol/Client
     (-config [_] config)
     (-admin-token-atom [_] admin-token)
     (-jwks-atom [_] jwks)
