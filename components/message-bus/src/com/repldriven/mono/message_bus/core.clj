@@ -10,7 +10,7 @@
 (defn- with-send-span
   [producer-name f]
   (telemetry/with-span {:name "bus-send"
-                        :kind :producer
+                        :span-kind :producer
                         :attributes {:messaging.destination.name
                                      (name producer-name)}}
                        (f)))

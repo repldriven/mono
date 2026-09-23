@@ -68,7 +68,7 @@
         finished? (volatile! false)
         result (volatile! nil)]
     (try (span/with-span!
-          {:name name :parent parent-ctx :kind :consumer :attributes attrs}
+          {:name name :parent parent-ctx :span-kind :consumer :attributes attrs}
           (vreset! started? true)
           (let [r (f)]
             (vreset! finished? true)

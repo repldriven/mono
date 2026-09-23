@@ -15,7 +15,7 @@
     [com.repldriven.mono.keycloak.core :as core]
     [com.repldriven.mono.keycloak.protocol :as protocol]
 
-    [com.repldriven.mono.error.interface :as error :refer [let-nom>]]
+    [com.repldriven.mono.error.interface :as error]
 
     [buddy.core.keys :as buddy-keys]
     [buddy.sign.jws :as jws]
@@ -77,12 +77,12 @@
     (-admin-token-atom [_] admin-token)
     (-jwks-atom [_] jwks)
   identity-provider/IdentityProvider
+    ;; The client alone: a secret is minted by `rotate-secret` when a
+    ;; caller wants one, so creating does not spend two Admin calls
+    ;; reading a secret nothing holds on to.
     (-create-service-account [this {:keys [bank-id name audience]}]
-      (let-nom> [_ (core/create-client
-                    this
-                    {:bank-id bank-id :name name :audience audience})
-                 result (core/client-secret this bank-id)]
-        result))
+      (core/create-client this
+                          {:bank-id bank-id :name name :audience audience}))
     (-revoke-service-account [this bank-id] (core/delete-client this bank-id))
     (-rotate-secret [this bank-id] (core/regenerate-secret this bank-id))
     (-update-service-account-audience [this bank-id audience]

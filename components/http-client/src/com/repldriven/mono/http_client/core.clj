@@ -35,7 +35,7 @@
   [opts]
   (telemetry/with-span
    {:name "http-request"
-    :kind :client
+    :span-kind :client
     :attributes (span-attributes opts)}
    (let [res (error/try-nom :http-client/request
                             "HTTP request threw an exception"
