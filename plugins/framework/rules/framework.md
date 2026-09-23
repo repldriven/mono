@@ -18,7 +18,9 @@ and nothing from any other brick, not even a library-wrapper brick
 like `error` or `utility`. Never list a component in `deps.edn`:
 Polylith resolves brick dependencies from interface references in
 source, and a brick's `deps.edn` holds third-party libraries only,
-each in exactly one brick.
+each in exactly one brick. Define every protocol in the brick's
+`protocol.clj`, a namespace with no `<ns>-test` of its own — never in
+`core.clj` beside a `core_test.clj`.
 See [components](../../../docs/recipes/code/components.md),
 [bases](../../../docs/recipes/code/bases.md).
 

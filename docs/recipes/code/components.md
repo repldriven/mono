@@ -22,6 +22,7 @@ components/<brick>/
     core.clj         ; primary implementation
     domain.clj       ; (often) data shapes, validation
     store.clj        ; (often) persistence
+    protocol.clj     ; (when defining protocols) every defprotocol
     system.clj       ; (when registering system components)
   deps.edn
 ```
@@ -78,6 +79,27 @@ source code. Only third-party libraries belong in a brick's `deps.edn`,
 and each of those in exactly one brick — see
 [ADR-0011](../../adr/0011-one-component-per-third-party-library.md).
 
+### Protocols
+
+Put every `defprotocol` a brick defines in its `protocol.clj`, and give
+that namespace no test of its own: tests reach the protocol through the
+`interface.clj` or `core.clj` that uses it. A record or `reify`
+implementing it may live anywhere in the brick.
+
+```clojure
+(ns com.repldriven.mono.<brick>.protocol)
+
+(defprotocol Client
+  (-config [_]))
+```
+
+## Failures
+
+**A test passes locally but in CI errors with `No implementation of
+method … of protocol … found for class …`, on some runs only.** The
+protocol is defined in a namespace that has a test namespace of its
+own. Move it to `protocol.clj`.
+
 ## Rules
 
 **MUST:**
@@ -94,6 +116,8 @@ and each of those in exactly one brick — see
 - Hold only third-party libraries in a brick's `deps.edn`, each in
   exactly one brick: Polylith resolves brick dependencies from
   interface references in source.
+- Define every protocol in the brick's `protocol.clj`, a namespace with
+  no test namespace of its own.
 
 **MUST NOT:**
 
@@ -103,6 +127,8 @@ and each of those in exactly one brick — see
   component's own `interface.clj`, and including a library-wrapper
   brick like `error` or `utility`.
 - Include other components in `deps.edn`.
+- Define a protocol in a namespace a `<ns>-test` names, such as
+  `core.clj` beside a `core_test.clj`.
 
 ## Discussion
 
@@ -117,6 +143,18 @@ The split between `interface.clj` (delegates) and the rest (implements)
 lets you reorganise internals without rewriting any of the callers. The
 cost is one more level of indirection in the function-call graph. We
 accept that cost.
+
+Protocols get their own namespace because of how coverage runs. With
+`COVERAGE=true`, as CI sets it, the test runner has cloverage
+instrument each namespace `<ns>` it finds a `<ns>-test` for, and
+instrumenting re-evaluates the namespace. Re-evaluating a
+`defprotocol` creates a new protocol, and a record compiled against
+the old one no longer satisfies it. The runner shuffles namespaces,
+so whether the implementing namespace loads before the protocol's is
+instrumented changes from run to run, and so does the failure; `just
+test` sets no `COVERAGE`, so it never happens locally. Requiring a
+namespace again is harmless: only re-evaluating one breaks its
+protocols, which a REPL `(require … :reload)` does as well.
 
 ## References
 
