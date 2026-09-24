@@ -18,4 +18,21 @@
     <cve>CVE-2025-10543</cve>
   </suppress>
 
+  <!-- False positive: CVE-2026-54285 affects opentelemetry-js, whose
+       @opentelemetry/core baggage propagator parses inbound headers unbounded.
+       These jars are the Java API and SDK. -->
+  <suppress>
+    <packageUrl regex="true">^pkg:maven/io\.opentelemetry/.*$</packageUrl>
+    <cve>CVE-2026-54285</cve>
+  </suppress>
+
+  <!-- False positive: CVE-2026-0871 is in the Keycloak server, which lets a
+       manage-users admin edit unmanaged attributes only admins may view. These
+       jars are the admin REST client and its common classes, versioned apart
+       from the server, so no client release clears the server's range. -->
+  <suppress>
+    <packageUrl regex="true">^pkg:maven/org\.keycloak/keycloak-(admin-client|client-common-synced)@.*$</packageUrl>
+    <cve>CVE-2026-0871</cve>
+  </suppress>
+
 </suppressions>
