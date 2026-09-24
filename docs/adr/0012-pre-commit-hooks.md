@@ -38,7 +38,8 @@ extensionless file there is a hook, installed under its own name; a
 
 Two hooks ship, with how they are composed, installed and gated:
 
-- **`pre-commit`** formats staged Clojure files with zprint —
+- **`pre-commit`** formats staged Clojure files — `cond` pairs laid
+  out by `scripts/hooks/cond_pairs.clj` under babashka, then zprint,
   auto-fix, the reformatted files restaged, configured by
   `.zprint.edn` at 80 columns — lints them with clj-kondo, configured
   by `.clj-kondo/config.edn` including `lint-as` mappings for the

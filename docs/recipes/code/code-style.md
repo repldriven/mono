@@ -160,7 +160,8 @@ macro form.
 
 For `cond`, `cond->` and `cond->>`, put each condition and its action
 on separate consecutive lines, with a blank line between pairs.
-`just format` lays them out this way before zprint runs:
+`just format` and the pre-commit hook lay them out this way before
+zprint runs:
 
 ```clojure
 (cond-> initial-value

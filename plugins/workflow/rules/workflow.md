@@ -32,8 +32,9 @@ See [git-workflow](../../../docs/recipes/practices/git-workflow.md).
 
 Keep the git hooks checked in under `scripts/hooks/`: an extensionless
 file is a hook, installed under its own name, a `.sh` file a helper a
-hook sources. `pre-commit` formats staged Clojure files with zprint
-(auto-fix, restaged, configured by `.zprint.edn` at 80 columns), lints
+hook sources. `pre-commit` formats staged Clojure files — `cond` pairs laid
+out by `cond_pairs.clj` under babashka, then zprint (auto-fix,
+restaged, configured by `.zprint.edn` at 80 columns) — lints
 them with clj-kondo (configured by `.clj-kondo/config.edn`, `lint-as`
 mappings for the workspace's macros included) and scans them with the
 semgrep rules in `.config/semgrep/semgrep.yml` — a raw `throw`, a raw

@@ -238,7 +238,7 @@ format:
     # are not valid Clojure until substituted, so neither pass can parse them
     files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | grep -v '^template/resources/' | while read f; do [ -f "$f" ] && echo "$f"; done)
     if [ -n "$files" ]; then
-        echo "$files" | xargs bb scripts/format/cond_pairs.clj
+        echo "$files" | xargs bb scripts/hooks/cond_pairs.clj
         echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
         echo "✓ Formatting complete"
     else
