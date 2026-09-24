@@ -65,20 +65,20 @@
     :muuntaja/decode (fn [_e _req]
                        {:status 400
                         :body {:title "REJECTED"
-                               :type "mono/malformed-body"
+                               :type "server/malformed-body"
                                :status 400
                                :detail "Malformed JSON request body"}})
     :reitit.coercion/request-coercion (fn [ex _req]
                                         {:status 400
                                          :body {:title "REJECTED"
-                                                :type "mono/bad-request"
+                                                :type "server/bad-request"
                                                 :status 400
                                                 :detail (explain->detail
                                                          (ex-data ex))}})
     :reitit.coercion/response-coercion (fn [ex _req]
                                          {:status 500
                                           :body {:title "FAILED"
-                                                 :type "mono/bad-response"
+                                                 :type "server/bad-response"
                                                  :status 500
                                                  :detail (explain->detail
                                                           (ex-data ex))}})}))

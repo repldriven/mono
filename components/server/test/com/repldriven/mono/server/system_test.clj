@@ -101,7 +101,7 @@
                  body (http-client/res->body res)]
              (is (= 400 (:status res)))
              (is (= "REJECTED" (get body "title")))
-             (is (= "mono/bad-request" (get body "type")))
+             (is (= "server/bad-request" (get body "type")))
              (is (contains? body "detail"))))
          (testing "A set-valued schema sent an array stays a 400"
            ;; humanize throws on this one: the error's :in path carries
@@ -111,7 +111,7 @@
            (let [res (post! "/api/nested" {"tags" ["not-an-int"]})
                  body (http-client/res->body res)]
              (is (= 400 (:status res)))
-             (is (= "mono/bad-request" (get body "type")))
+             (is (= "server/bad-request" (get body "type")))
              (is (re-find #":in \[:tags" (get body "detail")))
              (is (re-find #"not-an-int" (get body "detail")))))
          (testing "Invalid response body returns 500 with error type"
@@ -119,5 +119,5 @@
                  body (http-client/res->body res)]
              (is (= 500 (:status res)))
              (is (= "FAILED" (get body "title")))
-             (is (= "mono/bad-response" (get body "type")))
+             (is (= "server/bad-response" (get body "type")))
              (is (contains? body "detail")))))))))
