@@ -79,9 +79,10 @@ See [code-style](../../../docs/recipes/code/code-style.md).
 
 ## Everyday shape
 
-zprint at 80 columns, docstrings wrapped by hand; `cond->` with
-`util/assoc-some` / `util/assoc-seq` over chains of optional `assoc`,
-each predicate and action on their own lines; destructure one map level
+zprint at 80 columns, docstrings wrapped by hand; `cond`, `cond->` and
+`cond->>` with each condition and action on consecutive lines and a
+blank line between pairs; `cond->` with `util/assoc-some` /
+`util/assoc-seq` over chains of optional `assoc`; destructure one map level
 per `let` binding, never nested in function arguments, over `get` /
 `get-in` chains; each binding, and any form inside `[]`, on one line
 for zprint to wrap, wrapped by hand only where it clearly exceeds 80;
@@ -93,6 +94,7 @@ by setting `:response` or `:error`; a macro declares how clj-kondo
 reads it in its own metadata (`{:clj-kondo/lint-as 'clojure.core/let}`)
 and gets a hook under `.clj-kondo/hooks/` where no core form matches
 its shape.
+Commands: `just format`.
 See [code-style](../../../docs/recipes/code/code-style.md).
 
 ## Comment the why, not the what

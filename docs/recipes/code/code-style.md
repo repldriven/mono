@@ -158,8 +158,9 @@ macro form.
 
 ### Conditional threading
 
-For `cond->` and `cond->>`, put each predicate and its action on
-separate consecutive lines, with a blank line between pairs:
+For `cond`, `cond->` and `cond->>`, put each condition and its action
+on separate consecutive lines, with a blank line between pairs.
+`just format` lays them out this way before zprint runs:
 
 ```clojure
 (cond-> initial-value
@@ -355,8 +356,8 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
 - Prefer destructuring over `get` / `get-in` chains.
 - Prefer thread macros (`->`, `->>`, `error/nom->`) over intermediate
   `let` bindings when the chain is the meaningful value.
-- Format `cond->` / `cond->>` with each predicate and action on
-  separate lines, blank lines between pairs.
+- Format `cond`, `cond->` and `cond->>` with each condition and action
+  on consecutive lines, a blank line between pairs: `just format`.
 - Prefer `cond->` with `util/assoc-some` / `util/assoc-seq` over a
   chain of optional `assoc` calls.
 - Aim for referential transparency — pure functions named after what
