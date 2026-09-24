@@ -14,12 +14,16 @@
   [body]
   (cond (nil? body)
         nil
+
         (string? body)
         body
+
         (instance? java.io.InputStream body)
         (slurp body)
+
         (bytes? body)
         (String. ^bytes body "UTF-8")
+
         :else
         (str body)))
 
@@ -28,8 +32,10 @@
   ([res opts]
    (cond (error/anomaly? res)
          res
+
          (nil? res)
          nil
+
          :else
          (error/try-nom
           :http-client/body-parse

@@ -85,8 +85,10 @@
                                 (.setErrorHandler server (json-error-handler))))
                ready-thunk (cond (fn? ready-fn)
                                  ready-fn
+
                                  (instance? clojure.lang.IDeref ready-fn)
                                  (fn [] @ready-fn)
+
                                  :else
                                  (constantly true))
                ctx {:interceptors interceptors :ready-fn ready-thunk :cors cors}

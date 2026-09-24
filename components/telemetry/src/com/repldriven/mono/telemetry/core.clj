@@ -42,11 +42,13 @@
              ;; span creation failed, so the body never ran: run it now
              (not @started?#)
              (do ~@body)
+
              ;; the body finished and only closing the span failed:
              ;; telemetry must not lose a result the caller already
              ;; computed
              @finished?#
              @result#
+
              ;; the body itself threw: that is the caller's exception
              :else
              ;; nosemgrep: no-raw-throw — the caller's exception
@@ -79,8 +81,10 @@
            ;; belong to the caller.
            (cond (not @started?)
                  (f)
+
                  @finished?
                  @result
+
                  :else
                  ;; nosemgrep: no-raw-throw — the caller's exception
                  (throw e))))))

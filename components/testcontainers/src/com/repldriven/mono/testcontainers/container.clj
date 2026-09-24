@@ -15,8 +15,10 @@
   [{:keys [reuse]}]
   (cond (boolean? reuse)
         reuse
+
         (string? reuse)
         (contains? #{"true" "1" "yes"} (str/lower-case reuse))
+
         :else
         false))
 

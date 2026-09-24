@@ -63,6 +63,7 @@
          (cond-> builder
                  (some? cryptoKeyReader)
                  (.cryptoKeyReader cryptoKeyReader)
+
                  (some? encryptionKeys)
                  (add-encryption-keys encryptionKeys))
          avro-schema (pulsar-schema->avro-schema resolved-schema)]

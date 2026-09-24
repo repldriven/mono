@@ -174,8 +174,10 @@
                              slug])]
     (cond (nil? row)
           (error/reject :realworld/article-not-found "not found")
+
           (not= author-id (:author-id row))
           (error/reject :realworld/article-forbidden "forbidden")
+
           :else
           row)))
 

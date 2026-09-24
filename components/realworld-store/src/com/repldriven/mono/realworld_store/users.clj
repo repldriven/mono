@@ -49,8 +49,10 @@
                           username email exclude-id exclude-id])]
     (cond (some #(= username (:username %)) rows)
           :realworld/username-taken
+
           (some #(= email (:email %)) rows)
           :realworld/email-taken
+
           :else
           nil)))
 

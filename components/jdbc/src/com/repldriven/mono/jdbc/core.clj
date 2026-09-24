@@ -32,8 +32,10 @@
   [result]
   (cond (map? result)
         (set/rename-keys result renames)
+
         (vector? result)
         (mapv plain result)
+
         :else
         result))
 

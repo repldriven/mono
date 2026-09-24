@@ -31,8 +31,10 @@
     (cond (:help options)
           {:exit-message (usage program-name summary)
            :ok? true}
+
           errors
           {:exit-message (error-msg errors)}
+
           :else
           {:options options})))
 

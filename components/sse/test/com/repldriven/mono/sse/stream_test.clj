@@ -14,8 +14,10 @@
   (loop [tries 100]
     (cond (pred)
           true
+
           (zero? tries)
           false
+
           :else
           (do (Thread/sleep 20) (recur (dec tries))))))
 

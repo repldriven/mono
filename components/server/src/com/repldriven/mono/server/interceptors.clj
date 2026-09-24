@@ -24,6 +24,7 @@
                                           :status 400
                                           :detail
                                           "Missing Idempotency-Key header"}})
+
                     (not (re-matches idempotency-key-re key))
                     (sc/terminate
                      ctx
@@ -34,6 +35,7 @@
                        :status 400
                        :detail
                        "Idempotency-Key must be 16-255 URL-safe ASCII chars"}})
+
                     :else
                     ctx)))})
 
@@ -237,7 +239,9 @@
                      (let [{:keys [auth-claims auth-scopes]} (:request ctx)]
                        (cond (nil? auth-claims)
                              (sc/terminate ctx unauthorized)
+
                              (satisfied? security (or auth-scopes #{}))
                              ctx
+
                              :else
                              (sc/terminate ctx forbidden))))}))))})

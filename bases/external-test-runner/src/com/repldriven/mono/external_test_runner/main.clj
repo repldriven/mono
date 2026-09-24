@@ -47,11 +47,13 @@
      (fn [test-var]
        (let [test-meta (meta test-var)]
          (some focus-set (keys test-meta))))
+
      ;; If skip-meta is specified, skip tests with those tags
      (seq skip-set)
      (fn [test-var]
        (let [test-meta (meta test-var)]
          (not (some skip-set (keys test-meta)))))
+
      ;; Otherwise, run all tests
      :else
      (constantly true))))
@@ -200,6 +202,7 @@
     (cond (empty? test-nses)
           (do (println "No test namespaces specified")
               (System/exit 1))
+
           :else
           (let [opts
                 {:verbose false :skip-meta env-skip :focus-meta env-focus}

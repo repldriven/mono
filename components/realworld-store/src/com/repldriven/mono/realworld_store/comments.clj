@@ -70,8 +70,10 @@
                               comment-id id])
       _ (cond (nil? row)
               (error/reject :realworld/comment-not-found "not found")
+
               (not= author-id (:author-id row))
               (error/reject :realworld/comment-forbidden "forbidden")
+
               :else
               (jdbc/execute-one! tx
                                  ["delete from comments where id = ?"

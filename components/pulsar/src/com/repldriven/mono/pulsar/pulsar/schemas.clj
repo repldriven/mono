@@ -111,11 +111,13 @@
   [schemas s]
   (cond (keyword? s)
         (get-in schemas [s :schema])
+
         (map? s)
         (try-nom :pulsar/schema-resolve
                  "Failed to resolve Pulsar schema"
                  (let [{:keys [type schema properties]} s]
                    (create-schema type schema properties)))
+
         :else
         s))
 
@@ -123,11 +125,13 @@
   [schemas s]
   (cond (keyword? s)
         (get-in schemas [s :payload])
+
         (map? s)
         (try-nom :pulsar/schema-resolve-payload
                  "Failed to resolve Pulsar schema payload"
                  (let [{:keys [type schema properties]} s]
                    (create-payload type schema properties)))
+
         :else
         (error/fail :pulsar/schema-resolve-payload-invalid
                     (format "Invalid value for schema payload: %s" s))))

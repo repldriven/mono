@@ -14,10 +14,13 @@
   [source]
   (cond (str/ends-with? source ".edn")
         :edn
+
         (str/ends-with? source ".yml")
         :yml
+
         (str/ends-with? source ".yaml")
         :yml
+
         :else
         ;; nosemgrep: no-raw-throw
         (throw (ex-info "Unknown file type" {:source source}))))
