@@ -5,6 +5,11 @@
         ch.qos.logback/logback-classic {:mvn/version "1.6.3"}
         ;; json encoder for logback
         net.logstash.logback/logstash-logback-encoder {:mvn/version "9.0"}
+        ;; logstash-logback-encoder 9.0 ships jackson 3.0.1: jackson-core
+        ;; CVE-2026-29062 (fixed in 3.1.0) and jackson-databind
+        ;; CVE-2026-54512..54518 (fixed in 3.1.4); upgrade both explicitly
+        tools.jackson.core/jackson-core {:mvn/version "3.2.3"}
+        tools.jackson.core/jackson-databind {:mvn/version "3.2.3"}
         ;; redirect logging to the slf4j frontend
         org.slf4j/jcl-over-slf4j {:mvn/version "2.0.19"}
         org.slf4j/log4j-over-slf4j {:mvn/version "2.0.19"}
