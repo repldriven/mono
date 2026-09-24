@@ -1,19 +1,18 @@
-{:aliases {:test {:extra-deps {}
-                     :extra-paths ["test" "test-resources"]}}
+{:aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
  :deps {metosin/reitit {:mvn/version "0.11.0"}
-        ;; router.clj requires malli.error directly. reitit happens to bring
-        ;; malli too, but depending on that is depending on reitit's bundling
-        ;; rather than on malli.
+        ;; router.clj requires malli.error directly. reitit happens to
+        ;; bring malli too, but depending on that is depending on reitit's
+        ;; bundling rather than on malli.
         metosin/malli {:mvn/version "0.20.1"}
         ;; interceptors.clj requires sieppari.context directly, for
-        ;; `sc/terminate`. reitit brings sieppari too, but depending on that
-        ;; is depending on reitit's bundling rather than on sieppari.
+        ;; `sc/terminate`. reitit brings sieppari too, but depending on
+        ;; that is depending on reitit's bundling rather than on sieppari.
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}
         ring-logger-timbre/ring-logger-timbre {:mvn/version "0.7.6"}
         info.sunng/ring-jetty9-adapter {:mvn/version "0.40.4"}
-        ring/ring-json {:mvn/version "0.5.1"
-                        :exclusions [cheshire/cheshire]}
+        ring/ring-json {:mvn/version "0.5.1" :exclusions [cheshire/cheshire]}
         ;; Pin cheshire to 6.1.0: ring-json 0.5.1 ships 5.10.0 which brings
-        ;; jackson-dataformat-cbor 2.10.2 (CVE-2020-28491, fixed in 2.11.4+)
+        ;; jackson-dataformat-cbor 2.10.2 (CVE-2020-28491, fixed in
+        ;; 2.11.4+)
         cheshire/cheshire {:mvn/version "6.2.0"}}
  :paths ["src"]}
