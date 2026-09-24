@@ -5,14 +5,23 @@
 
   Registers the `test-telemetry/otel-sdk` component-kind: name it
   where a config names `telemetry/otel-sdk` and spans collect in
-  memory, readable through `finished-spans` as soon as they close."
+  memory, readable through `finished-spans` as soon as they close.
+
+  One in-memory SDK, the hub, is the process's default for as long
+  as it runs: every instance and every `with-span-tests` subscribes
+  to it rather than replacing it, so tests starting and stopping
+  systems in parallel never move where spans go."
   (:require
     com.repldriven.mono.test-telemetry.system
     [com.repldriven.mono.test-telemetry.core :as core]
+    [com.repldriven.mono.test-telemetry.hub :as hub]
     [com.repldriven.mono.test-telemetry.span-tests :as span-tests]))
 
 (defn finished-spans
-  "Spans an in-memory telemetry instance has collected so far.
+  "Spans an in-memory telemetry instance has collected so far: those
+  its own `tracer` created, and every span the default tracer closed
+  while it ran — in any test in the process, so filter by trace id
+  where tests run in parallel.
 
   Takes the `test-telemetry/otel-sdk` system instance. Returns a
   vector of `SpanData`, or nil for any other telemetry instance."
@@ -37,7 +46,8 @@
   (core/tracer instance))
 
 (defmacro with-span-tests
-  "Run body under an in-memory OTel SDK, then automatically assert:
+  "Run body with the hub held as the default SDK, then automatically
+  assert:
    - Each name in expected-names has a corresponding finished span
    - All finished spans share the same trace ID (W3C propagation worked)
 
@@ -50,3 +60,10 @@
   {:clj-kondo/lint-as 'clojure.core/let}
   [[spans-sym expected-names] & body]
   `(span-tests/with-span-tests [~spans-sym ~expected-names] ~@body))
+
+(defmacro with-exclusive-telemetry
+  "Run body, which starts an SDK that makes itself the default — a
+  `telemetry/otel-sdk` with an endpoint — while no `with-span-tests`
+  runs, and make the hub the default again once it returns."
+  [& body]
+  `(hub/with-defaults-taken (fn [] ~@body)))

@@ -98,6 +98,8 @@
     {:local/root "../../components/test-resources"}
     com.repldriven.mono.components/test-system
     {:local/root "../../components/test-system"}
+    com.repldriven.mono.components/test-telemetry
+    {:local/root "../../components/test-telemetry"}
     com.repldriven.mono.components/testcontainers
     {:local/root "../../components/testcontainers"}
     com.repldriven.mono.bases/external-test-runner

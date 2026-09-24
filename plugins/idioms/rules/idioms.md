@@ -132,6 +132,10 @@ sets them. Mark a namespace whose tests share state, such as a
 and never one that only boots infrastructure; inject a collaborator
 rather than `with-redefs` a var another namespace calls, since the
 redefinition is JVM-wide and namespaces run in parallel whatever the
-marker says.
+marker says. Assert spans with `with-span-tests` and collect a test
+system's spans in memory with the `test-telemetry/otel-sdk` component;
+never set clj-otel's default tracer or default OpenTelemetry instance
+from a test, and wrap a test that starts `telemetry/otel-sdk` with an
+endpoint in `with-exclusive-telemetry`.
 Commands: `just start-docker`, `just test`.
 See [test-system](../../../docs/recipes/test/test-system.md).
