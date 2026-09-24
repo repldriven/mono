@@ -13,8 +13,10 @@
     (let [v (pred)]
       (cond v
             v
+
             (>= n tries)
             nil
+
             :else
             (do (Thread/sleep 100) (recur (inc n)))))))
 

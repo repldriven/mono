@@ -229,15 +229,16 @@ poly-test-check:
 lint:
     clojure -M:lint/clj-kondo --lint bases components projects template/src deps.edn workspace.edn
 
-# Formatter - uses .zprint.edn config in project root
+# Formatter - lays out cond pairs, then zprint with the .zprint.edn in project root
 format:
     #!/usr/bin/env bash
     set -e
     echo "Formatting Clojure source files..."
     # template/resources holds files with deps-new placeholders in them, which
-    # are not valid Clojure until substituted, so zprint cannot parse them
+    # are not valid Clojure until substituted, so neither pass can parse them
     files=$(git ls-files '*.clj' '*.cljc' '*.cljs' | grep -v '^template/resources/' | while read f; do [ -f "$f" ] && echo "$f"; done)
     if [ -n "$files" ]; then
+        echo "$files" | xargs bb scripts/hooks/cond_pairs.clj
         echo "$files" | xargs clojure -M:format/zprint '{:search-config? true}' -w
         echo "✓ Formatting complete"
     else

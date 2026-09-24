@@ -38,6 +38,7 @@
          (cond-> builder
                  (some? cryptoKeyReader)
                  (.cryptoKeyReader cryptoKeyReader)
+
                  (some? startMessageId)
                  (.startMessageId startMessageId))]
      (.create builder-with-conf))))
@@ -83,6 +84,7 @@
            (cond
             (or (= port stop) (= v ::closed))
             nil
+
             (some? v)
             (do
               (comment
@@ -94,6 +96,7 @@
                            [[c {:message v :data (message/deserialize v)}]
                             stop])]
                 (when (not= p stop) (recur))))
+
             :else
             (recur))))
        (finally (async/close! c) (async/close! stop))))

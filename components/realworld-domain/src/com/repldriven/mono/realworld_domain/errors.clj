@@ -33,10 +33,13 @@
   (let [{:keys [value type schema]} error]
     (cond (= :malli.core/missing-key type)
           "can't be blank"
+
           (nil? value)
           "can't be blank"
+
           (= "" value)
           "can't be blank"
+
           :else
           (or (:error/message (m/properties schema)) "is invalid"))))
 

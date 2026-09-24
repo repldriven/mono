@@ -52,12 +52,14 @@
                                 :correlation-id
                                 correlation-id
                                 :anomaly result})
+
           (error/error? result)
           (->command-error {:command-id command-id
                             :causation-id id
                             :correlation-id
                             correlation-id
                             :anomaly result})
+
           :else
           (->command-envelope {:command-id command-id
                                :causation-id id

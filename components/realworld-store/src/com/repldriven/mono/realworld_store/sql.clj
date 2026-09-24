@@ -25,9 +25,12 @@
   [v]
   (cond (nil? v)
         []
+
         (instance? Array v)
         (vec (.getArray ^Array v))
+
         (coll? v)
         (vec v)
+
         :else
         []))

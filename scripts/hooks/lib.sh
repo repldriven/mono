@@ -18,9 +18,11 @@ hook_staged_clojure_files() {
       done
 }
 
-# Format the given files with zprint, in place, and restage them.
+# Format the given files in place and restage them: lay out cond pairs with the
+# script beside this file, then zprint.
 hook_format() {
   echo "Formatting Clojure files..."
+  echo "$1" | xargs bb "$(dirname "${BASH_SOURCE[0]}")/cond_pairs.clj"
   echo "$1" | xargs clojure -M:format/zprint '{:search-config? true}' -w
   echo "$1" | xargs git add
 }

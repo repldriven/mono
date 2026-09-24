@@ -13,6 +13,7 @@
   (cond-> (OtlpHttpSpanExporter/builder)
           (not (string/blank? endpoint))
           (.setEndpoint endpoint)
+
           true
           (.build)))
 

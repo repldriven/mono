@@ -20,20 +20,22 @@
                     (sc/terminate ctx
                                   {:status 400
                                    :body {:title "REJECTED"
-                                          :type "mono/missing-idempotency-key"
+                                          :type "server/missing-idempotency-key"
                                           :status 400
                                           :detail
                                           "Missing Idempotency-Key header"}})
+
                     (not (re-matches idempotency-key-re key))
                     (sc/terminate
                      ctx
                      {:status 400
                       :body
                       {:title "REJECTED"
-                       :type "mono/invalid-idempotency-key"
+                       :type "server/invalid-idempotency-key"
                        :status 400
                        :detail
                        "Idempotency-Key must be 16-255 URL-safe ASCII chars"}})
+
                     :else
                     ctx)))})
 
@@ -177,8 +179,10 @@
       (cond-> {}
               (and scopes (seq bare))
               (assoc :no-scopes bare)
+
               (seq unknown)
               (assoc :unknown-scopes unknown)
+
               (seq stacked)
               (assoc :exclusive stacked)))))
 
@@ -235,7 +239,9 @@
                      (let [{:keys [auth-claims auth-scopes]} (:request ctx)]
                        (cond (nil? auth-claims)
                              (sc/terminate ctx unauthorized)
+
                              (satisfied? security (or auth-scopes #{}))
                              ctx
+
                              :else
                              (sc/terminate ctx forbidden))))}))))})

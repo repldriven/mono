@@ -38,6 +38,7 @@
 
 (defn- die
   [message data]
+  ;; nosemgrep: no-raw-throw — deps-new aborts a generation only on a throw
   (throw (ex-info message data)))
 
 (defn- ->munged
@@ -378,6 +379,7 @@
   (cond-> a
           (:deps a)
           (update :deps relink table opts)
+
           (:extra-deps a)
           (update :extra-deps relink table opts)))
 
@@ -389,6 +391,7 @@
         relinked (cond-> d
                          (:deps d)
                          (update :deps relink table opts)
+
                          (:aliases d)
                          (update :aliases
                                  update-vals

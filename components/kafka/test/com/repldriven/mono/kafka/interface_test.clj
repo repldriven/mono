@@ -1,7 +1,6 @@
 (ns ^:eftest/synchronized com.repldriven.mono.kafka.interface-test
   (:require
-    com.repldriven.mono.testcontainers.interface ;; extends
-                                                 ;; `system/components`
+    [com.repldriven.mono.testcontainers.interface]
 
     [com.repldriven.mono.kafka.interface :as SUT]
 
@@ -68,8 +67,10 @@
                          (let [[v port] (async/alts!! [c deadline])]
                            (cond (= port deadline)
                                  false
+
                                  (nil? v)
                                  true
+
                                  :else
                                  (recur))))]
            (is closed? "channel closed after stop"))))
