@@ -116,6 +116,39 @@ boots infrastructure, which the permit bounds:
   ...)
 ```
 
+### Spans
+
+The `test-telemetry` brick keeps one in-memory OpenTelemetry SDK, the
+hub, as the JVM's default for the whole run. Assert a test's spans with
+`with-span-tests`, which collects every span in the test's trace:
+
+```clojure
+(test-telemetry/with-span-tests [_ ["send-command" "process-command"]]
+  (send-command sys "create-pet" pet))
+```
+
+A system whose spans a test or a REPL reads names
+`test-telemetry/otel-sdk` in place of `telemetry/otel-sdk`, and reads
+them with `finished-spans`, which holds every span the default tracer
+closed while the component ran, from any test in the JVM. A test that
+starts `telemetry/otel-sdk` with an endpoint takes the defaults from
+the hub, so it runs inside `with-exclusive-telemetry`, which waits for
+every running `with-span-tests` and hands the defaults back after:
+
+```clojure
+(test-telemetry/with-exclusive-telemetry
+  (with-test-system [sys "classpath:telemetry/otlp-test.yml"]
+    ...))
+```
+
+## Failures
+
+**`with-span-tests` fails with `Should have span named: …` in CI, on
+some runs only.** Something in the JVM replaced clj-otel's default
+tracer while the body ran: a test that starts `telemetry/otel-sdk` with
+an endpoint outside `with-exclusive-telemetry`, or one that sets the
+default tracer itself.
+
 ## Rules
 
 **MUST:**
@@ -138,12 +171,18 @@ boots infrastructure, which the permit bounds:
 - Inject a collaborator rather than `with-redefs` a var another
   namespace calls: the redefinition is JVM-wide, and namespaces run in
   parallel whatever the marker says.
+- Assert spans with `with-span-tests`, and collect a test system's
+  spans in memory with the `test-telemetry/otel-sdk` component.
+- Wrap a test that starts `telemetry/otel-sdk` with an endpoint in
+  `with-exclusive-telemetry`.
 
 **MUST NOT:**
 
 - Use `use-fixtures` for system lifecycle.
 - Mark a namespace `^:eftest/synchronized` to bound how many systems
   it boots; the permit does that, and the marker only slows the file.
+- Set clj-otel's default tracer or default OpenTelemetry instance from
+  a test.
 
 **MAY:**
 
@@ -170,6 +209,18 @@ for nothing. It serialises nothing beyond that file: a `with-redefs` of
 a var another namespace calls, an interface fn a handler reaches, is
 visible to that namespace's tests while they run alongside, and the
 marker cannot stop it. An injected collaborator can.
+
+Spans are the same problem in another shape. clj-otel creates a span
+with one default tracer per JVM, and every SDK that initialises itself
+as the default replaces it, so while each telemetry component set the
+default on start and closed its SDK on stop, a system started in one
+namespace sent another namespace's spans to its own exporter, or to a
+closed SDK that drops them. The hub is never replaced and never closed:
+an in-memory component subscribes its exporter to it, and
+`with-span-tests` subscribes one of its own and filters by trace id, so
+tests running alongside never move where a span goes. Only an SDK that
+ships spans elsewhere has to take the defaults, and
+`with-exclusive-telemetry` gives it them for its body alone.
 
 ## References
 

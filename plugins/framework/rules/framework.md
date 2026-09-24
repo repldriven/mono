@@ -53,7 +53,7 @@ bases as `:local/root` paths — nothing else. Projects carry no Clojure
 source and never define `-main` (a base does that). A deployable
 project points its `:build` alias at `bases/build`, and its `:test`
 alias carries the bricks only tests need — `test-resources`,
-`test-system`, `testcontainers` — and the runner,
+`test-system`, `test-telemetry`, `testcontainers` — and the runner,
 `external-test-runner`. A library project (`mono-lib`, `mono-test-lib`)
 has no base at all and is what a consumer names by `:deps/root`: it
 carries no `:build` alias, an empty `:paths`, dep keys qualified with

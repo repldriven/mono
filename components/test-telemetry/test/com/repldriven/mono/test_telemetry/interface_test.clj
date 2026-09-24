@@ -6,6 +6,7 @@
     [com.repldriven.mono.telemetry.interface :as telemetry]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
 
+    [steffan-westcott.clj-otel.api.trace.span :as span]
     [clojure.test :refer [deftest is testing]]))
 
 (defn- span-names
@@ -51,6 +52,21 @@
                          (telemetry/with-span ["outer" {}]
                                               (telemetry/with-span ["inner" {}]
                                                                    :done)))))
+
+(deftest with-span-tests-outlives-a-telemetry-component-test
+  (testing "a component started and stopped mid-body takes none of its spans"
+    (SUT/with-span-tests [_ ["before" "after"]]
+                         (telemetry/with-span ["before" {}] :done)
+                         (with-test-system
+                          [_ "classpath:test-telemetry/application-test.yml"]
+                          :started)
+                         (telemetry/with-span ["after" {}] :done))))
+
+(deftest with-exclusive-telemetry-test
+  (testing "the defaults taken inside are the hub's again after"
+    (SUT/with-exclusive-telemetry (span/set-default-tracer! (span/noop-tracer)))
+    (SUT/with-span-tests [_ ["after"]]
+                         (telemetry/with-span ["after" {}] :done))))
 
 (deftest with-span-tests-awaits-another-thread-test
   (testing "a span still open when the caller resumes is waited for"

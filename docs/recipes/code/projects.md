@@ -42,8 +42,8 @@ A project's `deps.edn` has three sections:
 - **`:aliases :build`** — pulls in the `build` base and sets exec-args
   for `tools.build` to assemble the deployable.
 - **`:aliases :test`** — the bricks only tests need (`test-resources`,
-  `test-system`, `testcontainers`), plus the test runner,
-  `external-test-runner`.
+  `test-system`, `test-telemetry`, `testcontainers`), plus the test
+  runner, `external-test-runner`.
 
 Adapted from `projects/realworld-service/deps.edn`:
 
@@ -66,6 +66,8 @@ Adapted from `projects/realworld-service/deps.edn`:
           {:local/root "../../components/test-resources"}
           components/test-system
           {:local/root "../../components/test-system"}
+          components/test-telemetry
+          {:local/root "../../components/test-telemetry"}
           components/testcontainers
           {:local/root "../../components/testcontainers"}
           bases/external-test-runner
@@ -121,8 +123,8 @@ ships. Every project therefore repeats `org.clojure/clojure`.
 - A project that produces a deployable artefact has a `:build` alias
   pointing at `bases/build`.
 - A project's `:test` alias carries the bricks only tests need —
-  `test-resources`, `test-system`, `testcontainers` — and the test
-  runner, `external-test-runner`.
+  `test-resources`, `test-system`, `test-telemetry`, `testcontainers` —
+  and the test runner, `external-test-runner`.
 - A library project carries no `:build` alias, an empty `:paths`, and
   dep keys qualified with the workspace top namespace, so a consumer's
   own key cannot clash.

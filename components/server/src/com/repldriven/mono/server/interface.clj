@@ -139,7 +139,13 @@
 
 (defn standard-default-handler [] (core/standard-default-handler))
 
-(defn standard-openapi-handler [] (core/standard-openapi-handler))
+(defn standard-openapi-handler
+  "Ring handler serving the router's OpenAPI document. A response's own
+  `:openapi` data — its `headers`, a `Location` on a 201, and its
+  `links` — is merged into its Response Object, which reitit builds from
+  `:description` and `:content` alone and would otherwise leave out."
+  []
+  (core/standard-openapi-handler))
 
 (defn standard-openapi-ui-handler [] (core/standard-openapi-ui-handler))
 

@@ -4,6 +4,7 @@
 
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
+    [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
 
     [clojure.test :refer [deftest is testing]])
   (:import
@@ -69,8 +70,9 @@
     (with-test-system [sys "classpath:telemetry/otlp-disabled-test.yml"]
                       (is (nil? (system/instance sys [:telemetry :otel-sdk])))))
   (testing "an endpoint gives OTLP over HTTP"
-    (with-test-system [sys "classpath:telemetry/otlp-test.yml"]
-                      (let [otel (system/instance sys [:telemetry :otel-sdk])]
-                        (is (some? (:sdk otel)))
-                        (is (instance? OtlpHttpSpanExporter
-                                       (:exporter otel)))))))
+    (test-telemetry/with-exclusive-telemetry
+     (with-test-system [sys "classpath:telemetry/otlp-test.yml"]
+                       (let [otel (system/instance sys [:telemetry :otel-sdk])]
+                         (is (some? (:sdk otel)))
+                         (is (instance? OtlpHttpSpanExporter
+                                        (:exporter otel))))))))

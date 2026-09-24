@@ -35,6 +35,7 @@
    {components/http-client {:local/root "../../components/http-client"}
     components/test-resources {:local/root "../../components/test-resources"}
     components/test-system {:local/root "../../components/test-system"}
+    components/test-telemetry {:local/root "../../components/test-telemetry"}
     components/testcontainers {:local/root "../../components/testcontainers"}
     bases/external-test-runner {:local/root
                                 "../../bases/external-test-runner"}}

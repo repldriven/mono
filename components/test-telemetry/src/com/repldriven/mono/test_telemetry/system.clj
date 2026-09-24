@@ -1,8 +1,9 @@
 (ns com.repldriven.mono.test-telemetry.system
   (:require
+    [com.repldriven.mono.test-telemetry.hub :as hub]
+
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system]
-    [steffan-westcott.clj-otel.api.trace.span :as span]
     [steffan-westcott.clj-otel.sdk.otel-sdk :as sdk])
   (:import
     (io.opentelemetry.sdk.testing.exporter InMemorySpanExporter)
@@ -14,14 +15,18 @@
     (log/info "Starting in-memory OpenTelemetry SDK" :service-name service-name)
     ;; SimpleSpanProcessor, not the batching form clj-otel's map syntax
     ;; builds: a span must be readable the moment it closes, with no flush
-    ;; interval to wait out.
+    ;; interval to wait out. The SDK is this instance's own and never the
+    ;; default: the hub stays the default, and hands this exporter every
+    ;; span the default tracer closes.
     (let [otel-sdk (sdk/init-otel-sdk! service-name
-                                       {:register-shutdown-hook false
+                                       {:set-as-default false
+                                        :register-shutdown-hook false
                                         :tracer-provider
                                         {:span-processors
                                          [(SimpleSpanProcessor/create
                                            exporter)]}})]
-      (span/set-default-tracer! (span/get-tracer {:open-telemetry otel-sdk}))
+      (hub/install)
+      (hub/subscribe exporter)
       {:sdk otel-sdk :exporter exporter})))
 
 ;; Name this component-kind where a config names `telemetry/otel-sdk` and
@@ -33,8 +38,9 @@
    :system/stop (fn [{:system/keys [instance]}]
                   (when instance
                     (log/info "Stopping in-memory OpenTelemetry SDK")
-                    (sdk/close-otel-sdk! (:sdk instance))
                     (let [^InMemorySpanExporter exporter (:exporter instance)]
+                      (hub/unsubscribe exporter)
+                      (sdk/close-otel-sdk! (:sdk instance))
                       (.close exporter)
                       ;; A dev system restarted in a REPL must not inherit
                       ;; the spans of the run before it.
