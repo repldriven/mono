@@ -30,20 +30,21 @@ Each runnable application has exactly one base. A base owns `-main`
 and `(:gen-class)` in its entry namespace; `-main` parses CLI args and
 calls `start`, which builds the system definition from a YAML config,
 injects any `!system/required-component` slots and calls
-`system/start`. It accesses components the same way any component
-reaches a peer — through `interface.clj` — and bare-requires every
-brick whose system multimethods need to extend at startup; tests may
-consolidate those bare-requires into a single `test/.../system.clj`.
-Bases never depend on other bases and share nothing between them
-except through components. Nothing here composes bases: a workspace
-built on these bricks that composes several into one process — for
-local development, or an end-to-end test rig — does it through one
-designated aggregator that reaches each composed base by a declared
-surface, and writes that convention down as its own. A base never
-owns a store: `component → base` is disallowed, so state behind an
-entry point would be unreachable by every component; bare-requiring a
-storage brick's interface to register its component kinds is
-registration, not ownership.
+`system/start`, then passes the started system to
+`system/stop-on-shutdown` before blocking. It accesses components the
+same way any component reaches a peer — through `interface.clj` — and
+bare-requires every brick whose system multimethods need to extend at
+startup; tests may consolidate those bare-requires into a single
+`test/.../system.clj`. Bases never depend on other bases and share
+nothing between them except through components. Nothing here composes
+bases: a workspace built on these bricks that composes several into
+one process — for local development, or an end-to-end test rig — does
+it through one designated aggregator that reaches each composed base
+by a declared surface, and writes that convention down as its own. A
+base never owns a store: `component → base` is disallowed, so state
+behind an entry point would be unreachable by every component;
+bare-requiring a storage brick's interface to register its component
+kinds is registration, not ownership.
 See [bases](../../../docs/recipes/code/bases.md).
 
 ## Projects are pure config

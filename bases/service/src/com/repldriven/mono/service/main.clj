@@ -26,4 +26,6 @@
           (cli/exit false
                     (str "Failed to start [" (error/kind sys)
                          "]: " (or (:message sys) "Unknown error")))
-          (do (log/info "System started successfully") @(promise)))))))
+          (do (system/stop-on-shutdown sys)
+              (log/info "System started successfully")
+              @(promise)))))))

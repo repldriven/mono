@@ -59,6 +59,17 @@
   [system]
   (core/stop system))
 
+(defn stop-on-shutdown
+  "Register a JVM shutdown hook that stops `system`, returning the
+  hook thread or an anomaly. The hook holds the system, so its
+  instances stay reachable for the life of the JVM even once `-main`
+  no longer refers to it; a stop that fails is logged.
+
+  Args:
+  - system: a started system map."
+  [system]
+  (core/stop-on-shutdown system))
+
 (def
   ^{:doc
     "Sentinel placed in a component's :system/config to mark
