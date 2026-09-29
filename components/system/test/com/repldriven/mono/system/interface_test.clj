@@ -36,3 +36,16 @@
   (testing "A started empty system passes system?"
     (SUT/with-system [sys (SUT/start {:system/defs {}})]
       (is (SUT/system? sys)))))
+
+(deftest stop-on-shutdown-stops-the-system
+  (testing "the registered hook stops the system when the JVM shuts down"
+    (let [stopped (promise)
+          sys (SUT/start {:system/defs
+                          {:group {:comp {:system/start (fn [_] :started)
+                                          :system/stop
+                                          (fn [_] (deliver stopped true))}}}})
+          hook (SUT/stop-on-shutdown sys)]
+      (try (is (instance? Thread hook))
+           (.run ^Thread hook)
+           (is (true? (deref stopped 1000 false)))
+           (finally (.removeShutdownHook (Runtime/getRuntime) hook))))))

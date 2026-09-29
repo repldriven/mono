@@ -81,14 +81,16 @@ Adapted from `bases/realworld-api/src/.../main.clj`:
                     (str "Failed to start [" (error/kind sys) "]: "
                          (or (:message (error/payload sys))
                              "Unknown error")))
-          (do (log/info "realworld-api started")
+          (do (system/stop-on-shutdown sys)
+              (log/info "realworld-api started")
               @(promise)))))))
 ```
 
-`(:gen-class)` exposes `-main` as a Java entry point. `@(promise)`
-blocks the main thread so the JVM stays alive while the background
-components run. A base with no HTTP surface — `service`, the generic
-command-handler entry point — has the same shape minus the `assoc-in`.
+`(:gen-class)` exposes `-main` as a Java entry point. `system/stop-on-shutdown`
+registers a JVM shutdown hook that stops the system, and `@(promise)` blocks the
+main thread so the JVM stays alive while the background components run. A base
+with no HTTP surface — `service`, the generic command-handler entry point — has
+the same shape minus the `assoc-in`.
 
 ### Accessing components
 
@@ -122,7 +124,8 @@ its interface from the base is registration, not ownership.
 - A base's `main.clj` defines `start`, which builds the system
   definition from a YAML config, injects any
   `!system/required-component` slots and calls `system/start`, and
-  `-main`, which parses CLI args and calls `start`.
+  `-main`, which parses CLI args, calls `start` and passes the started
+  system to `system/stop-on-shutdown` before blocking.
 - Bases access components via `interface.clj`.
 - Bases bare-require every brick whose system multimethods need to
   extend at startup.
@@ -166,6 +169,15 @@ several bases into one process — for local development, or an
 end-to-end test rig — does it through one designated aggregator that
 reaches each composed base by a declared surface, and writes that
 convention down as its own; nothing here composes bases.
+
+A started system has no owner but `-main`, and the Clojure compiler
+clears a local after its last use, so `sys` is gone before
+`@(promise)` blocks. Anything no running thread holds is then
+collected: an FDB `Database` handle nothing else refers to is
+finalized, printing `Database not closed` to stderr at whatever moment
+the collector runs. The shutdown hook holds the system for the life of
+the JVM, and stops it on SIGTERM or Ctrl-C, so consumers unsubscribe
+and stores close rather than the process simply ending.
 
 The bare-require list in `main.clj` looks ugly but is load-bearing:
 each entry extends the donut.system multimethods the system definition

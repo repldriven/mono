@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [ref])
   (:require
     [com.repldriven.mono.error.interface :as error :refer [try-nom]]
+    [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.utility.interface :as util]
     [donut.system :as ds]
     [donut.system.validation :as dsv]))
@@ -116,6 +117,18 @@
            ;; started instance (e.g. the full Lancaster schema set) and
            ;; floods a REPL that prints the result.
            (do (ds/stop system) nil)))
+
+(defn stop-on-shutdown
+  [system]
+  (let [hook (Thread. ^Runnable
+                      (fn []
+                        (when-let [anomaly (stop system)]
+                          (log/anomaly anomaly
+                                       {:message "System stop on shutdown"})))
+                      "system-shutdown")]
+    (try-nom :system/stop-on-shutdown
+             "Registering the system's shutdown hook threw an exception"
+             (do (.addShutdownHook (Runtime/getRuntime) hook) hook))))
 
 (defmacro with-system
   {:clj-kondo/lint-as 'clojure.core/let}

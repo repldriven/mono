@@ -43,4 +43,6 @@
                          (error/kind sys)
                          "]: "
                          (or (:message (error/payload sys)) "Unknown error")))
-          (do (log/info "realworld-api started") @(promise)))))))
+          (do (system/stop-on-shutdown sys)
+              (log/info "realworld-api started")
+              @(promise)))))))
