@@ -67,3 +67,17 @@
                                :status "ACCEPTED"
                                :payload (:payload result)}))))
 
+(defn trace-outcome
+  [{:keys [status reason message]}]
+  (when status
+    (telemetry/set-attribute "command.status" status))
+  (when (seq reason)
+    (telemetry/set-attribute "command.reason" reason))
+  (when (= "FAILED" status)
+    (telemetry/set-error (or message reason))))
+
+(defn anomaly->outcome
+  [anomaly]
+  {:status (if (error/rejection? anomaly) "REJECTED" "FAILED")
+   :reason (str (error/kind anomaly))
+   :message (:message (error/payload anomaly))})

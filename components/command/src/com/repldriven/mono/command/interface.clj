@@ -30,7 +30,11 @@
   (response/command-response command result))
 
 (defn process
-  "Process command envelopes via message-bus.
+  "Process command envelopes via message-bus, each in a
+  `process-command` span recording the reply as `command.status` --
+  ACCEPTED, REJECTED or FAILED -- and, for either of the last two, the
+  anomaly kind as `command.reason`. Only FAILED marks the span as an
+  error: a rejection is the system correctly declining.
 
   Args:
   - bus: message-bus instance
@@ -43,7 +47,10 @@
   ([bus process-fn opts] (processor/process bus process-fn opts)))
 
 (defn send
-  "Send a command via dispatcher and wait for reply.
+  "Send a command via dispatcher and wait for reply, in a
+  `command-send` span recording the reply's `command.status` and
+  `command.reason` as `process` does, a timeout or a failed send as
+  FAILED.
 
   Args:
   - dispatcher: started dispatcher map

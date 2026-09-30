@@ -1,0 +1,9 @@
+system:
+  message-bus:
+    bus: !system/component
+      system/component-kind: message-bus/local-bus
+      channels: [command, command-response]
+  telemetry:
+    otel-sdk: !system/component
+      system/component-kind: test-telemetry/otel-sdk
+      service-name: command

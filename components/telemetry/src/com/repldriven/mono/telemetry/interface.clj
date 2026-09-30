@@ -38,6 +38,14 @@
   [k v]
   (core/set-attribute k v))
 
+(defn set-error
+  "Mark the current span as failed, with `description`, for an outcome
+  that failed without an exception leaving the span: an anomaly
+  returned rather than thrown. No-op if no span is active or
+  OpenTelemetry is not configured."
+  [description]
+  (core/set-error description))
+
 (defn inject-traceparent
   "Extract W3C traceparent from the current thread-local span (Span/current).
 
@@ -71,6 +79,8 @@
 
 ;; Interceptors
 (def trace-span
-  "Vector of interceptors that add OpenTelemetry server span support to HTTP requests.
+  "Vector of interceptors that add OpenTelemetry server span support to
+  HTTP requests, naming each span for the Reitit route it matched --
+  `GET /v1/accounts/{account-id}` -- with the template as `http.route`.
   Use with concat, not conj, when composing interceptor chains."
   interceptors/trace-span)

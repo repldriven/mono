@@ -109,6 +109,13 @@
          ;; No-op if OTel not configured
          nil)))
 
+(defn set-error
+  [description]
+  (try (span/add-span-data! {:status {:code :error
+                                      :description description}})
+       (catch Exception _e
+         nil)))
+
 (defn counter
   "Create or get a counter instrument.
 

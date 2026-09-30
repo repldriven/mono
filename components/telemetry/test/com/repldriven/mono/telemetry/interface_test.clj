@@ -8,6 +8,7 @@
 
     [clojure.test :refer [deftest is testing]])
   (:import
+    (io.opentelemetry.api.common AttributeKey)
     (io.opentelemetry.exporter.otlp.http.trace OtlpHttpSpanExporter)))
 
 (deftest with-span-runs-its-body-once-test
@@ -46,6 +47,26 @@
                                            ;; nosemgrep: no-raw-throw
                                            (throw (ex-info "f failed" {}))))))
       (is (= 1 @calls) "f must not be retried"))))
+
+(deftest trace-span-names-the-span-for-its-route-test
+  (testing "a request's span takes the route it matched, not its path"
+    (with-test-system
+     [sys "classpath:telemetry/in-memory-test.yml"]
+     (let [otel (system/instance sys [:telemetry :otel-sdk])
+           route (:enter (last SUT/trace-span))
+           request {:request-method :get
+                    :uri "/v1/items/itm.123"
+                    :reitit.core/match {:template "/v1/items/{item-id}"}}]
+       (SUT/with-span {:name "GET" :tracer (test-telemetry/tracer otel)}
+                      (route {:request request}))
+       (let [span (->> (test-telemetry/finished-spans otel)
+                       (filter (fn [s]
+                                 (= "GET /v1/items/{item-id}" (.getName s))))
+                       first)]
+         (is (some? span) "the span is renamed for the route")
+         (is (= "/v1/items/{item-id}"
+                (.get (.getAttributes span)
+                      (AttributeKey/stringKey "http.route")))))))))
 
 (deftest counters-degrade-test
   (testing "counter functions are no-ops rather than throws"
