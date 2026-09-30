@@ -73,7 +73,9 @@
               (telemetry/with-span-parent
                "process-command"
                parent-ctx
-               (select-keys data [:id :command :correlation-id :causation-id])
+               (merge (select-keys data
+                                   [:id :command :correlation-id :causation-id])
+                      (message-bus/delivery data))
                (fn []
                  ;; process-fn is expected to return anomalies, not throw —
                  ;; but an unexpected throw must not escape the consumer

@@ -19,8 +19,9 @@
           (telemetry/with-span-parent
            "process-event"
            parent-ctx
-           (select-keys data
-                        [:id :event :correlation-id :causation-id])
+           (merge (select-keys data
+                               [:id :event :correlation-id :causation-id])
+                  (message-bus/delivery data))
            (fn []
              (let [result (error/try-nom
                            :event/process

@@ -1,0 +1,16 @@
+# The command flow over Kafka with spans collected in memory, so a test can
+# read the messaging attributes the Kafka backend records.
+system:
+  kafka: !include testcontainers/kafka-test.yml
+
+  command:
+    dispatcher: !system/component
+      system/component-kind: command/dispatcher
+      bus: !system/ref kafka.bus
+      command-channel: !keyword command
+      command-response-channel: !keyword command-response
+
+  telemetry:
+    otel-sdk: !system/component
+      system/component-kind: test-telemetry/otel-sdk
+      service-name: kafka

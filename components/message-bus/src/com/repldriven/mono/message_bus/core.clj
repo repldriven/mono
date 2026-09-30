@@ -25,6 +25,16 @@
                                 message
                                 opts))))
 
+(defn with-delivery
+  [message attributes]
+  (if (instance? clojure.lang.IObj message)
+    (vary-meta message assoc ::delivery attributes)
+    message))
+
+(defn delivery
+  [message]
+  (::delivery (meta message)))
+
 (defn subscribe
   [bus consumer-name handler-fn]
   (proto/subscribe (get (:consumers bus) consumer-name) handler-fn))

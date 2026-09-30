@@ -57,10 +57,12 @@
   (try-nom
    :kafka/consumer-create
    "Failed to create Kafka consumer"
-   (let [instance (KafkaConsumer. (config/->properties defaults conf))]
+   (let [props (config/->properties defaults conf)
+         instance (KafkaConsumer. props)]
      (.subscribe instance (vec topics))
      {:instance instance
       :topics (vec topics)
+      :group-id (.getProperty props "group.id")
       ;; Resolved here, not at receive time, so a misnamed schema fails
       ;; when the system starts rather than on the first message.
       :schema (when schema (get schemas (name schema)))

@@ -23,6 +23,22 @@
   ([bus producer-name message opts]
    (core/send bus producer-name message opts)))
 
+(defn with-delivery
+  "Attach `attributes`, the OpenTelemetry messaging attributes describing
+  how `message` was delivered -- `messaging.system`, the destination,
+  partition, offset and consumer group -- to `message` as metadata, for
+  a backend to call before handing a message to a subscriber. A message
+  that cannot carry metadata is returned unchanged."
+  [message attributes]
+  (core/with-delivery message attributes))
+
+(defn delivery
+  "The messaging attributes a backend attached to `message` with
+  `with-delivery`, for the consumer's span, or nil where it attached
+  none."
+  [message]
+  (core/delivery message))
+
 (defn subscribe
   "Subscribe `handler-fn` to the named consumer, and return the
   subscription.
