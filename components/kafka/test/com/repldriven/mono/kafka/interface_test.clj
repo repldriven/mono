@@ -11,11 +11,13 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
+    [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
     [com.repldriven.mono.utility.interface :as util]
 
     [clojure.core.async :as async]
     [clojure.test :refer [deftest is testing]])
   (:import
+    (io.opentelemetry.api.common AttributeKey)
     (org.apache.kafka.clients.consumer ConsumerRecord)
     (org.apache.kafka.clients.producer.internals BuiltInPartitioner)))
 
@@ -316,3 +318,89 @@
                   (SUT/acknowledge {:ack ack} message))
                 (finally (async/put! stop :stop)))))
        (finally (when stop (stop)))))))
+
+(defn- string-attribute
+  [span k]
+  (.get (.getAttributes span) (AttributeKey/stringKey k)))
+
+(defn- long-attribute
+  [span k]
+  (.get (.getAttributes span) (AttributeKey/longKey k)))
+
+(defn- awaited-span
+  "The first closed span matching `pred`, once it closes, or nil."
+  [otel pred]
+  (loop [n 0]
+    (let [span (first (filter pred (test-telemetry/finished-spans otel)))]
+      (if (or span (>= n 100))
+        span
+        (do (Thread/sleep 20) (recur (inc n)))))))
+
+(deftest messaging-attributes-test
+  (with-test-system
+   [sys "classpath:kafka/command-traced-test.yml"]
+   (let [bus (system/instance sys [:kafka :bus])
+         dispatcher (system/instance sys [:command :dispatcher])
+         otel (system/instance sys [:telemetry :otel-sdk])
+         command-id (str (util/uuidv7))
+         {:keys [stop]} (command/process
+                         bus
+                         (fn [_envelope] {:status "ACCEPTED" :payload nil})
+                         {:command-channel :command
+                          :command-response-channel :command-response})]
+     (try
+       (let [reply (command/send dispatcher
+                                 {:id command-id
+                                  :command "create-pet"
+                                  :correlation-id (str (util/uuidv7))
+                                  :causation-id nil
+                                  :traceparent nil
+                                  :tracestate nil
+                                  :payload nil
+                                  :reply-to nil}
+                                 {:timeout-ms 30000 :key command-id})
+             processed (awaited-span
+                        otel
+                        (fn [span]
+                          (and (= "process-command" (.getName span))
+                               (= command-id (string-attribute span "id")))))
+             sent
+             (awaited-span
+              otel
+              (fn [span]
+                (and (= "bus-send" (.getName span))
+                     (= "topic-command"
+                        (string-attribute span "messaging.destination.name"))
+                     (= command-id
+                        (string-attribute span
+                                          "messaging.kafka.message.key")))))]
+         (is (= "ACCEPTED" (:status reply)))
+         (testing "the consumer span says where the record was read from"
+           (is (some? processed))
+           (is (= {"messaging.system" "kafka"
+                   "messaging.operation.type" "process"
+                   "messaging.destination.name" "topic-command"
+                   "messaging.destination.partition.id" (str (partition-for
+                                                              command-id))
+                   "messaging.consumer.group.name" "command-subscriber"
+                   "messaging.kafka.consumer.group" "command-subscriber"
+                   "messaging.kafka.message.key" command-id}
+                  (into {}
+                        (map (fn [k] [k (string-attribute processed k)]))
+                        ["messaging.system" "messaging.operation.type"
+                         "messaging.destination.name"
+                         "messaging.destination.partition.id"
+                         "messaging.consumer.group.name"
+                         "messaging.kafka.consumer.group"
+                         "messaging.kafka.message.key"]))))
+         (testing "the producer span names the record the consumer read"
+           (is (some? sent))
+           (is (= "kafka" (string-attribute sent "messaging.system")))
+           (is (= "send" (string-attribute sent "messaging.operation.type")))
+           (is (= (string-attribute processed
+                                    "messaging.destination.partition.id")
+                  (string-attribute sent "messaging.destination.partition.id")))
+           (is (= (long-attribute processed "messaging.kafka.offset")
+                  (long-attribute sent "messaging.kafka.offset")
+                  (long-attribute sent "messaging.kafka.message.offset")))))
+       (finally (stop))))))
