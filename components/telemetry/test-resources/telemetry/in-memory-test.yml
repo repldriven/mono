@@ -1,0 +1,5 @@
+system:
+  telemetry:
+    otel-sdk: !system/component
+      system/component-kind: test-telemetry/otel-sdk
+      service-name: telemetry

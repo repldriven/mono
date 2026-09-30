@@ -1,12 +1,18 @@
 (ns com.repldriven.mono.command.interface-test
   (:require
+    [com.repldriven.mono.command.interface :as SUT]
+
     [com.repldriven.mono.command.dispatcher :as dispatcher]
-    [com.repldriven.mono.command.interface :as command]
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.message-bus.interface :as message-bus]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
+    [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
 
-    [clojure.test :refer [deftest is testing]]))
+    [clojure.test :refer [deftest is testing]])
+  (:import
+    (io.opentelemetry.api.common AttributeKey)
+    (io.opentelemetry.api.trace StatusCode)))
 
 (deftest processor-uncaught-throw-yields-failed-reply-test
   (with-test-system
@@ -23,10 +29,10 @@
                             {:status "ACCEPTED" :payload nil}))
              replies (atom [])
              done (promise)]
-         (command/process bus
-                          process-fn
-                          {:command-channel :command
-                           :command-response-channel :command-response})
+         (SUT/process bus
+                      process-fn
+                      {:command-channel :command
+                       :command-response-channel :command-response})
          (message-bus/subscribe bus
                                 :command-response
                                 (fn [resp]
@@ -61,16 +67,16 @@
         bus
         :command
         (fn [cmd] (swap! seen assoc (:payload cmd) (:command-id cmd))))
-       (let [f1 (future (command/send d
-                                      {:command "c"
-                                       :id "shared-key"
-                                       :correlation-id "shared"
-                                       :payload "cmd-1"}))
-             f2 (future (command/send d
-                                      {:command "c"
-                                       :id "shared-key"
-                                       :correlation-id "shared"
-                                       :payload "cmd-2"}))]
+       (let [f1 (future (SUT/send d
+                                  {:command "c"
+                                   :id "shared-key"
+                                   :correlation-id "shared"
+                                   :payload "cmd-1"}))
+             f2 (future (SUT/send d
+                                  {:command "c"
+                                   :id "shared-key"
+                                   :correlation-id "shared"
+                                   :payload "cmd-2"}))]
          (loop [tries 0]
            (when (and (< (count @seen) 2) (< tries 100))
              (Thread/sleep 20)
@@ -103,3 +109,58 @@
              (is (= "reply-2" (:payload r2))
                  "the cmd-2 send resolves to the reply for its command-id")))))
      (dispatcher/stop d))))
+
+(defn- awaited-span
+  "The closed span named `span-name` whose `command` attribute is
+  `command`, once it closes: `process-command` sends its reply from
+  inside the span, so the caller can be unblocked before it ends."
+  [otel span-name command]
+  (loop [n 0]
+    (let [span (->> (test-telemetry/finished-spans otel)
+                    (filter (fn [s]
+                              (and (= span-name (.getName s))
+                                   (= command
+                                      (.get (.getAttributes s)
+                                            (AttributeKey/stringKey
+                                             "command"))))))
+                    first)]
+      (if (or span (>= n 100))
+        span
+        (do (Thread/sleep 20) (recur (inc n)))))))
+
+(defn- outcome
+  [span]
+  {:status (.get (.getAttributes span)
+                 (AttributeKey/stringKey "command.status"))
+   :reason (.get (.getAttributes span)
+                 (AttributeKey/stringKey "command.reason"))
+   :error? (= StatusCode/ERROR (.getStatusCode (.getStatus span)))})
+
+(deftest spans-record-the-outcome-test
+  (with-test-system
+   [sys "classpath:command/application-traced-test.yml"]
+   (let [bus (system/instance sys [:message-bus :bus])
+         otel (system/instance sys [:telemetry :otel-sdk])
+         d (dispatcher/start bus :command :command-response)]
+     (SUT/process
+      bus
+      (fn [{:keys [command]}]
+        (case command
+          "outcome-rejected" (error/reject :outcome/declined
+                                           {:message "declined"})
+          "outcome-failed" (error/fail :outcome/broken {:message "broken"})
+          {:status "ACCEPTED" :payload nil}))
+      {:command-channel :command :command-response-channel :command-response})
+     (doseq [[command expected]
+             [["outcome-accepted"
+               {:status "ACCEPTED" :reason nil :error? false}]
+              ["outcome-rejected"
+               {:status "REJECTED" :reason ":outcome/declined" :error? false}]
+              ["outcome-failed"
+               {:status "FAILED" :reason ":outcome/broken" :error? true}]]]
+       (testing (str command " is recorded on both spans")
+         (SUT/send d {:command command :id command :correlation-id command})
+         (doseq [span-name ["process-command" "command-send"]]
+           (let [span (awaited-span otel span-name command)]
+             (is (some? span) (str span-name " closed"))
+             (is (= expected (outcome span)) span-name))))))))

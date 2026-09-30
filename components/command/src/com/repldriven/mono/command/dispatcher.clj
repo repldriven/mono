@@ -1,6 +1,8 @@
 (ns com.repldriven.mono.command.dispatcher
   (:refer-clojure :exclude [send])
   (:require
+    [com.repldriven.mono.command.response :as response]
+
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.message-bus.interface :as message-bus]
     [com.repldriven.mono.telemetry.interface :as telemetry]
@@ -78,12 +80,16 @@
      (telemetry/with-span
       {:name "command-send"
        :attributes {:command (str (:command command))}}
-      (let [pub (message-bus/send bus command-channel command {:key key})]
-        (if (error/anomaly? pub)
-          (do (swap! pending dissoc command-id) pub)
-          (let [result (deref p timeout-ms ::timeout)]
-            (swap! pending dissoc command-id)
-            (if (= result ::timeout)
-              (error/fail :command/timeout
-                          {:message "Command reply timed out"})
-              result))))))))
+      (let [pub (message-bus/send bus command-channel command {:key key})
+            result (if (error/anomaly? pub)
+                     (do (swap! pending dissoc command-id) pub)
+                     (let [reply (deref p timeout-ms ::timeout)]
+                       (swap! pending dissoc command-id)
+                       (if (= reply ::timeout)
+                         (error/fail :command/timeout
+                                     {:message "Command reply timed out"})
+                         reply)))]
+        (response/trace-outcome (if (error/anomaly? result)
+                                  (response/anomaly->outcome result)
+                                  result))
+        result)))))

@@ -94,6 +94,7 @@
                              result
                              resp
                              start-ns)
+                   (response/trace-outcome resp)
                    (message-bus/send bus command-response-channel resp)))))))]
      {:stop (fn []
               (message-bus/unsubscribe bus command-channel subscription))})))

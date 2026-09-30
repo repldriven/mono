@@ -25,6 +25,24 @@
           (:error interceptor)
           (update :error pedestal->sieppari-error)))
 
+(def ^:private route
+  "Names the server span for the Reitit route the request matched, as
+  `GET /v1/accounts/{account-id}`, and records the template as
+  `http.route`: `url.path` carries resource ids, so without it no two
+  requests to one endpoint share a name."
+  {:name ::route
+   :enter (fn [{:keys [request io.opentelemetry/server-span-context] :as ctx}]
+            (let [{:keys [request-method]} request
+                  template (get-in request [:reitit.core/match :template])]
+              (when template
+                (trace-http/add-route-data!
+                 request-method
+                 template
+                 (cond-> {}
+                         server-span-context
+                         (assoc :context server-span-context))))
+              ctx))})
+
 (def trace-span
   "Vector of interceptors that add OpenTelemetry server span support to HTTP requests.
 
@@ -32,6 +50,7 @@
   - Creates a new server span with parent extracted from incoming W3C headers
   - Sets the span as the current context so handlers can call (inject-traceparent)
   - Records HTTP response status and exceptions, ends span on leave or error
+  - Names the span for the matched Reitit route and records `http.route`
 
   Synchronous-only: :set-current-context? is true, which is appropriate because
   all Reitit/Sieppari interceptors and handlers run on the same thread.
@@ -39,5 +58,6 @@
   Each interceptor's `:error` stage is wrapped to translate the
   Pedestal `(ctx ex)` arity to Sieppari's `(ctx)` shape; see
   `pedestal->sieppari-error`."
-  (mapv sieppari-compatible
-        (trace-http/server-span-interceptors {:create-span? true})))
+  (conj (mapv sieppari-compatible
+              (trace-http/server-span-interceptors {:create-span? true}))
+        route))
