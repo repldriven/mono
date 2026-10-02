@@ -12,6 +12,7 @@
      [with-test-system nom-test>]]
     [com.repldriven.mono.utility.interface :as util]
 
+    [clojure.string :as str]
     [clojure.test :refer [deftest is testing]]))
 
 (def ^:private test-config "classpath:keycloak/application-test.yml")
@@ -23,12 +24,17 @@
   (reset! (protocol/-admin-token-atom client)
     {:access-token "stale" :expires-in 3600 :fetched-at (util/now)}))
 
+(defn- scoped?
+  "Whether a token response's granted scope names `scope`."
+  [response scope]
+  (contains? (set (str/split (str (:scope response)) #" ")) scope))
+
 (deftest admin-test
   (with-test-system
    [sys test-config]
    (let [client (system/instance sys [:keycloak :identity-provider])
          viewer (system/instance sys [:keycloak :viewer])]
-     (testing "a service account is created, rotated, re-pointed and revoked"
+     (testing "a service account is created, rotated and revoked"
        (nom-test> [created (SUT/create-service-account client
                                                        {:bank-id "bnk.a"
                                                         :name "A"})
@@ -38,10 +44,26 @@
                    _ (is (string? (:client-secret rotated)))
                    again (SUT/rotate-secret client "bnk.a")
                    _ (is (not= (:client-secret rotated) (:client-secret again)))
-                   _ (SUT/update-service-account-audience client "bnk.a" "aud")
                    _ (SUT/revoke-service-account client "bnk.a")])
        (is (= :keycloak/client-not-found
               (error/kind (SUT/rotate-secret client "bnk.a")))))
+     (testing "a re-pointed service account's tokens carry the new audience"
+       (nom-test> [id (str "bnk." (util/uuidv7))
+                   _ (SUT/create-service-account client
+                                                 {:bank-id id
+                                                  :audience "aud-a"})
+                   creds (SUT/rotate-secret client id)
+                   before (SUT/exchange-client-credentials client creds)
+                   _ (is (scoped? before "aud-a"))
+                   _ (SUT/update-service-account-audience client id "aud-b")
+                   _ (SUT/update-service-account-audience client id "aud-b")
+                   after (SUT/exchange-client-credentials client creds)
+                   _ (is (scoped? after "aud-b"))
+                   _ (is (not (scoped? after "aud-a")))
+                   refused (SUT/exchange-client-credentials
+                            client
+                            (assoc creds :scope "aud-a"))
+                   _ (is (nil? (:access_token refused)))]))
      (testing "creating a client already there answers as the first did"
        (nom-test> [_ (SUT/create-service-account client {:bank-id "bnk.b"})
                    again (SUT/create-service-account client {:bank-id "bnk.b"})
