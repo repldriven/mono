@@ -346,29 +346,62 @@
      sec (http/res->edn res)]
     {:client-id client-id :client-secret (:value sec)}))
 
+(defn- get-edn
+  [client & path-parts]
+  (let-nom> [res (admin-request! client
+                                 {:method :get
+                                  :url (apply admin-url
+                                              (protocol/-config client)
+                                              path-parts)})]
+    (http/res->edn res)))
+
+(defn- default-scope-request
+  [client client-uuid method scope-id]
+  (admin-request! client
+                  {:method method
+                   :url (admin-url (protocol/-config client)
+                                   "/clients/"
+                                   client-uuid
+                                   "/default-client-scopes/"
+                                   scope-id)}
+                  #{404}))
+
 (defn update-client-audience
-  "Point the Keycloak client matching `client-id` at `audience`: replace
-  its `defaultClientScopes` with `[\"service-accounts\" audience]` — the
-  same shape `new-client-representation` builds at creation. Fetches
-  the current `ClientRepresentation` (needed to preserve every other
-  field on the PUT) and swaps just that one list, so this is
-  target-state idempotent — a redelivered call converges on the same
-  result."
+  "Point the Keycloak client matching `client-id` at `audience`: make
+  its default client scopes `[\"service-accounts\" audience]`, the shape
+  `new-client-representation` builds at creation, removing every other
+  and skipping a name the realm has no scope for. Keycloak ignores
+  `defaultClientScopes` on a client PUT, so each scope is attached and
+  detached through the client's default-client-scopes resource. Target-
+  state idempotent: a redelivered call converges on the same result."
   [client client-id audience]
   (let-nom>
     [representation (find-client client client-id)
      _ (when-not representation (client-not-found client-id))
-     _ (admin-request! client
-                       {:method :put
-                        :url (admin-url (protocol/-config client)
-                                        "/clients/"
-                                        (:id representation))
-                        :body (json/write-str
-                               (assoc representation
-                                      :defaultClientScopes
-                                      (cond-> ["service-accounts"]
-                                              audience
-                                              (conj audience))))})]
+     client-uuid (:id representation)
+     realm-scopes (get-edn client "/client-scopes")
+     current (get-edn client
+                      "/clients/"
+                      client-uuid
+                      "/default-client-scopes")
+     wanted (set (cond-> ["service-accounts"]
+                         audience
+                         (conj audience)))
+     have (set (map :name current))
+     _ (reduce (fn [_ [method scope-id]]
+                 (let [res (default-scope-request client
+                                                  client-uuid
+                                                  method
+                                                  scope-id)]
+                   (if (error/anomaly? res) (reduced res) res)))
+               nil
+               (concat (for [{:keys [id name]} current
+                             :when (not (contains? wanted name))]
+                         [:delete id])
+                       (for [{:keys [id name]} realm-scopes
+                             :when (and (contains? wanted name)
+                                        (not (contains? have name)))]
+                         [:put id])))]
     {:client-id client-id}))
 
 (defn- fetch-jwks
