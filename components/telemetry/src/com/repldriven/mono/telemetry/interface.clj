@@ -1,5 +1,11 @@
 (ns com.repldriven.mono.telemetry.interface
-  "Public API for telemetry operations."
+  "Public API for telemetry operations.
+
+  The `telemetry/otel-sdk` component exports spans over OTLP HTTP to
+  `endpoint`, and starts nothing where it is blank. Where
+  `metrics-endpoint` is set too, it exports the JVM's runtime metrics --
+  garbage collection, memory pools, threads, CPU and classes -- to it
+  every `metrics-interval-ms`, 10 seconds by default."
   (:require
     com.repldriven.mono.telemetry.system
     [com.repldriven.mono.telemetry.core :as core]
