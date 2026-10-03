@@ -9,6 +9,7 @@
     [clojure.test :refer [deftest is testing]])
   (:import
     (io.opentelemetry.api.common AttributeKey)
+    (io.opentelemetry.exporter.otlp.http.metrics OtlpHttpMetricExporter)
     (io.opentelemetry.exporter.otlp.http.trace OtlpHttpSpanExporter)))
 
 (deftest with-span-runs-its-body-once-test
@@ -95,5 +96,13 @@
      (with-test-system [sys "classpath:telemetry/otlp-test.yml"]
                        (let [otel (system/instance sys [:telemetry :otel-sdk])]
                          (is (some? (:sdk otel)))
-                         (is (instance? OtlpHttpSpanExporter
-                                        (:exporter otel))))))))
+                         (is (instance? OtlpHttpSpanExporter (:exporter otel)))
+                         (is (nil? (:runtime-metrics otel))
+                             "no metrics endpoint, no JVM metrics")))))
+  (testing "a metrics endpoint exports the JVM's runtime metrics over OTLP"
+    (test-telemetry/with-exclusive-telemetry
+     (with-test-system [sys "classpath:telemetry/otlp-metrics-test.yml"]
+                       (let [otel (system/instance sys [:telemetry :otel-sdk])]
+                         (is (instance? OtlpHttpMetricExporter
+                                        (:metric-exporter otel)))
+                         (is (some? (:runtime-metrics otel))))))))

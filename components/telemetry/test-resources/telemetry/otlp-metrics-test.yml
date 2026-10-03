@@ -1,0 +1,7 @@
+system:
+  telemetry:
+    otel-sdk: !system/component
+      system/component-kind: telemetry/otel-sdk
+      service-name: telemetry-test
+      endpoint: http://localhost:4318/v1/traces
+      metrics-endpoint: http://localhost:4318/v1/metrics

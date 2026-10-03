@@ -14,4 +14,8 @@
         ;; fails every tracer provider at class init. Renovate is disabled for
         ;; them, and they move together when clj-otel itself moves
         io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.54.1"}
+        ;; The JVM's own metrics -- garbage collection, memory pools, threads,
+        ;; CPU -- built on the same OpenTelemetry version as clj-otel 0.2.10
+        com.github.steffan-westcott/clj-otel-instrumentation-runtime-telemetry-java17
+        {:mvn/version "0.2.10"}
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}}}
