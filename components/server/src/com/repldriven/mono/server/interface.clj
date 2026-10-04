@@ -6,6 +6,7 @@
     [com.repldriven.mono.server.core :as core]
     [com.repldriven.mono.server.cors :as cors]
     [com.repldriven.mono.server.interceptors :as interceptors]
+    [com.repldriven.mono.server.shed :as shed]
     [com.repldriven.mono.server.streaming :as streaming]))
 
 (def require-idempotency-key
@@ -186,6 +187,25 @@
     `:origins` is required."
   [handler opts]
   (cors/wrap-cors handler opts))
+
+(defn wrap-max-in-flight
+  "Wrap `handler` so it handles at most `n` requests at once, answering
+  any beyond them at once with a 503, `Retry-After: 1` and a problem body
+  of type `server/overloaded`, rather than queueing them. A request under
+  `/actuator/` is never turned away, so a probe is answered however busy
+  the server is. A turned-away request reaches no route, so it has done
+  nothing and is safe to send again.
+
+  The `server/jetty-adapter` kind applies it to the whole handler when its
+  configuration sets `max-in-flight`, which it leaves unset to admit every
+  request. Size it from the rate the server can serve and how long a
+  request may wait: what is admitted beyond that would time out anyway.
+
+  Args:
+  - handler: the synchronous Ring handler to wrap.
+  - n: the most requests handled at once, a positive integer."
+  [handler n]
+  (shed/wrap-max-in-flight handler n))
 
 (defn streaming-body
   "A Ring response body that holds the response open for as long as

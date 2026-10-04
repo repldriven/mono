@@ -8,6 +8,7 @@
     [reitit.http :as http]
     [reitit.ring :as ring]
     [com.repldriven.mono.json.interface :as json]
+    [clojure.string :as str]
     [clojure.test :refer [deftest is testing]])
   (:import
     (org.eclipse.jetty.server Server ServerConnector)))
@@ -121,3 +122,42 @@
              (is (= "FAILED" (get body "title")))
              (is (= "server/bad-response" (get body "type")))
              (is (contains? body "detail")))))))))
+
+(defn- header
+  [res k]
+  (some (fn [[hk v]] (when (= k (str/lower-case (name hk))) v)) (:headers res)))
+
+(deftest max-in-flight-test
+  (testing "a request beyond max-in-flight is turned away, a probe is not"
+    (let [entered (promise)
+          release (promise)
+          handler (fn [req]
+                    (if (str/starts-with? (:uri req) "/actuator/")
+                      {:status 200 :body "UP"}
+                      (do (deliver entered true)
+                          (deref release 10000 nil)
+                          {:status 200 :body "ok"})))]
+      (with-test-system
+       [sys
+        ["classpath:server/application-test.yml"
+         #(-> %
+              (assoc-in [:system/defs :server :handler] (constantly handler))
+              (assoc-in [:system/defs :server :jetty-adapter :system/config
+                         :max-in-flight]
+                        1))]]
+       (let [base (server/http-local-url (system/instance sys
+                                                          [:server
+                                                           :jetty-adapter]))
+             held (future (http-client/request {:url (str base "/slow")
+                                                :method :get}))
+             _ (deref entered 10000 nil)
+             shed (http-client/request {:url (str base "/slow") :method :get})
+             probe (http-client/request {:url (str base
+                                                   "/actuator/health/liveness")
+                                         :method :get})]
+         (is (= 503 (:status shed)))
+         (is (= "1" (header shed "retry-after")))
+         (is (= "server/overloaded" (get (http-client/res->body shed) "type")))
+         (is (= 200 (:status probe)))
+         (deliver release true)
+         (is (= 200 (:status (deref held 10000 nil)))))))))
