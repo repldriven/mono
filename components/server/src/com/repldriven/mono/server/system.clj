@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.server.system
   (:require
     [com.repldriven.mono.server.jetty :as server-jetty]
+    [com.repldriven.mono.server.shed :as shed]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system]
     [ring.adapter.jetty9 :as jetty])
@@ -77,7 +78,9 @@
   {:system/start
    (fn [{:system/keys [config instance]}]
      (or instance
-         (let [{:keys [handler interceptors ready-fn options cors]} config
+         (let [{:keys [handler interceptors ready-fn options cors
+                       max-in-flight]}
+               config
                options (assoc options
                               :configurator
                               (fn [^Server server]
@@ -93,7 +96,11 @@
                                  (constantly true))
                ctx {:interceptors interceptors :ready-fn ready-thunk :cors cors}
                _ (log/info "Starting jetty adapter")
-               server (jetty/run-jetty (handler ctx) options)]
+               server (jetty/run-jetty (cond-> (handler ctx)
+                                               max-in-flight
+                                               (shed/wrap-max-in-flight
+                                                max-in-flight))
+                                       options)]
            (log/info "Jetty listening on" (server-jetty/http-local-url server))
            server)))
    :system/stop (fn [{:system/keys [^Server instance]}]
@@ -102,7 +109,9 @@
                    :interceptors nil
                    :ready-fn nil
                    :options default-jetty-adapter-options}
-   :system/config-schema [:map [:handler fn?]]
+   :system/config-schema [:map
+                          [:handler fn?]
+                          [:max-in-flight {:optional true} pos-int?]]
    :system/instance-schema some?})
 
 (def http-url
