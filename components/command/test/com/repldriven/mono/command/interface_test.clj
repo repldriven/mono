@@ -57,7 +57,7 @@
   (with-test-system
    [sys "classpath:command/application-local-test.yml"]
    (let [bus (system/instance sys [:message-bus :bus])
-         d (dispatcher/start bus :command :command-response)
+         d (dispatcher/start bus :command :command-response {:timeout-ms 5000})
          ;; :payload marker -> the command-id the dispatcher minted for it
          seen (atom {})]
      (testing
@@ -110,6 +110,50 @@
                  "the cmd-2 send resolves to the reply for its command-id")))))
      (dispatcher/stop d))))
 
+(defn- waited-ms
+  "How long `send` waited before it gave up on a reply that never came,
+  in milliseconds, and the anomaly it gave up with."
+  [send]
+  (let [started (System/nanoTime)
+        result (send)]
+    [(quot (- (System/nanoTime) started) 1000000) result]))
+
+(deftest timeout-default-test
+  (with-test-system
+   [sys "classpath:command/application-local-test.yml"]
+   (testing "a dispatcher whose configuration sets no timeout waits 10 s"
+     (is (= 10000
+            (:timeout-ms (system/instance sys [:command :dispatcher])))))))
+
+(deftest timeout-precedence-test
+  (with-test-system
+   [sys "classpath:command/application-local-test.yml"]
+   (let [bus (system/instance sys [:message-bus :bus])
+         d (dispatcher/start bus
+                             :command
+                             :command-response
+                             {:timeout-ms 100 :command-timeouts-ms {:slow 400}})
+         unanswered (fn [command opts]
+                      (waited-ms (fn []
+                                   (SUT/send d
+                                             {:command command
+                                              :id command
+                                              :correlation-id command}
+                                             opts))))]
+     (testing "a command the configuration names waits its own timeout"
+       (let [[ms result] (unanswered "slow" {})]
+         (is (= :command/timeout (error/kind result)))
+         (is (<= 400 ms 1400) (str ms "ms"))))
+     (testing "any other command waits the dispatcher's timeout"
+       (let [[ms result] (unanswered "other" {})]
+         (is (= :command/timeout (error/kind result)))
+         (is (<= 100 ms 399) (str ms "ms"))))
+     (testing "a send's own timeout comes first"
+       (let [[ms result] (unanswered "slow" {:timeout-ms 50})]
+         (is (= :command/timeout (error/kind result)))
+         (is (<= 50 ms 399) (str ms "ms"))))
+     (dispatcher/stop d))))
+
 (defn- awaited-span
   "The closed span named `span-name` whose `command` attribute is
   `command`, once it closes: `process-command` sends its reply from
@@ -141,7 +185,7 @@
    [sys "classpath:command/application-traced-test.yml"]
    (let [bus (system/instance sys [:message-bus :bus])
          otel (system/instance sys [:telemetry :otel-sdk])
-         d (dispatcher/start bus :command :command-response)]
+         d (dispatcher/start bus :command :command-response {:timeout-ms 5000})]
      (SUT/process
       bus
       (fn [{:keys [command]}]

@@ -3,3 +3,9 @@ system:
     bus: !system/component
       system/component-kind: message-bus/local-bus
       channels: [command, command-response]
+  command:
+    dispatcher: !system/component
+      system/component-kind: command/dispatcher
+      bus: !system/ref message-bus.bus
+      command-channel: !keyword command
+      command-response-channel: !keyword command-response

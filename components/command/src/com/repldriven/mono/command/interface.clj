@@ -56,7 +56,10 @@
   - dispatcher: started dispatcher map
   - command: command envelope map
   - opts: optional map with keys:
-    - :timeout-ms - timeout in milliseconds (default 10000)
+    - :timeout-ms - how long to wait for the reply, in milliseconds,
+      over the dispatcher's timeout for the command: its configured
+      `command-timeouts-ms` entry for the command, else its
+      `timeout-ms`, 10000 unless its configuration sets one
     - :key - partition key; commands sharing one are
       delivered in order
 

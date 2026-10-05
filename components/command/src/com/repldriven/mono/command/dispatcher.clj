@@ -21,9 +21,12 @@
   - bus: message-bus instance
   - command-channel: keyword for sending commands
   - command-response-channel: keyword for receiving responses
+  - timeouts: `{:timeout-ms ms :command-timeouts-ms {command ms}}`,
+    how long a send waits for its reply: the command's own where
+    `command-timeouts-ms` names it, else `timeout-ms`
 
   Returns dispatcher map."
-  [bus command-channel command-response-channel]
+  [bus command-channel command-response-channel timeouts]
   (let [pending (atom {})
         sub (message-bus/subscribe
              bus
@@ -41,6 +44,10 @@
       {:bus bus
        :command-channel command-channel
        :pending pending
+       :timeout-ms (:timeout-ms timeouts)
+       :command-timeouts-ms (into {}
+                                  (map (fn [[command ms]] [(name command) ms]))
+                                  (:command-timeouts-ms timeouts))
        :stop-fn stop-fn})))
 
 (defn stop
@@ -62,15 +69,20 @@
   - dispatcher: started dispatcher map
   - command: command envelope map
   - opts: optional map with keys:
-    - :timeout-ms - timeout in milliseconds (default 10000)
+    - :timeout-ms - how long to wait for the reply, in milliseconds,
+      over the dispatcher's timeout for the command
     - :key - partition key. Commands sharing one are
       delivered in order, so an entity that must serialise
       its commands — an account, say — keys on its id
 
   Returns response map or anomaly."
   ([dispatcher command] (send dispatcher command {}))
-  ([{:keys [bus command-channel pending]} command opts]
-   (let [{:keys [timeout-ms key] :or {timeout-ms 10000}} opts
+  ([dispatcher command opts]
+   (let [{:keys [bus command-channel pending command-timeouts-ms]} dispatcher
+         {:keys [key]} opts
+         timeout-ms (or (:timeout-ms opts)
+                        (get command-timeouts-ms (:command command))
+                        (:timeout-ms dispatcher))
          command-id (str (utility/uuidv7))
          command (assoc command :command-id command-id)
          p (promise)]
