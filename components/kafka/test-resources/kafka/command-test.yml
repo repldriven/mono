@@ -9,3 +9,4 @@ system:
       bus: !system/ref kafka.bus
       command-channel: !keyword command
       command-response-channel: !keyword command-response
+      timeout-ms: 10000
