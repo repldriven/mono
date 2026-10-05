@@ -16,4 +16,3 @@ system:
       bus: !system/ref message-bus.bus
       command-channel: !keyword pets-command
       command-response-channel: !keyword pets-command-response
-      timeout-ms: 10000

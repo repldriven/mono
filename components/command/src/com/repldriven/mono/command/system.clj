@@ -19,7 +19,8 @@
                   (when instance (dispatcher/stop instance)))
    :system/config {:bus system/required-component
                    :command-channel nil
-                   :command-response-channel nil}
+                   :command-response-channel nil
+                   :timeout-ms 10000}
    :system/config-schema [:map
                           [:timeout-ms pos-int?]
                           [:command-timeouts-ms {:optional true}

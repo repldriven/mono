@@ -118,6 +118,13 @@
         result (send)]
     [(quot (- (System/nanoTime) started) 1000000) result]))
 
+(deftest timeout-default-test
+  (with-test-system
+   [sys "classpath:command/application-local-test.yml"]
+   (testing "a dispatcher whose configuration sets no timeout waits 10 s"
+     (is (= 10000
+            (:timeout-ms (system/instance sys [:command :dispatcher])))))))
+
 (deftest timeout-precedence-test
   (with-test-system
    [sys "classpath:command/application-local-test.yml"]

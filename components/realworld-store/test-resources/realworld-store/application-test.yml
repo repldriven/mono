@@ -64,4 +64,3 @@ system:
       bus: !system/ref message-bus.bus
       command-channel: !keyword realworld-command
       command-response-channel: !keyword realworld-command-response
-      timeout-ms: 10000
