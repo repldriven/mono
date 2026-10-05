@@ -101,7 +101,9 @@
         (async/pipe c source)
         (message-bus/perform source
                              handler-fn
-                             {:performers performers :key-fn (:key-fn opts)})
+                             {:performers performers
+                              :key-fn (:key-fn opts)
+                              :name (:group-id consumer)})
         {:stop (:stop hs)}))
     (unsubscribe [_] (stop-loop handles))
     ;; One consumer group member, so one subscription: stopping it by name

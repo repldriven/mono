@@ -32,13 +32,13 @@
                   (map (fn [[k {:keys [ch]}]] [k (local/->LocalProducer ch)])
                        channels))
             (into {}
-                  (map
-                   (fn [[k {:keys [mult]}]] [k
-                                             (local/->LocalConsumer
-                                              mult
-                                              (atom [])
-                                              (get (:performers config) k 1))])
-                   channels))))))
+                  (map (fn [[k {:keys [mult]}]] [k
+                                                 (local/->LocalConsumer
+                                                  mult
+                                                  (atom [])
+                                                  (get (:performers config) k 1)
+                                                  (name k))])
+                       channels))))))
    ;; `performers` maps a channel to its number of performers; a channel
    ;; it does not name has one.
    :system/config {:channels system/required-component :performers nil}

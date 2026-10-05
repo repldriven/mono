@@ -153,6 +153,16 @@
              "each key's messages arrive in the order they were sent")
          (is (< 1 @peak) "different keys are handled at the same time")
          (SUT/unsubscribe bus :keyed)))
+     (testing "a performer's thread is named for its channel"
+       (let [thread-name (promise)]
+         (SUT/subscribe
+          bus
+          :keyed
+          (fn [_] (deliver thread-name (.getName (Thread/currentThread)))))
+         (SUT/send bus :keyed {"k" "a" "seq" 0} {:key "a"})
+         (is (re-matches #"keyed-performer-\d+"
+                         (str (deref thread-name 5000 ::timeout))))
+         (SUT/unsubscribe bus :keyed)))
      (testing "messages sent without a key spread across performers"
        (let [{:keys [seen peak handler]} (tracking-handler 20)]
          (SUT/subscribe bus :keyed handler)

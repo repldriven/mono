@@ -125,7 +125,10 @@ of the performer its key hashes to, the next in turn for a delivery
 with no key. `:key-fn`, from `subscribe`'s `opts`, gives a narrower key
 than the send key. Each performer runs on an `io-thread`, handles its
 queue one delivery at a time, and calls `:ack` when the handler returns
-or `:nack` with what it threw. A queue holds sixteen deliveries, and a
+or `:nack` with what it threw. Its thread is named for the
+subscription — the Kafka group or the channel — as
+`<name>-performer-<i>`, so a span's `thread.name` says which one ran
+it. A queue holds sixteen deliveries, and a
 full one stops the taking, which stops the backend's own loop. Closing
 the source channel stops the performers once their queues drain.
 

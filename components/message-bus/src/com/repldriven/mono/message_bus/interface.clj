@@ -77,6 +77,8 @@
   A performer runs on a thread of its own and handles its deliveries one
   at a time, in order. Each holds at most `:queue` deliveries (16 when
   absent), and taking from `source` waits while the chosen one is full.
+  Each performer's thread is named `<:name>-performer-<i>` while it runs,
+  so a span or a thread dump says which subscription it serves.
   Closing `source` stops it. Returns a channel that closes once every
   performer has finished."
   [source handler-fn opts]

@@ -301,7 +301,8 @@
                                       {:consumer (consumer-or-throw k consumer)
                                        :timeout (or timeout 10000)
                                        :stop-ch (atom nil)
-                                       :performers (or performers 1)})])
+                                       :performers (or performers 1)
+                                       :name (name k)})])
                                   config))))
    :system/config system/required-component
    :system/instance-schema map?})
