@@ -2,3 +2,6 @@
 
 (defprotocol Processor
   (process [this message]))
+
+(defprotocol Keyed
+  (performer-key [this message]))

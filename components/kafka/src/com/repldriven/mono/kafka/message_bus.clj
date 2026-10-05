@@ -77,23 +77,31 @@
 ;; `handles` holds the {:c :stop :ack} map from receive, because Kafka's
 ;; acknowledgements are queued to the polling thread rather than called on the
 ;; consumer directly — see kafka.kafka.consumer.
-(defrecord KafkaConsumer [consumer timeout handles]
+(defn- delivery
+  [hs group-id {:keys [message data]}]
+  (let [^ConsumerRecord record message]
+    {:data (delivered data record group-id)
+     :key (some-> ^bytes (.key record)
+                  (String. "UTF-8"))
+     :ack (fn [] (kafka/acknowledge hs record))
+     ;; The consumer bounds redelivery, so a poison message cannot loop
+     ;; forever.
+     :nack (fn [t]
+             (log/error t "Consumer handler threw; asking for redelivery")
+             (kafka/negative-acknowledge hs record))}))
+
+(defrecord KafkaConsumer [consumer timeout handles performers]
   message-bus/Consumer
-    (subscribe [_ handler-fn]
-      (let [{:keys [c] :as hs} (kafka/receive consumer timeout)]
+    (subscribe [this handler-fn] (.subscribe this handler-fn {}))
+    (subscribe [_ handler-fn opts]
+      (let [{:keys [c] :as hs} (kafka/receive consumer timeout)
+            source
+            (async/chan 1 (map (partial delivery hs (:group-id consumer))))]
         (reset! handles hs)
-        (async/go-loop []
-          (when-let [{:keys [message data]} (async/<! c)]
-            ;; A throw from handler-fn must not kill the go-loop, which
-            ;; would wedge the subscription silently. Commit on success; on
-            ;; any throw ask for redelivery, which the consumer bounds so
-            ;; a poison message cannot loop forever.
-            (try (handler-fn (delivered data message (:group-id consumer)))
-                 (kafka/acknowledge hs message)
-                 (catch Throwable t
-                   (log/error t "Consumer handler threw; asking for redelivery")
-                   (kafka/negative-acknowledge hs message)))
-            (recur)))
+        (async/pipe c source)
+        (message-bus/perform source
+                             handler-fn
+                             {:performers performers :key-fn (:key-fn opts)})
         {:stop (:stop hs)}))
     (unsubscribe [_] (stop-loop handles))
     ;; One consumer group member, so one subscription: stopping it by name

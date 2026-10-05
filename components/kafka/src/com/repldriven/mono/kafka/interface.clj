@@ -13,7 +13,9 @@
   that polls it. `receive` therefore returns `{:c chan :stop chan :ack chan}` —
   the pulsar shape plus an `:ack` channel, through which acknowledgements are
   queued for that thread. `acknowledge` and `negative-acknowledge` take those
-  handles rather than the consumer.
+  handles rather than the consumer. Acknowledgements may arrive in any order:
+  the thread commits, per partition, only the highest offset below which every
+  message it handed out has been acknowledged.
 
   Component-kinds are registered under `:kafka` via this brick's `system`
   namespace; `message-bus-producers` and `message-bus-consumers` make it usable
@@ -61,7 +63,8 @@
   (core/receive consumer timeout-ms))
 
 (defn acknowledge
-  "Commit a message's offset, queued to the polling thread.
+  "Mark a message done, queued to the polling thread, which commits past it
+  once every message before it on its partition is done too.
 
   Args:
   - handles: the map returned by `receive`.
@@ -75,7 +78,7 @@
 
   Note this is not Pulsar's per-message nack: a seek rewinds the partition, so
   every message after the failed one is replayed too. Handlers have to tolerate
-  duplicates.
+  duplicates. Nothing commits past the message until it is handed out again.
 
   Once `max-redeliveries` is reached the message goes to the consumer's
   `dead-letter-producer`, as raw bytes. A consumer without one drops it

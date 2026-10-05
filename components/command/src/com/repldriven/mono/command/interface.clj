@@ -40,7 +40,11 @@
   - bus: message-bus instance
   - process-fn: function that takes a command envelope
     and returns a result map or anomaly
-  - opts: optional map (reserved for future use)
+  - opts: optional map with keys:
+    - :command-channel - keyword for receiving commands
+    - :command-response-channel - keyword for sending replies
+    - :key-fn - a narrower performer key than the send key, a fn
+      of the envelope; see `message-bus/subscribe`
 
   Returns: {:stop (fn [])} — call stop to unsubscribe"
   ([bus process-fn] (processor/process bus process-fn))

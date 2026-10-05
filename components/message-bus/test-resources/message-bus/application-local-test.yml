@@ -2,4 +2,6 @@ system:
   message-bus:
     bus: !system/component
       system/component-kind: message-bus/local-bus
-      channels: [command, reply]
+      channels: [command, reply, keyed]
+      performers:
+        keyed: 4

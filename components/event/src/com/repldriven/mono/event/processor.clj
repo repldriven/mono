@@ -8,7 +8,7 @@
 (defn process
   ([bus handler-fn] (process bus handler-fn {}))
   ([bus handler-fn opts]
-   (let [{:keys [event-channel]
+   (let [{:keys [event-channel key-fn]
           :or {event-channel :event}}
          opts]
      (message-bus/subscribe
@@ -41,5 +41,6 @@
                   result)
                  ;; nosemgrep: no-raw-throw
                  (throw (ex-info "Event processing failed"
-                                 {:anomaly result})))))))))
+                                 {:anomaly result}))))))))
+      {:key-fn key-fn})
      {:stop (fn [] (message-bus/unsubscribe bus event-channel))})))

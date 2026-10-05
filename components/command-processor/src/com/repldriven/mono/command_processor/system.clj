@@ -15,8 +15,8 @@
            (command/process bus
                             #(processor/process processor %)
                             {:command-channel command-channel
-                             :command-response-channel
-                             command-response-channel}))))
+                             :command-response-channel command-response-channel
+                             :key-fn (processor/performer-key-fn processor)}))))
    :system/stop (fn [{:system/keys [instance]}]
                   (when-let [stop-fn (:stop instance)]
                     (log/info "Stopping command-processor")

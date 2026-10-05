@@ -142,6 +142,15 @@ consumers: !system/component
       bootstrap.servers: !system/local-ref bootstrap-servers
       group.id: pet-subscriber-2
 
+  pet-3:
+    _: !system/local-ref topics
+    schemas: !system/local-ref schemas
+    schema: !keyword pet
+    topics: [topic-pet]
+    conf:
+      bootstrap.servers: !system/local-ref bootstrap-servers
+      group.id: pet-subscriber-3
+
   # Reads what the pet-2 consumer gave up on. No schema: dead-lettered values
   # are forwarded as they arrived, which is the point of them.
   pet-dlq:
@@ -194,6 +203,12 @@ message-bus-consumers: !system/component
   pet:
     consumer: !system/local-ref consumers.pet-2
     timeout: 500
+  # Four performers on topic-pet's one partition, so concurrency comes from
+  # the performers alone.
+  pet-performers:
+    consumer: !system/local-ref consumers.pet-3
+    timeout: 500
+    performers: 4
   event:
     consumer: !system/local-ref consumers.event-2
     timeout: 500

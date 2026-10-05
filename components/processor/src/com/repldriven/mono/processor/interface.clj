@@ -18,3 +18,23 @@
   - message: the message to process."
   [processor message]
   (protocol/process processor message))
+
+(def
+  ^{:doc
+    "The `Keyed` protocol with method `(performer-key [this message])`:
+  a processor that also satisfies it names a narrower key than the one a
+  message was sent under, for the subscription to choose its performer
+  by. It must return a key every message sharing it was sent under one
+  key with, or nil to use the send key."}
+  Keyed
+  protocol/Keyed)
+
+(defn performer-key-fn
+  "A fn of a message returning `processor`'s performer key for it, or nil
+  when `processor` does not satisfy `Keyed`.
+
+  Args:
+  - processor: a value satisfying the `Processor` protocol."
+  [processor]
+  (when (satisfies? protocol/Keyed processor)
+    (fn [message] (protocol/performer-key processor message))))

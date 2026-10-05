@@ -2,19 +2,24 @@
 
 > **Status: implemented.** The `message-bus` brick, its `local` backend
 > and the three broker backends all exist. This document records the
-> design of subscription on the bus — one copy per subscriber, and a
-> subscription a caller can stop on its own — and the reason the local
-> backend is built around a `mult`.
+> design of subscription on the bus — one copy per subscriber, a
+> subscription a caller can stop on its own, and performers that handle
+> a subscription's messages concurrently by key — and the reason the
+> local backend is built around a `mult`.
 
 ## Objective
 
 A component subscribing to a topic gets every message on it, whatever
 else is subscribed and whichever backend is bound. Stopping one
-subscription leaves the rest running.
+subscription leaves the rest running. A subscription handles messages
+with different keys concurrently and messages sharing a key in order.
 
 In scope: the `Consumer` protocol's contract for `subscribe` and
-`unsubscribe`, the `local` backend that meets it over core.async, and
-the same arity on the `kafka`, `pulsar` and `mqtt` backends.
+`unsubscribe`, the `local` backend that meets it over core.async, the
+same arity on the `kafka`, `pulsar` and `mqtt` backends, and the
+performers every backend but `mqtt` hands its messages to, as
+[ADR-0040](../adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md)
+decides.
 
 Out of scope: which backend a system binds, decided in
 [ADR-0003](../adr/0003-message-bus-abstraction.md); the shape of the
@@ -71,8 +76,9 @@ The `LocalProducer` keeps the channel and puts to it. The
 `LocalConsumer` keeps the `mult` and an atom of its subscriptions. On
 `subscribe` it creates a tap with a buffer of ten and a stop channel,
 taps the `mult`, records the pair, and starts a `go-loop` that `alts!`
-between the tap and the stop channel until the stop channel closes. A
-message put to the channel reaches every tap, so every subscriber.
+between the tap and the stop channel, handing each message to the
+subscription's performers until the stop channel closes. A message put
+to the channel reaches every tap, so every subscriber.
 
 ### A subscription a caller can stop
 
@@ -80,7 +86,7 @@ message put to the channel reaches every tap, so every subscriber.
 
 ```clojure
 (defprotocol Consumer
-  (subscribe [this handler-fn])
+  (subscribe [this handler-fn] [this handler-fn opts])
   (unsubscribe [this] [this subscription]))
 ```
 
@@ -101,6 +107,48 @@ backend.
 The `interface.clj` docstrings state the contract: every subscriber
 receives every message, and the returned value stops that subscription
 alone.
+
+### Performers
+
+Every backend but `mqtt` hands each message to one of the consumer's
+`performers` through `message-bus/perform`, so the dispatch is written
+once. A backend's `subscribe` only turns what it received into a
+delivery, a map of `:data`, `:key`, `:ack` and `:nack`, and puts it on a
+channel:
+
+```clojure
+(message-bus/perform source handler-fn {:performers 4 :key-fn f})
+```
+
+One thread takes from that channel and puts each delivery on the queue
+of the performer its key hashes to, the next in turn for a delivery
+with no key. `:key-fn`, from `subscribe`'s `opts`, gives a narrower key
+than the send key. Each performer runs on an `io-thread`, handles its
+queue one delivery at a time, and calls `:ack` when the handler returns
+or `:nack` with what it threw. A queue holds sixteen deliveries, and a
+full one stops the taking, which stops the backend's own loop. Closing
+the source channel stops the performers once their queues drain.
+
+`performers` is a setting on each consumer the system binds: an entry
+under `kafka/message-bus-consumers` or `pulsar/message-bus-consumers`,
+or a map from channel to count under `message-bus/local-bus`. It
+defaults to 1, which handles one message at a time as before, now on a
+thread of its own rather than a `go` block.
+
+Each backend applies acknowledgements that arrive out of order in its
+own way. Pulsar acknowledges per message. The local backend has nothing
+to acknowledge, and now carries the send key to its subscribers so
+their performers order by it. Kafka commits a position, so its polling
+thread counts each offset out when it hands it over and commits, per
+partition, only the lowest offset still outstanding, or one past the
+highest finished when none is. A redelivery marks its offset waiting,
+which holds the commit, and the thread seeks each partition back to its
+earliest waiting offset once per pass. A partition lost in a rebalance
+is dropped from the count.
+
+A processor that knows its messages names the narrower key by
+satisfying `processor/Keyed`. `event-processor` and `command-processor`
+pass its `performer-key` to `subscribe` as `:key-fn`.
 
 ### The first slice
 
@@ -124,6 +172,16 @@ and asserts, on one of them, that:
 The existing single-subscriber, reply-channel and keyed-send tests hold
 unchanged, since one subscriber on a `mult` behaves as one on a
 channel.
+
+For performers, the local backend's test binds a channel with four
+and asserts that messages sharing a key arrive in the order they were
+sent, that different keys and unkeyed messages are handled at the same
+time, that a narrower key orders by itself within one send key, and
+that a channel with one performer handles one message at a time. The
+`kafka` brick tests its offset count as pure functions, and runs four
+performers on a one-partition topic against a broker, asserting each
+key's order, overlap between keys, and a committed offset that reaches
+the end of the partition.
 
 ## Alternatives Considered
 
@@ -154,6 +212,10 @@ channel.
 - **At-most-once.** A handler that throws is logged and its message
   dropped; there is no acknowledgement or redelivery on the local
   backend. Where that matters, a test binds a broker backend.
+- **MQTT keeps one performer.** Its client calls the handler on its own
+  thread and acknowledges when it returns, so handing a message to a
+  performer would acknowledge it before it was handled. An `mqtt`
+  subscription ignores `performers` and `:key-fn`.
 - **A slow subscriber holds the rest.** A `mult` delivers to every tap
   before taking the next message, so a tap whose buffer of ten is full
   blocks delivery to the others until it drains.
@@ -168,6 +230,8 @@ channel.
   handling with anomalies at interface boundaries.
 - [ADR-0015](../adr/0015-comments-and-docstrings.md) — Comments and
   docstrings.
+- [ADR-0040](../adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md)
+  — A consumer hands each message to a performer chosen by its key.
 - [system-components](../recipes/code/system-components.md) —
   `system/defcomponents` and the component map.
 - [system-configurations](../recipes/code/system-configurations.md) —

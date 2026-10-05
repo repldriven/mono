@@ -141,16 +141,18 @@
   consumer)
 
 (def message-bus-consumers
-  {:system/start
-   (fn [{:system/keys [config instance]}]
-     (or instance
-         (into {}
-               (map (fn [[k {:keys [consumer timeout] :or {timeout 1000}}]]
-                      [k
-                       (message-bus/->KafkaConsumer (consumer-or-throw k
-                                                                       consumer)
-                                                    timeout
-                                                    (atom nil))])
-                    config))))
+  {:system/start (fn [{:system/keys [config instance]}]
+                   (or instance
+                       (into {}
+                             (map (fn [[k
+                                        {:keys [consumer timeout performers]
+                                         :or {timeout 1000 performers 1}}]]
+                                    [k
+                                     (message-bus/->KafkaConsumer
+                                      (consumer-or-throw k consumer)
+                                      timeout
+                                      (atom nil)
+                                      performers)])
+                                  config))))
    :system/config system/required-component
    :system/instance-schema map?})

@@ -36,8 +36,10 @@
   (::delivery (meta message)))
 
 (defn subscribe
-  [bus consumer-name handler-fn]
-  (proto/subscribe (get (:consumers bus) consumer-name) handler-fn))
+  ([bus consumer-name handler-fn]
+   (proto/subscribe (get (:consumers bus) consumer-name) handler-fn))
+  ([bus consumer-name handler-fn opts]
+   (proto/subscribe (get (:consumers bus) consumer-name) handler-fn opts)))
 
 (defn unsubscribe
   ([bus consumer-name]

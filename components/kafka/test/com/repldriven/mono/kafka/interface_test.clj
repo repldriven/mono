@@ -18,6 +18,8 @@
     [clojure.test :refer [deftest is testing]])
   (:import
     (io.opentelemetry.api.common AttributeKey)
+    (org.apache.kafka.clients.admin AdminClient)
+    (org.apache.kafka.common TopicPartition)
     (org.apache.kafka.clients.consumer ConsumerRecord)
     (org.apache.kafka.clients.producer.internals BuiltInPartitioner)))
 
@@ -118,6 +120,53 @@
        (is (= (set pets) (set @received))
            "every message arrived, including the redelivered one")
        (message-bus/unsubscribe bus :pet)))))
+
+(defn- committed-offset
+  [^AdminClient admin group]
+  (some-> (.listConsumerGroupOffsets admin group)
+          (.partitionsToOffsetAndMetadata)
+          (.get)
+          (get (TopicPartition. "topic-pet" 0))
+          (.offset)))
+
+(deftest performers-test
+  (with-test-system
+   [sys "classpath:kafka/application-test.yml"]
+   (let [bus (system/instance sys [:kafka :bus])
+         admin (system/instance sys [:kafka :admin])
+         seen (atom {})
+         running (atom 0)
+         peak (atom 0)
+         ids ["pet-a" "pet-b" "pet-c" "pet-d"]
+         sends (for [i (range 10)
+                     id ids]
+                 {:pet-id id :name "Perf" :species "cat" :age-months i})]
+     (testing "four performers on one partition keep each key in order"
+       (message-bus/subscribe
+        bus
+        :pet-performers
+        (fn [data]
+          (swap! peak max (swap! running inc))
+          (Thread/sleep 30)
+          (swap! seen update (:pet-id data) (fnil conj []) (:age-months data))
+          (swap! running dec)))
+       (nom-test> [_ (doseq [pet sends]
+                       (message-bus/send bus :pet pet {:key (:pet-id pet)}))])
+       (let [deadline (+ (util/now) 30000)]
+         (while (and (< (reduce + (map count (vals @seen))) (count sends))
+                     (< (util/now) deadline))
+           (Thread/sleep 100)))
+       (is (= (zipmap ids (repeat (vec (range 10)))) @seen)
+           "each pet's messages are handled in the order they were sent")
+       (is (< 1 @peak) "different pets are handled at the same time"))
+     (testing "the committed offset reaches the end once every message is done"
+       (let [deadline (+ (util/now) 15000)]
+         (while (and (not= (count sends)
+                           (committed-offset admin "pet-subscriber-3"))
+                     (< (util/now) deadline))
+           (Thread/sleep 200)))
+       (is (= (count sends) (committed-offset admin "pet-subscriber-3"))))
+     (message-bus/unsubscribe bus :pet-performers))))
 
 (deftest dead-letter-test
   (with-test-system

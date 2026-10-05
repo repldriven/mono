@@ -11,8 +11,12 @@
     (send [_ message _opts]
       (client/publish client topic (json/write-str message))))
 
+;; The client calls the handler on its own thread and acknowledges when it
+;; returns, so handing the message to a performer would acknowledge it before
+;; it was handled: an MQTT subscription keeps one, and ignores `opts`.
 (defrecord MqttConsumer [client topic qos]
   message-bus/Consumer
+    (subscribe [this handler-fn _opts] (.subscribe this handler-fn))
     (subscribe [_ handler-fn]
       (client/subscribe client
                         {topic qos}

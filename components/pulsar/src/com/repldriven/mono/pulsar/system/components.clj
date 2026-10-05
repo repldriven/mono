@@ -294,12 +294,14 @@
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance
                        (into {}
-                             (map (fn [[k {:keys [consumer timeout]}]]
+                             (map (fn [[k
+                                        {:keys [consumer timeout performers]}]]
                                     [k
                                      (message-bus/map->PulsarConsumer
                                       {:consumer (consumer-or-throw k consumer)
                                        :timeout (or timeout 10000)
-                                       :stop-ch (atom nil)})])
+                                       :stop-ch (atom nil)
+                                       :performers (or performers 1)})])
                                   config))))
    :system/config system/required-component
    :system/instance-schema map?})
