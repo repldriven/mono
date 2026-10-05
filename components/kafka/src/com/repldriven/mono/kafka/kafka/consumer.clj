@@ -18,6 +18,7 @@
     per-message negative acknowledgement. Handlers must tolerate duplicates."
   (:require
     [com.repldriven.mono.kafka.kafka.config :as config]
+    [com.repldriven.mono.kafka.kafka.offsets :as offsets]
     [com.repldriven.mono.kafka.kafka.producer :as producer]
     [com.repldriven.mono.kafka.kafka.serde :as serde]
 
@@ -71,18 +72,18 @@
       (get opts :max-redeliveries default-max-redeliveries)})))
 
 (defn- ->partition
-  ^TopicPartition [^ConsumerRecord record]
-  (TopicPartition. (.topic record) (.partition record)))
+  ^TopicPartition [[topic partition]]
+  (TopicPartition. topic partition))
 
-(defn- commit!
-  [^KafkaConsumer instance ^ConsumerRecord record]
-  (.commitSync instance
-               {(->partition record) (OffsetAndMetadata. (inc (.offset
-                                                               record)))}))
+(defn- record-partition
+  [^ConsumerRecord record]
+  [(.topic record) (.partition record)])
 
-(defn- redeliver!
-  [^KafkaConsumer instance ^ConsumerRecord record]
-  (.seek instance (->partition record) (.offset record)))
+(defn- assigned
+  [^KafkaConsumer instance]
+  (into #{}
+        (map (fn [^TopicPartition tp] [(.topic tp) (.partition tp)]))
+        (.assignment instance)))
 
 (defn- dead-letter!
   "Forward a message that has exhausted its redeliveries. The value is sent
@@ -98,18 +99,25 @@
                   :anomaly result}))
     result))
 
-(defn- apply-ack!
-  "Applies one queued acknowledgement. Runs on the polling thread, which is
-  the only thread allowed to touch the consumer."
-  [{:keys [instance max-redeliveries dead-letter-producer]} attempts
+(defn- apply-ack
+  "Applies one queued acknowledgement to the polling thread's state. A
+  commit or a message given up on finishes its offset; a redelivery marks
+  it waiting and its partition for a seek."
+  [{:keys [max-redeliveries dead-letter-producer]} state
    {:keys [op
            ^ConsumerRecord
            record]}]
-  (let [k [(.topic record) (.partition record) (.offset record)]]
+  (let [tp (record-partition record)
+        offset (.offset record)
+        k (conj tp offset)
+        finish (fn [state]
+                 (-> state
+                     (update :attempts dissoc k)
+                     (update :offsets offsets/finished tp offset)))]
     (case op
-      :commit (do (commit! instance record) (dissoc attempts k))
+      :commit (finish state)
       :redeliver
-      (let [n (inc (get attempts k 0))]
+      (let [n (inc (get-in state [:attempts k] 0))]
         (if (>= n max-redeliveries)
           (do (log/error "Giving up on message after"
                          n
@@ -118,15 +126,45 @@
                            "attempts; committing past it")
                          {:topic (.topic record)
                           :partition (.partition record)
-                          :offset (.offset record)})
+                          :offset offset})
               (when dead-letter-producer
                 (dead-letter! dead-letter-producer record))
-              ;; Committed either way: a message that cannot be
+              ;; Finished either way: a message that cannot be
               ;; dead-lettered is still one this consumer must stop
               ;; replaying, and the log above is the record of it.
-              (commit! instance record)
-              (dissoc attempts k))
-          (do (redeliver! instance record) (assoc attempts k n)))))))
+              (finish state))
+          (-> state
+              (assoc-in [:attempts k] n)
+              (update :offsets offsets/waiting tp offset)
+              (update :seek (fnil conj #{}) tp)))))))
+
+(defn- settle!
+  "Seeks each partition a redelivery named back to its earliest waiting
+  offset, then commits every partition whose position has moved. Runs on
+  the polling thread."
+  [^KafkaConsumer instance state]
+  (let [state (update state :offsets offsets/retain (assigned instance))]
+    (doseq [tp (:seek state)]
+      (when-let [offset (offsets/earliest-waiting (:offsets state) tp)]
+        (.seek instance (->partition tp) offset)))
+    (let [positions (offsets/to-commit (:offsets state))
+          committed? (or (empty? positions)
+                         (try (.commitSync instance
+                                           (into {}
+                                                 (map (fn [[tp p]]
+                                                        [(->partition tp)
+                                                         (OffsetAndMetadata.
+                                                          (long p))]))
+                                                 positions))
+                              true
+                              ;; A rebalance can refuse a commit; the
+                              ;; positions are tried again next pass.
+                              (catch Throwable t
+                                (log/warn t "Kafka commit failed; retrying")
+                                false)))]
+      (cond-> (dissoc state :seek)
+              committed?
+              (update :offsets offsets/committed positions)))))
 
 (defn- record->message
   [schema ^ConsumerRecord record]
@@ -142,18 +180,19 @@
   [{:keys [^KafkaConsumer instance schema] :as consumer} timeout-ms]
   (let [c (async/chan)
         stop (async/chan 1)
-        ack (async/chan 100)
+        ack (async/chan 1024)
         duration (Duration/ofMillis timeout-ms)]
     (async/thread
      (try
-       (loop [attempts {}]
+       (loop [state {:attempts {} :offsets {}}]
          ;; Acks first: applying them before the next poll means a
          ;; redelivery seek takes effect immediately rather than a batch
          ;; later.
-         (let [attempts (loop [attempts attempts]
-                          (if-let [a (async/poll! ack)]
-                            (recur (apply-ack! consumer attempts a))
-                            attempts))]
+         (let [state (settle! instance
+                              (loop [state state]
+                                (if-let [a (async/poll! ack)]
+                                  (recur (apply-ack consumer state a))
+                                  state)))]
            (if (async/poll! stop)
              nil
              (let [records
@@ -173,20 +212,25 @@
                           nil))
                    ;; Race each put against stop: if the caller stopped
                    ;; reading, a plain >!! would block here forever and
-                   ;; wedge the stop signal with it.
-                   stopped? (reduce (fn [_ record]
-                                      (let [[_ port]
-                                            (async/alts!!
+                   ;; wedge the stop signal with it. Each record is counted
+                   ;; out before it goes, so its ack finds it.
+                   [stopped? state]
+                   (reduce (fn [[_ state] ^ConsumerRecord record]
+                             (let [state (update state
+                                                 :offsets
+                                                 offsets/handed-out
+                                                 (record-partition record)
+                                                 (.offset record))
+                                   [_ port] (async/alts!!
                                              [[c
-                                               (record->message schema
-                                                                record)]
+                                               (record->message schema record)]
                                               stop])]
-                                        (if (= port stop)
-                                          (reduced true)
-                                          false)))
-                                    false
-                                    (seq records))]
-               (when-not stopped? (recur attempts))))))
+                               (if (= port stop)
+                                 (reduced [true state])
+                                 [false state])))
+                           [false state]
+                           (seq records))]
+               (when-not stopped? (recur state))))))
        (finally
         (try (.close instance)
              (catch Throwable t (log/warn t "Failed to close Kafka consumer")))
@@ -196,8 +240,9 @@
     {:c c :stop stop :ack ack}))
 
 (defn acknowledge
-  "Commit `message`'s offset. Queued for the polling thread, which owns the
-  consumer. Returns nil."
+  "Mark `message` done. Queued for the polling thread, which owns the consumer
+  and commits past it once its partition has nothing earlier outstanding.
+  Returns nil."
   [{:keys [ack]} message]
   (async/put! ack {:op :commit :record message})
   nil)

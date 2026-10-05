@@ -10,8 +10,10 @@
 
 ;; `subscribe` returns a subscription, which `unsubscribe` takes to stop
 ;; that one alone. Without the argument it stops every subscription on the
-;; consumer, which is what a component shutting down wants.
+;; consumer, which is what a component shutting down wants. `opts` carries
+;; `:key-fn`, a narrower performer key than the send key.
 (defprotocol Consumer
-  (subscribe [this handler-fn])
+  (subscribe [this handler-fn]
+             [this handler-fn opts])
   (unsubscribe [this]
                [this subscription]))

@@ -59,7 +59,7 @@
   Returns: {:stop (fn [])} — call stop to unsubscribe"
   ([bus process-fn] (process bus process-fn {}))
   ([bus process-fn opts]
-   (let [{:keys [command-channel command-response-channel]
+   (let [{:keys [command-channel command-response-channel key-fn]
           :or {command-channel :command
                command-response-channel :command-response}}
          opts
@@ -97,6 +97,7 @@
                              resp
                              start-ns)
                    (response/trace-outcome resp)
-                   (message-bus/send bus command-response-channel resp)))))))]
+                   (message-bus/send bus command-response-channel resp))))))
+          {:key-fn key-fn})]
      {:stop (fn []
               (message-bus/unsubscribe bus command-channel subscription))})))

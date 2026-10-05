@@ -50,6 +50,8 @@
   - opts: optional map with keys:
     - :event-channel - keyword for receiving events
       (default :event)
+    - :key-fn - a narrower performer key than the send key, a fn
+      of the envelope; see `message-bus/subscribe`
 
   A handler-fn that throws, or returns an anomaly, leaves the
   event unacknowledged: the bus redelivers it, and dead-letters

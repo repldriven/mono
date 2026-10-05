@@ -4,6 +4,7 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
+    [com.repldriven.mono.utility.interface :as util]
     [clojure.test :refer [deftest is testing]]))
 
 (def ^:private test-message
@@ -115,3 +116,75 @@
          (Thread/sleep 200)
          (is (empty? @delivered)
              "a stopped subscriber must not keep taking messages"))))))
+
+(defn- tracking-handler
+  [ms]
+  (let [seen (atom {})
+        running (atom 0)
+        peak (atom 0)]
+    {:seen seen
+     :peak peak
+     :handler
+     (fn [data]
+       (swap! peak max (swap! running inc))
+       (Thread/sleep (long ms))
+       (swap! seen update (get data "k") (fnil conj []) (get data "seq"))
+       (swap! running dec))}))
+
+(defn- await-count
+  [seen n]
+  (let [deadline (+ (util/now) 10000)]
+    (while (and (< (reduce + (map count (vals @seen))) n)
+                (< (util/now) deadline))
+      (Thread/sleep 20))))
+
+(deftest performers-local-test
+  (with-test-system
+   [sys "classpath:message-bus/application-local-test.yml"]
+   (let [bus (system/instance sys [:message-bus :bus])
+         ks ["a" "b" "c" "d"]
+         sends (for [i (range 10) k ks] {"k" k "seq" i})]
+     (testing "messages sharing a key keep their order across performers"
+       (let [{:keys [seen peak handler]} (tracking-handler 20)]
+         (SUT/subscribe bus :keyed handler)
+         (doseq [m sends] (SUT/send bus :keyed m {:key (get m "k")}))
+         (await-count seen (count sends))
+         (is (= (zipmap ks (repeat (vec (range 10)))) @seen)
+             "each key's messages arrive in the order they were sent")
+         (is (< 1 @peak) "different keys are handled at the same time")
+         (SUT/unsubscribe bus :keyed)))
+     (testing "a performer's thread is named for its channel"
+       (let [thread-name (promise)]
+         (SUT/subscribe
+          bus
+          :keyed
+          (fn [_] (deliver thread-name (.getName (Thread/currentThread)))))
+         (SUT/send bus :keyed {"k" "a" "seq" 0} {:key "a"})
+         (is (re-matches #"keyed-performer-\d+"
+                         (str (deref thread-name 5000 ::timeout))))
+         (SUT/unsubscribe bus :keyed)))
+     (testing "messages sent without a key spread across performers"
+       (let [{:keys [seen peak handler]} (tracking-handler 20)]
+         (SUT/subscribe bus :keyed handler)
+         (doseq [m sends] (SUT/send bus :keyed m))
+         (await-count seen (count sends))
+         (is (= (count sends) (reduce + (map count (vals @seen)))))
+         (is (< 1 @peak) "unkeyed messages are handled at the same time")
+         (SUT/unsubscribe bus :keyed)))
+     (testing "a narrower key orders by itself within one send key"
+       (let [{:keys [seen peak handler]} (tracking-handler 20)]
+         (SUT/subscribe bus :keyed handler {:key-fn (fn [data] (get data "k"))})
+         (doseq [m sends] (SUT/send bus :keyed m {:key "one-tenant"}))
+         (await-count seen (count sends))
+         (is (= (zipmap ks (repeat (vec (range 10)))) @seen)
+             "each narrower key keeps its order")
+         (is (< 1 @peak)
+             "one send key's messages run concurrently by the narrower key")
+         (SUT/unsubscribe bus :keyed)))
+     (testing "one performer handles a channel one message at a time"
+       (let [{:keys [seen peak handler]} (tracking-handler 5)]
+         (SUT/subscribe bus :command handler)
+         (doseq [m sends] (SUT/send bus :command m {:key (get m "k")}))
+         (await-count seen (count sends))
+         (is (= 1 @peak))
+         (SUT/unsubscribe bus :command))))))

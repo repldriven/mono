@@ -12,7 +12,9 @@
                          (log/info "Starting event-processor:" event-channel)
                          (event/process bus
                                         #(processor/process processor %)
-                                        {:event-channel event-channel}))))
+                                        {:event-channel event-channel
+                                         :key-fn (processor/performer-key-fn
+                                                  processor)}))))
    :system/stop (fn [{:system/keys [instance]}]
                   (when-let [stop-fn (:stop instance)]
                     (log/info "Stopping event-processor")

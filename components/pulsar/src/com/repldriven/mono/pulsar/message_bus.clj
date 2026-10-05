@@ -3,7 +3,9 @@
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.message-bus.interface :as message-bus]
     [com.repldriven.mono.pulsar.core :as pulsar]
-    [clojure.core.async :as async]))
+    [clojure.core.async :as async])
+  (:import
+    (org.apache.pulsar.client.api Message)))
 
 (defrecord PulsarProducer [producer]
   message-bus/Producer
@@ -22,24 +24,30 @@
     (async/put! stop :stop)
     (reset! stop-ch nil)))
 
-(defrecord PulsarConsumer [consumer timeout stop-ch]
+(defn- delivery
+  [consumer {:keys [message data]}]
+  (let [^Message msg message]
+    {:data data
+     :key (when (.hasKey msg) (.getKey msg))
+     :ack (fn [] (pulsar/acknowledge consumer msg))
+     ;; The broker redelivers, and once maxRedeliverCount is hit
+     ;; dead-letters the poison message.
+     :nack (fn [t]
+             (log/error t "Consumer handler threw; negative-acknowledging")
+             (pulsar/negative-acknowledge consumer msg))}))
+
+(defrecord PulsarConsumer [consumer timeout stop-ch performers name]
   message-bus/Consumer
-    (subscribe [_ handler-fn]
-      (let [{:keys [c stop]} (pulsar/receive consumer timeout)]
+    (subscribe [this handler-fn] (.subscribe this handler-fn {}))
+    (subscribe [_ handler-fn opts]
+      (let [{:keys [c stop]} (pulsar/receive consumer timeout)
+            source (async/chan 1 (map (partial delivery consumer)))]
         (reset! stop-ch stop)
-        (async/go-loop []
-          (when-let [{:keys [message data]} (async/<! c)]
-            ;; A throw from handler-fn must not kill the go-loop (which
-            ;; would silently wedge the whole channel). Ack on success;
-            ;; on any throw, nack so the broker redelivers and — once
-            ;; maxRedeliverCount is hit — dead-letters the poison message.
-            (try (handler-fn data)
-                 (pulsar/acknowledge consumer message)
-                 (catch Throwable t
-                   (log/error t
-                              "Consumer handler threw; negative-acknowledging")
-                   (pulsar/negative-acknowledge consumer message)))
-            (recur)))
+        (async/pipe c source)
+        (message-bus/perform
+         source
+         handler-fn
+         {:performers performers :key-fn (:key-fn opts) :name name})
         {:stop stop}))
     (unsubscribe [_] (stop-loop stop-ch))
     ;; One broker consumer, so one subscription: stopping it by name and
