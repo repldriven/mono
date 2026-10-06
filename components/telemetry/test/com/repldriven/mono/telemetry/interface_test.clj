@@ -78,6 +78,21 @@
     (is (nil? (SUT/inc-counter! nil {})))
     (is (nil? (SUT/add-counter! nil 5 {})))))
 
+(deftest counter-on-an-instance-test
+  (testing "a counter made with :otel records on that instance's meter"
+    (with-test-system
+     [sys "classpath:telemetry/in-memory-test.yml"]
+     (let [otel (system/instance sys [:telemetry :otel-sdk])
+           c (SUT/counter {:name "test.instance.counter" :otel otel})]
+       (SUT/inc-counter! c {"reason" "a"})
+       (SUT/add-counter! c 2 {"reason" "a"})
+       (is (= 3
+              (test-telemetry/counter-value otel
+                                            "test.instance.counter"
+                                            {"reason" "a"}))))))
+  (testing "and :otel nil, as when the SDK is disabled, makes none"
+    (is (nil? (SUT/counter {:name "test.disabled.counter" :otel nil})))))
+
 (deftest degrades-without-otel-test
   (testing "span data functions are harmless outside a span"
     ;; clj-otel hands back a no-op PropagatedSpan rather than nil here, so

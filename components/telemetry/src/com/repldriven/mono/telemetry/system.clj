@@ -3,6 +3,7 @@
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system]
     [clojure.string :as string]
+    [steffan-westcott.clj-otel.api.metrics.instrument :as instrument]
     [steffan-westcott.clj-otel.api.trace.span :as span]
     [steffan-westcott.clj-otel.instrumentation.runtime-telemetry-java17 :as
      runtime-telemetry]
@@ -75,6 +76,8 @@
                                             (meter-provider metrics config))))]
                (span/set-default-tracer! (span/get-tracer {:open-telemetry
                                                            otel-sdk}))
+               (instrument/set-default-meter! (instrument/get-meter
+                                               {:open-telemetry otel-sdk}))
                (cond-> {:sdk otel-sdk :exporter exporter}
                        metrics
                        (assoc :metric-exporter metrics

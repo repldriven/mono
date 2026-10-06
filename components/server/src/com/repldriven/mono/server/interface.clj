@@ -201,11 +201,26 @@
   request. Size it from the rate the server can serve and how long a
   request may wait: what is admitted beyond that would time out anyway.
 
+  Each request turned away adds one to `counter`, with its
+  `http.request.method` and an `error.type` of `server/overloaded`,
+  since it reaches no span. The kind passes the
+  `mono.server.request.rejected` counter from `rejected-counter`.
+
   Args:
   - handler: the synchronous Ring handler to wrap.
-  - n: the most requests handled at once, a positive integer."
-  [handler n]
-  (shed/wrap-max-in-flight handler n))
+  - n: the most requests handled at once, a positive integer.
+  - counter: optional, a `telemetry/counter`; nil counts nothing."
+  ([handler n] (shed/wrap-max-in-flight handler n))
+  ([handler n counter] (shed/wrap-max-in-flight handler n counter)))
+
+(defn rejected-counter
+  "The `mono.server.request.rejected` counter, created by the meter of
+  `otel`, a `telemetry/otel-sdk` instance, or nil when `otel` is nil.
+
+  Args:
+  - otel: the telemetry instance, or nil."
+  [otel]
+  (shed/rejected-counter otel))
 
 (defn streaming-body
   "A Ring response body that holds the response open for as long as

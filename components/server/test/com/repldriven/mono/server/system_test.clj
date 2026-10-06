@@ -5,6 +5,7 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system]]
+    [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
     [reitit.http :as http]
     [reitit.ring :as ring]
     [com.repldriven.mono.json.interface :as json]
@@ -159,5 +160,35 @@
          (is (= "1" (header shed "retry-after")))
          (is (= "server/overloaded" (get (http-client/res->body shed) "type")))
          (is (= 200 (:status probe)))
+         (deliver release true)
+         (is (= 200 (:status (deref held 10000 nil)))))))))
+
+(deftest rejected-counter-test
+  (testing "a request turned away is counted, with its method"
+    (let [entered (promise)
+          release (promise)
+          handler (fn [_]
+                    (deliver entered true)
+                    (deref release 10000 nil)
+                    {:status 200 :body "ok"})]
+      (with-test-system
+       [sys
+        ["classpath:server/shed-test.yml"
+         #(assoc-in % [:system/defs :server :handler] (constantly handler))]]
+       (let [base (server/http-local-url (system/instance sys
+                                                          [:server
+                                                           :jetty-adapter]))
+             otel (system/instance sys [:telemetry :otel-sdk])
+             held (future (http-client/request {:url (str base "/slow")
+                                                :method :get}))
+             _ (deref entered 10000 nil)
+             shed (http-client/request {:url (str base "/slow") :method :post})]
+         (is (= 503 (:status shed)))
+         (is (= 1
+                (test-telemetry/counter-value otel
+                                              "mono.server.request.rejected"
+                                              {"http.request.method" "POST"
+                                               "error.type"
+                                               "server/overloaded"})))
          (deliver release true)
          (is (= 200 (:status (deref held 10000 nil)))))))))

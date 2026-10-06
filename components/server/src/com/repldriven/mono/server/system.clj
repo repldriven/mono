@@ -78,8 +78,8 @@
   {:system/start
    (fn [{:system/keys [config instance]}]
      (or instance
-         (let [{:keys [handler interceptors ready-fn options cors
-                       max-in-flight]}
+         (let [{:keys [handler interceptors ready-fn options cors max-in-flight
+                       telemetry]}
                config
                options (assoc options
                               :configurator
@@ -99,7 +99,9 @@
                server (jetty/run-jetty (cond-> (handler ctx)
                                                max-in-flight
                                                (shed/wrap-max-in-flight
-                                                max-in-flight))
+                                                max-in-flight
+                                                (shed/rejected-counter
+                                                 telemetry)))
                                        options)]
            (log/info "Jetty listening on" (server-jetty/http-local-url server))
            server)))
@@ -111,7 +113,8 @@
                    :options default-jetty-adapter-options}
    :system/config-schema [:map
                           [:handler fn?]
-                          [:max-in-flight {:optional true} pos-int?]]
+                          [:max-in-flight {:optional true} pos-int?]
+                          [:telemetry {:optional true} [:maybe map?]]]
    :system/instance-schema some?})
 
 (def http-url

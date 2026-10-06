@@ -71,7 +71,15 @@
   (core/extract-parent-context command))
 
 ;; Metrics
-(defn counter "Create or get a counter instrument." [opts] (core/counter opts))
+(defn counter
+  "Create or get a counter instrument. `opts` carries `:name`, and
+  optionally `:description`, `:unit` and `:otel`, a `telemetry/otel-sdk`
+  instance whose meter creates it. Without `:otel` the default meter
+  does, which is the started SDK's own. With `:otel` nil, as when the
+  SDK is disabled, returns nil, which `inc-counter!` and `add-counter!`
+  take as a no-op."
+  [opts]
+  (core/counter opts))
 
 (defn inc-counter!
   "Increment a counter with attributes."

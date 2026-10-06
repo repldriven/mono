@@ -151,12 +151,20 @@
     :name - Instrument name (required)
     :description - Human-readable description
     :unit - Unit of measurement
+    :otel - a `telemetry/otel-sdk` instance whose meter creates it
 
   Returns nil if OpenTelemetry is not configured, which the counter
   functions below treat as a no-op."
   [opts]
-  (try (instrument/instrument (assoc opts :instrument-type :counter))
-       (catch Exception _e nil)))
+  (let [{:keys [otel]} opts
+        sdk (:sdk otel)]
+    (when (or sdk (not (contains? opts :otel)))
+      (try (instrument/instrument
+            (cond-> (assoc (dissoc opts :otel) :instrument-type :counter)
+                    sdk
+                    (assoc :meter
+                           (instrument/get-meter {:open-telemetry sdk}))))
+           (catch Exception _e nil)))))
 
 (defn inc-counter!
   "Increment a counter with attributes.
@@ -166,8 +174,9 @@
 
   No-op if OpenTelemetry is not configured."
   [counter attrs]
-  (try (instrument/add! counter {:value 1 :attributes attrs})
-       (catch Exception _e nil)))
+  (when counter
+    (try (instrument/add! counter {:value 1 :attributes attrs})
+         (catch Exception _e nil))))
 
 (defn add-counter!
   "Add a value to a counter with attributes.
@@ -177,8 +186,9 @@
 
   No-op if OpenTelemetry is not configured."
   [counter value attrs]
-  (try (instrument/add! counter {:value value :attributes attrs})
-       (catch Exception _e nil)))
+  (when counter
+    (try (instrument/add! counter {:value value :attributes attrs})
+         (catch Exception _e nil))))
 
 (defn- traceparent-from-span-context
   [^SpanContext span-context]

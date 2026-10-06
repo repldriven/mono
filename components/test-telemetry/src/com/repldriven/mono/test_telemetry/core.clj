@@ -3,7 +3,9 @@
   (:require
     [steffan-westcott.clj-otel.api.trace.span :as span])
   (:import
-    (io.opentelemetry.sdk.testing.exporter InMemorySpanExporter)))
+    (io.opentelemetry.sdk.metrics.data LongPointData MetricData)
+    (io.opentelemetry.sdk.testing.exporter InMemoryMetricReader
+                                           InMemorySpanExporter)))
 
 (defn- in-memory-exporter
   ^InMemorySpanExporter [instance]
@@ -36,3 +38,18 @@
   [instance]
   (when (in-memory-exporter instance)
     (span/get-tracer {:open-telemetry (:sdk instance)})))
+
+(defn counter-value
+  [instance counter-name attributes]
+  (let [reader (:metric-reader instance)]
+    (when (instance? InMemoryMetricReader reader)
+      (->> (.collectAllMetrics ^InMemoryMetricReader reader)
+           (filter (fn [^MetricData m] (= counter-name (.getName m))))
+           (mapcat (fn [^MetricData m] (.getPoints (.getLongSumData m))))
+           (filter (fn [^LongPointData p]
+                     (= attributes
+                        (into {}
+                              (map (fn [[k v]] [(.getKey k) v]))
+                              (.asMap (.getAttributes p))))))
+           (map (fn [^LongPointData p] (.getValue p)))
+           (reduce + 0)))))
