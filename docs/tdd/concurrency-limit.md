@@ -9,24 +9,26 @@
 
 ## Objective
 
-A process built on these bricks bounds the work it takes on at once by a
-limit that follows the latency of what it admits: the server turns away
-a request beyond the limit, and a consumer runs no more handlers at once
-than it allows. This TDD decides the brick that holds the limit, the
-algorithm that moves it, how the server and the performers take and
-release permits, the configuration both read, the gauges that publish
-it, and how an algorithm is tested.
+A process built on these bricks bounds the work it takes on at once by
+a limit it finds by measuring: the most throughput the store behind its
+handlers gives, at the least work in flight that gives it. The server
+turns away a request beyond the limit, and a consumer runs no more
+handlers at once than it allows. One configuration serves every
+platform a workspace runs on. This TDD decides the brick that holds the
+limit, the estimator that moves it, how the server and the performers
+take and release permits, the configuration both read, the gauges that
+publish it, and how the estimator is tested.
 
 In scope: the `concurrency-limit` brick — its `interface.clj`, the
-limiter and its permits, the window, the gradient algorithm and the
-options schema; the `max-in-flight` key on
-`server/jetty-adapter` and on every consumer that has `performers`;
-`telemetry/gauge`; registration in `mono-lib`, `mono-test-lib`, the
-root `deps.edn` and the readme; and the tests.
+limiter and its permits, the window, the estimator and the options
+schema; the `max-in-flight` key on `server/jetty-adapter` and on every
+consumer that has `performers`; `telemetry/gauge`; registration in
+`mono-lib`, `mono-test-lib`, the root `deps.edn` and the readme; and
+the tests.
 
-Out of scope: adapting rather than fixing the limit, and leaving the
-number of performers alone, decided in
-[ADR-0041](../adr/0041-concurrency-adapts-to-latency-through-a-limit-not-by-resizing-performers.md);
+Out of scope: holding the limit at measured capacity rather than fixing
+it, and leaving the number of performers alone, decided in
+[ADR-0041](../adr/0041-a-dynamic-concurrency-limit-keeps-work-in-flight-at-measured-capacity.md);
 which performer a message goes to, decided in
 [ADR-0040](../adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md);
 a limit shared between processes, separate limiters per route, and
@@ -87,7 +89,7 @@ build a limiter from their own config. The files:
 - `interface.clj` — the operations below, delegating to `core.clj`.
 - `core.clj` — the limiter, permits, and taking and releasing them.
 - `window.clj` — the window of samples, as pure functions.
-- `gradient.clj` — the algorithm, a pure `step`.
+- `knee.clj` — the estimator, a pure `step`.
 - `options.clj` — the options schema, and normalising an integer or a
   map to one options map.
 
@@ -105,67 +107,77 @@ Operations:
 - `release` — `(release permit)` records the permit's latency and frees
   it; `(release permit :ignored)` frees it without recording, for a
   handler that threw.
-- `limit` and `in-flight` — the current limit, an integer, and the
-  number of permits held.
+- `limit`, `in-flight` and `capacity` — the current limit, the number
+  of permits held, and the capacity estimate in units a second, nil
+  until a window has bound.
 - `options-schema` — the Malli schema of a `max-in-flight` value, which
   the server's and the consumers' config schemas name.
 
 A limiter is an atom holding `:limit` (a double, whose floor is the
-number of permits), `:in-flight`, the open window and the algorithm's
+number of permits), `:in-flight`, the open window and the estimator's
 state, and a monitor that waiting performers wait on. `try-acquire`
-increments `:in-flight` under the limit in one `swap!`, and records the
-highest `:in-flight` the window has seen. A permit is the limiter and
-the `util/nanos` it was taken at. `release` decrements
-`:in-flight`, adds the sample to the window, closes the window and steps
-the algorithm where the window is full, all in one `swap!`, then
-notifies the monitor. `acquire` tries and waits under the monitor, so no
-release between the two is missed.
+increments `:in-flight` under the limit in one `swap!`, records the
+highest `:in-flight` the window has seen, and marks the window bound
+where it refuses. A permit is the limiter and the `util/nanos` it was
+taken at. `acquire` tries and waits under the monitor, so no release
+between the two is missed, and marks the window bound where it waits.
+`release` decrements `:in-flight`, adds the sample to the window,
+closes the window and steps the estimator where the window is full, all
+in one `swap!`, then notifies the monitor.
 
-The options map:
+The options map, every key optional, so `max-in-flight: {}` is a
+dynamic limit with defaults:
 
-- `initial` — the limit at start. Required in a map.
+- `initial` — the limit at start, default 8.
 - `min` — the lowest the limit falls, default 1.
-- `max` — the highest it rises, default 1000 on the server, and
-  `performers` on a consumer.
-- `tolerance` — how far above the floor latency may rise before the
-  limit shrinks, as a multiple of it, default 1.5: queueing may add half
-  the latency an unloaded process sees.
+- `max` — the highest it rises, and so what bounds the search, default
+  1000 on the server and `performers` on a consumer.
+- `headroom` — the limit as a multiple of the knee, default 1.5, which
+  absorbs a burst at the cost of what waits: at 1 the store holds its
+  knee and nothing waits, at 2 as much again waits.
+- `windows` — how many windows the estimates are taken over, default
+  10.
 - `window-size` and `window-ms` — a window closes once it holds
   `window-size` samples (default 10) and has been open `window-ms`
-  (default 1000), which sets how fast the limit reacts.
-- `floor-windows` — how many windows the floor is the lowest of,
-  default 60, so the floor follows a store that has become slower for
-  good within a minute.
-- `smoothing` — how much of each step's target the limit takes,
-  default 0.2.
+  (default 1000), which sets how fast the limit moves.
 
 The schema refuses `min` above `initial` or `initial` above `max`.
 
-### The algorithm
+### The estimator
 
-A limit can remove only the latency queueing adds: it cannot make a
-store faster than it is unloaded. So the algorithm measures latency
-against the floor, the latency an unloaded process sees, and never
-against a number in configuration.
+A window holds the count of samples, their summed latency, the
+`util/nanos` it opened at, the highest `:in-flight` while it was open,
+and whether it bound. Its throughput is its count over the time it was
+open. `knee/step` is `(step state window opts)`: it appends the window
+to the state's last `windows` windows and returns the state with a new
+`:limit`, clamped to `min` and `max`. From those windows:
 
-A window holds the count of samples, their summed latency and the
-highest `:in-flight` while it was open. `gradient/step` is
-`(step state window opts)`, returning the state with a new `:limit`,
-clamped to `min` and `max`. With a window's mean latency `short`:
+- `capacity` is the highest throughput among the windows that bound,
+  or none where no window bound;
+- `floor` is the lowest mean latency among all of them;
+- `knee` is `capacity × floor`, the work in flight that gives capacity
+  with nothing waiting.
 
-1. Add `short` to the state's last `floor-windows` means; the floor is
-   the lowest of them.
-2. Where the window's highest in-flight is below half the limit, keep
-   the limit.
-3. Otherwise take `gradient`, `tolerance × floor / short` clamped to
-   between 0.5 and 1.0, and `target`, `limit × gradient + √limit`.
-4. Set the limit to `limit × (1 − smoothing) + target × smoothing`.
+The state is searching or holding:
 
-While latency stays within `tolerance` of the floor the gradient is 1,
-and the limit grows by `smoothing × √limit` a window; once queueing
-pushes latency past it, the limit shrinks in proportion. It settles a little
-past `tolerance` times the floor, where the √limit headroom balances
-the shrink.
+1. **Searching**, at start and whenever no window in the last `windows`
+   bound. After a window that bound, the limit doubles, unless the
+   window's throughput is under 1.25 times the capacity before it, in
+   which case the throughput has stopped rising and the state holds. A
+   window that did not bind leaves the limit as it is.
+2. **Holding** runs a cycle of eight windows, starting at the first:
+   - one drain window, at `0.75 × knee`, so what waits drains and the
+     floor is measured unloaded;
+   - six windows at `headroom × knee`;
+   - one probe window, at `1.25 × headroom × knee`, which finds capacity
+     that has grown, since a window that delivers more raises
+     `capacity`.
+
+A window that did not bind changes no estimate, so quiet traffic never
+lowers capacity; once the last window that bound ages out of `windows`,
+the state searches again from the limit it holds. A limit that starts
+above the knee measures a floor with work waiting; each drain window
+lowers the floor towards the unloaded latency, and the limit with it.
 
 ### The server
 
@@ -182,16 +194,17 @@ returns is a sample like any other response.
 `server/jetty-adapter`'s config schema names
 `concurrency-limit/options-schema` for `max-in-flight` in place of
 `pos-int?`, so `max-in-flight: 1` in `shed-test.yml` means what it means
-now. Where `max-in-flight` is set, the adapter's start registers two
+now. Where `max-in-flight` is set, the adapter's start registers three
 gauges on its `telemetry` instance — `mono.server.request.limit` and
-`mono.server.request.active`, unit `{request}` — and its stop closes
-them before stopping Jetty.
+`mono.server.request.active`, unit `{request}`, and
+`mono.server.request.capacity`, unit `{request}/s` — and its stop
+closes them before stopping Jetty.
 
-Jetty's threads decide what `max` can mean. On platform threads, a
-`max` above `max-threads` is never reached, and a request waiting in
-Jetty's queue is neither seen nor measured. On virtual threads, Jetty
-bounds nothing and `max-in-flight` is the only bound, so `max` is set
-from what is behind the handlers, such as the store's connection pool.
+Jetty's threads decide what the limit can reach. On platform threads, a
+limit above `max-threads` is never reached, and a request waiting in
+Jetty's queue is neither seen nor measured, so a dynamic limit wants
+`virtual-threads?` or `max-threads` above `max`. On virtual threads,
+Jetty bounds nothing, and `max` bounds the search.
 
 ### The performers
 
@@ -212,82 +225,90 @@ files: `performers.clj`, `local.clj` and `system/components.clj` in
 and in `pulsar`. `mqtt` ignores `max-in-flight` as it ignores
 `performers`.
 
-`perform` registers `mono.message_bus.subscription.limit` and
-`mono.message_bus.subscription.active`, unit `{message}`, on the
-default meter, with the subscription's name — the one its performer
-threads carry — as `messaging.consumer.group.name`, and closes them
-when its performers stop.
+`perform` registers `mono.message_bus.subscription.limit`,
+`mono.message_bus.subscription.active` and
+`mono.message_bus.subscription.capacity`, units `{message}` and
+`{message}/s`, on the default meter, with the subscription's name — the
+one its performer threads carry — as `messaging.consumer.group.name`,
+and closes them when its performers stop.
 
 ### Configuring a limit
 
 `max-in-flight` takes the same shapes on the server and on a consumer:
 
 ```yaml
-# fixed: initial, min and max are all 50
-max-in-flight: 50
+# fixed: initial, min and max are all 200
+max-in-flight: 200
 
-# adaptive
-max-in-flight: {initial: 20, min: 4, max: 400}
+# dynamic, every key defaulted
+max-in-flight: {}
+
+# dynamic, starting where a fixed limit stood
+max-in-flight: {initial: 200}
 ```
 
-Set `initial` to the throughput the store sustains times its unloaded
-latency, `max` from what is behind the handlers, and `tolerance` to how
-much queueing to accept. The limit settles where
-`limit × (1 − gradient) = √limit`, a little past `tolerance` times the
-floor, and the further past it the smaller the limit, since √limit is a
-larger share of it.
+No key names a throughput or a latency. `initial` is where the search
+starts, so a fixed limit that works is a good one; `max` bounds the
+search; `headroom` trades waiting for burst room and leaves throughput
+as it is.
 
-The examples below share one store, 40 ms unloaded behind a pool of 20
-connections, so it serves at most 500 requests a second, and with more
-than 20 in flight a request takes 2 ms for each one in flight. The other
-options are their defaults, so a window closes about once a second
-under this load.
+The examples below run on virtual threads with the defaults, offered
+more than the store can serve unless they say otherwise. A store's
+capacity is the requests it serves at once times one over its unloaded
+latency, and with more than that in flight a request waits its turn.
 
-- **Overload.** Offered 1000 requests a second, with
-  `{initial: 20, min: 4, max: 400}`. At 20 in flight latency stays at
-  the 40 ms floor, the gradient is 1, and the limit grows by about 0.9
-  a window. At 30 latency is 60 ms, 1.5 times the floor, and it still
-  grows. It settles at about 36, where `limit − √limit = 30`: 20
-  requests on connections and 16 waiting for one, at 72 ms, 1.8 times
-  the floor, within about twenty windows. The server serves 500 a
-  second at 72 ms and turns the other 500 away at once with a 503.
-  Without a limit on virtual threads all 1000 are admitted, the backlog
-  grows by 500 a second, and latency by a second every second.
-- **The store slows.** Its unloaded latency doubles to 80 ms, so it
-  serves 250 a second. At 36 in flight a request takes 144 ms; against
-  the 40 ms floor the gradient is held at 0.5, and the limit falls about
-  7% a window. It levels at about 16, below the pool, at 80 ms, serving
-  200 a second of the 250 the store could. Once the 40 ms windows age
-  out of the floor, after `floor-windows`, the floor is 80 ms and the
-  limit climbs back to about 36, at 144 ms.
-- **Quiet traffic.** At 50 requests a second about two are in flight,
-  under half of 20, so the limit stays at 20. A burst is admitted 20 at
-  once, and the limit grows from there.
-- **Tolerance.** In the overload example, `tolerance: 1.2` settles at
-  about 29 in flight and 59 ms, and `tolerance: 2.0` at about 47 and
-  94 ms.
-- **Jetty's threads.** On 50 platform threads, the overload example's
-  36 fits, and so does 47 at `tolerance: 2.0`; a limit above 50 is never
-  reached, and requests waiting in Jetty's queue are not measured. On
-  virtual threads nothing else bounds the server, so `max` stays a few
-  times the pool: 400 here is never reached, but bounds what a stale
-  floor could admit.
-- **A consumer.** Sixteen performers whose handlers take 20 ms unloaded,
-  against a store that serves 4 writes at once:
+- **Replacing a fixed 200, on a larger platform.** The store serves 300
+  requests at once at 50 ms, so 6000 a second, and its knee is 300.
+  A fixed 200 serves 4000 a second at 50 ms and turns the rest away.
+  With `{initial: 200}`, the first window binds at 4000 a second, so
+  the limit doubles to 400; that window gives 6000, more than 1.25 times
+  4000, so it doubles to 800; that one gives 6000 again, so the state
+  holds. It drains at 225, then holds at 450, serving 6000 a second at
+  75 ms: half as much again as the fixed 200, for 25 ms more.
+- **The same configuration, on a smaller platform.** The store serves
+  120 at once at 50 ms, so 2400 a second, and its knee is 120. The first
+  window binds at 2400 a second with 200 in flight, at 83 ms; doubling
+  to 400 gives 2400 again, so the state holds at a knee of 200, from a
+  floor measured with 80 waiting. The first drain, at 150, measures
+  62.5 ms and brings the knee to 150; the second, at 112, measures the
+  unloaded 50 ms and brings it to 120. Within two cycles the limit holds
+  at 180, serving 2400 a second at 75 ms.
+- **A ramp.** On the larger platform, load rises from nothing to 8000 a
+  second over a minute. The limit of 200 binds as load passes 4000 a
+  second and doubles to 400 that window; once load passes 6000 work
+  waits, the limit binds again, doubles to 800, finds throughput flat,
+  and holds at 450. Requests are turned away below capacity only in the
+  window in which load crossed 200.
+- **The store slows.** On the larger platform each request slows to
+  100 ms, so the store serves 3000 a second. Capacity halves and the
+  floor doubles, so the knee stays 300 and the limit 450, serving 3000 a
+  second at 150 ms. For up to a cycle, while one estimate has aged and
+  the other has not, the limit is 225 or 900.
+- **Quiet traffic.** At 1000 a second about 50 are in flight, the limit
+  never binds, and it stays where it was. Once no window in `windows`
+  has bound, the state searches again, so a burst past the limit
+  doubles it within a window.
+- **Headroom.** On the larger platform, `headroom: 1` holds at 300 and
+  50 ms, and `headroom: 2` at 600 and 100 ms; both serve 6000 a second.
+  At 1 nothing waits, so a burst above the knee is turned away rather
+  than queued at the store.
+- **A consumer.** Sixteen performers whose handlers write to a store
+  that takes 4 writes at once at 20 ms, so 200 a second:
 
   ```yaml
   command:
     consumer: !system/local-ref consumers.command
     performers: 16
-    max-in-flight: {initial: 4}
+    max-in-flight: {}
   ```
 
-  `max` defaults to 16. The limit grows from 4 and settles at about 9,
-  where `limit − √limit = 6`: four handlers writing and five waiting on
-  the store, at 45 ms, 2.25 times the floor, since a small limit settles
-  further past `tolerance`. The other seven performers hold their next
-  delivery, their queues fill, and the backend's loop waits. Every key
-  stays with its performer.
+  The limit starts at 8 and binds at 200 a second, at 40 ms; doubling
+  to 16, which is `max`, gives 200 again, so the state holds. Its first
+  drain measures 30 ms and its second the unloaded 20 ms, so within two
+  cycles it holds at 6: four handlers writing and two waiting, at
+  30 ms. The other ten performers hold their next delivery, their queues
+  fill, and the backend's loop waits. Every key stays with its
+  performer.
 
 ### Gauges
 
@@ -311,38 +332,42 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 
 ### The first slice
 
-1. The brick: options, window, `gradient`, the limiter and its
+1. The brick: options, window, the estimator, the limiter and its
    operations, and the simulation tests. Nothing calls it yet.
 2. The server: `wrap-max-in-flight` on a limiter, the schema change, and
-   `telemetry/gauge` with the two server gauges. An integer
+   `telemetry/gauge` with the three server gauges. An integer
    `max-in-flight` behaves as it does now.
 3. The performers: `:max-in-flight` through `perform`, the three
    backends' config, and the subscription gauges.
 
 ### Tests
 
-- **`concurrency-limit`.** The algorithm and the window as pure
-  functions, folded over the latencies of a simulated workload: a
-  simulated store serving `c` requests at once at a fixed latency, and
-  queueing the rest, offered more load than it can take. The tests
-  assert, over the run's sequence of limits, that the limit always stays
-  between `min` and `max`; that it settles within a band of `c` and stays
-  there; that when the store's latency doubles mid-run the limit falls,
-  and once the floor has followed, settles again; that it does not rise
-  while the load uses less than half of it; and that an integer never
-  moves. The limiter's interface
-  test asserts that `try-acquire` refuses at the limit, that `release`
-  frees a permit, that `:ignored` leaves the window unchanged, and that
-  a waiting `acquire` returns once another permit is released.
+- **`concurrency-limit`.** The estimator and the window as pure
+  functions, folded over a simulated workload: a store serving `c`
+  units at once at an unloaded latency, waiting the rest in turn,
+  offered a load the test shapes. Over each run's sequence of limits
+  the tests assert that the limit always stays between `min` and `max`;
+  that under overload it holds at `headroom` times the store's knee and
+  throughput stays within a few percent of capacity; that a ramp is
+  turned away below capacity only in the windows in which it crossed
+  the limit; that when every request slows the limit stays; that
+  capacity raised mid-run is found by the probe windows; that a limit
+  starting above the knee settles at it within a few cycles; that quiet
+  traffic moves nothing; and that an integer never moves. The limiter's
+  interface test asserts that `try-acquire` refuses at the limit and
+  marks the window bound, that `release` frees a permit, that
+  `:ignored` leaves the window unchanged, and that a waiting `acquire`
+  returns once another permit is released.
 - **`server`.** The existing `max-in-flight-test` holds with
-  `max-in-flight: 1`. A new test starts the adapter with an options map
-  and a handler whose latency the test sets, and asserts that the
-  limit falls when that latency rises, that the gauges read the limit,
-  and that a probe is never turned away.
+  `max-in-flight: 1`. A new test starts the adapter with
+  `max-in-flight: {}` and a handler that serves a set number at once at
+  a set latency, offers it more, and asserts that the limit rises past
+  `initial` and holds near `headroom` times the knee, that the gauges
+  read the limit and capacity, and that a probe is never turned away.
 - **`message-bus`.** The local backend's performers test binds a channel
   with four performers and `max-in-flight: 2`, and asserts that no more
   than two handlers run at once, that each key's order holds, and that
-  a handler that throws leaves the limit as it was.
+  a handler that throws moves no estimate.
 - **`kafka` and `pulsar`.** Each backend's performers test adds
   `max-in-flight` to its consumer and asserts each key's order and that
   the committed or acknowledged position reaches the end, as without a
@@ -356,18 +381,21 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 - **Resizing a consumer's performers.** Rejected: changing their number
   moves keys between performers while earlier messages wait in the old
   queue, as ADR-0041 says.
-- **Wrapping Netflix's concurrency-limits.** Rejected: the limiter and
-  one algorithm are smaller than the wrapper brick ADR-0011 would ask
-  for. Its gradient algorithm is taken in part: the clamp, the headroom
-  and the smoothing.
-- **A long-run average as the baseline**, as that gradient algorithm
-  uses. Rejected: under sustained overload the average absorbs the
-  queueing it should detect, so what `tolerance` allows creeps upward.
-- **AIMD on a latency budget.** Rejected: a limit removes only queueing,
-  so where a store's unloaded latency exceeds the budget the limit falls
-  to `min` and turns away load it cannot speed up; and backing off on a
-  window's slowest sample moves the limit on one outlier. A latency
-  budget belongs to the client's timeout and to alerting.
+- **The gradient algorithm of Netflix's concurrency-limits.** Rejected:
+  it moves the limit by latency against a tolerance, so it settles past
+  the knee with work waiting, and grows by a fraction of √limit a
+  window, so a ramp outruns it. Taken in part: the window of samples
+  and the clamp.
+- **AIMD on a latency budget.** Rejected: where a store's unloaded
+  latency exceeds the budget the limit falls to `min` and turns away
+  load it cannot speed up, and the budget is a number for each
+  platform.
+- **Leaving the search on a rise in latency.** Rejected: telling a rise
+  from noise needs a threshold, which is a number for each platform; a
+  plateau in throughput is the knee itself.
+- **Pacing, as BBR paces packets.** Rejected: the limiter bounds what is
+  in flight and turns the rest away, and spacing requests out would
+  queue them in front of the handler.
 - **A `Semaphore` resized as the limit moves.** Rejected: `Semaphore`
   shrinks only through a protected method, and a limit held in the same
   `swap!` as the window and the in-flight count keeps the three
@@ -384,31 +412,35 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 
 ## Known Limitations
 
+- **The drain costs throughput.** One window in eight runs at
+  three-quarters of the knee, about three percent of throughput
+  overall.
+- **The search overshoots.** It finds throughput flat only after
+  doubling past the knee, so for a window the store has up to twice the
+  knee in flight.
+- **The estimates age apart.** Capacity and floor come from the same
+  windows but not the same window, so for up to a cycle after the store
+  changes the limit is too low or too high.
 - **One limiter per server.** Every route shares the server's limiter,
-  so a route slow by nature lowers the limit for all of them. Separate
-  limiters per route or per class of request are not designed.
-- **Per process.** Each process adapts on its own and shares nothing
-  with the others; they agree only through the latency they all see.
+  so a route slow by nature moves the estimates for all of them.
+  Separate limiters per route or per class of request are not designed.
+- **Per process.** Each process estimates on its own and shares nothing
+  with the others; they agree only through what the store gives each.
 - **Fast failures are not seen.** A handler that throws is `:ignored`,
-  so contention that shows as a quick conflict rather than a slow write
-  does not lower the limit.
+  so contention that shows as a quick conflict moves no estimate.
 - **Jetty's queue is not seen.** On platform threads, a request waits
   in Jetty's unbounded queue before the limiter sees it, so neither its
-  wait nor its count reaches the limit. Bounding that queue is Jetty's
-  configuration, not this design's.
-- **The floor follows slowly.** A store that has become slower for good
-  is read as queueing until the faster windows age out of the floor,
-  and the limit sits low meanwhile.
+  wait nor its count reaches the estimates.
 - **Streamed bodies are not limited.** A body written after the handler
   returns, such as an SSE stream, holds no permit, as now.
-- **Defaults are untested in production.** The tunables' defaults are
-  chosen against the simulation; no deployment has measured them.
+- **Defaults are untested in production.** The constants and defaults
+  are chosen against the simulation; no platform has measured them.
 
 ## References
 
-- [ADR-0041](../adr/0041-concurrency-adapts-to-latency-through-a-limit-not-by-resizing-performers.md)
-  — Concurrency adapts to latency through a limit, the decision this
-  design serves.
+- [ADR-0041](../adr/0041-a-dynamic-concurrency-limit-keeps-work-in-flight-at-measured-capacity.md)
+  — A dynamic concurrency limit keeps work in flight at measured
+  capacity, the decision this design serves.
 - [message-bus](message-bus.md) — the performers, the queues and the
   dispatcher the consumer's limit sits inside.
 - [ADR-0040](../adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md)
@@ -417,14 +449,17 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 - [ADR-0005](../adr/0005-error-handling-with-anomalies.md) — Error
   handling with anomalies, for `limiter`'s rejection.
 - [ADR-0011](../adr/0011-one-component-per-third-party-library.md) —
-  One component per third-party library, why the algorithm is written
+  One component per third-party library, why the estimator is written
   rather than wrapped.
 - [system-configurations](../recipes/code/system-configurations.md) —
-  the YAML `max-in-flight` is read from, and `!keyword`.
+  the YAML `max-in-flight` is read from.
 - [test-system](../recipes/test/test-system.md) — `with-test-system`,
   which the server and bus tests drive.
+- [BBR: Congestion-Based Congestion Control](https://queue.acm.org/detail.cfm?id=3022184)
+  — the estimate of bottleneck bandwidth and round-trip time, the
+  search, and the probe and drain cycle this design adapts.
 - [Netflix concurrency-limits](https://github.com/Netflix/concurrency-limits)
-  — the gradient algorithm this design adapts.
+  — the gradient algorithm considered and rejected.
 - [Little's law](https://en.wikipedia.org/wiki/Little%27s_law) — the
-  relation between throughput, latency and work in flight that a limit
-  searches for.
+  relation between throughput, latency and work in flight that puts the
+  knee at capacity times unloaded latency.
