@@ -51,7 +51,7 @@ functions returning values or anomalies.
 </p>
 
 ```text
-  components: 38   facade: 2   abstraction: 4   curated: 22   own: 10
+  components: 39   facade: 2   abstraction: 4   curated: 22   own: 11
 
   kind: f = facade   a = abstraction   c = curated   - = no library
 
@@ -59,6 +59,7 @@ functions returning values or anomalies.
   -----------------------------------------------------------------------------------------------------------
   system
     cli                  --c   tools.cli                   CLI argument validation and exit handling
+    concurrency-limit    ---   -                           A limit on work in flight, found by measuring capacity
     env                  --c   aero, clj-yaml              Configuration loading with :dev/:test/:prod profiles
     error                --c   nom                         Anomaly-based error handling, and its combinators
     log                  --c   tools.logging, logback      Structured logging
@@ -129,7 +130,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.57' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.58' \
   :name com.acme/my-thing
 ```
 
@@ -153,7 +154,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.57"
+         :git/tag "v0.0.58"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -161,7 +162,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.57"
+           :git/tag "v0.0.58"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```

@@ -51,6 +51,8 @@
   {:local/root "../../components/command-processor"}
   com.repldriven.mono.components/command-schema
   {:local/root "../../components/command-schema"}
+  com.repldriven.mono.components/concurrency-limit
+  {:local/root "../../components/concurrency-limit"}
   com.repldriven.mono.components/encryption
   {:local/root "../../components/encryption"}
   com.repldriven.mono.components/env

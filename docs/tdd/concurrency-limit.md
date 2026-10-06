@@ -1,11 +1,13 @@
 # Concurrency limit
 
-> **Status: proposal.** Nothing of the `concurrency-limit` brick exists.
-> What the design changes — `server`'s `wrap-max-in-flight` and its
-> `max-in-flight` key, `message-bus`'s performers and each consumer's
-> `performers` key, `telemetry`'s counter — exists and is named as such
-> in Background. Everything under Proposed Solution is the build list,
-> and "The first slice" says what comes first.
+> **Status: proposal.** The first slice is built: the
+> `concurrency-limit` brick, its estimator and its simulation tests
+> exist, and nothing calls them yet. What the rest of the design
+> changes — `server`'s `wrap-max-in-flight` and its `max-in-flight`
+> key, `message-bus`'s performers and each consumer's `performers` key,
+> `telemetry`'s counter — exists and is named as such in Background.
+> Everything else under Proposed Solution is the build list, and "The
+> first slice" says what comes next.
 
 ## Objective
 
@@ -128,7 +130,7 @@ in one `swap!`, then notifies the monitor.
 The options map, every key optional, so `max-in-flight: {}` is a
 dynamic limit with defaults:
 
-- `initial` — the limit at start, default 8.
+- `initial` — the limit at start, default 8, or `max` where lower.
 - `min` — the lowest the limit falls, default 1.
 - `max` — the highest it rises, and so what bounds the search, default
   1000 on the server and `performers` on a consumer.
@@ -141,7 +143,9 @@ dynamic limit with defaults:
   `window-size` samples (default 10) and has been open `window-ms`
   (default 1000), which sets how fast the limit moves.
 
-The schema refuses `min` above `initial` or `initial` above `max`.
+The schema refuses `min` above `initial`, `initial` above `max`, and
+`headroom` below 1. A `window-ms` of 0 closes a window on its count
+alone.
 
 ### The estimator
 
@@ -282,8 +286,9 @@ latency, and with more than that in flight a request waits its turn.
 - **The store slows.** On the larger platform each request slows to
   100 ms, so the store serves 3000 a second. Capacity halves and the
   floor doubles, so the knee stays 300 and the limit 450, serving 3000 a
-  second at 150 ms. For up to a cycle, while one estimate has aged and
-  the other has not, the limit is 225 or 900.
+  second at 150 ms. For a few windows, while the old windows age out,
+  capacity is still the old one and the floor is the old held latency,
+  so the limit is 675 before it settles at 450 within a cycle.
 - **Quiet traffic.** At 1000 a second about 50 are in flight, the limit
   never binds, and it stays where it was. Once no window in `windows`
   has bound, the state searches again, so a burst past the limit
@@ -332,8 +337,8 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 
 ### The first slice
 
-1. The brick: options, window, the estimator, the limiter and its
-   operations, and the simulation tests. Nothing calls it yet.
+1. Built: the brick — options, window, the estimator, the limiter and
+   its operations, and the simulation tests. Nothing calls it yet.
 2. The server: `wrap-max-in-flight` on a limiter, the schema change, and
    `telemetry/gauge` with the three server gauges. An integer
    `max-in-flight` behaves as it does now.
