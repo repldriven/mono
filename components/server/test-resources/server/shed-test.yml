@@ -1,0 +1,15 @@
+system:
+  telemetry:
+    otel-sdk: !system/component
+      system/component-kind: test-telemetry/otel-sdk
+      service-name: server-shed-test
+  server:
+    handler: !system/required-component
+    interceptors: !system/component
+      system/component-kind: server/interceptors
+    jetty-adapter: !system/component
+      system/component-kind: server/jetty-adapter
+      handler: !system/local-ref handler
+      interceptors: !system/local-ref interceptors
+      max-in-flight: 1
+      telemetry: !system/ref telemetry.otel-sdk
