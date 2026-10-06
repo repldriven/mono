@@ -2,13 +2,17 @@
 
 (def ^:private nanos-per-ms 1000000)
 
-(defn open [now] {:opened now :count 0 :latency 0 :bound? false})
+(defn open
+  [now]
+  {:opened now :count 0 :latency 0 :timed 0 :bound? false})
 
 (defn sample
-  [window latency]
-  (-> window
-      (update :count inc)
-      (update :latency + latency)))
+  [window started now]
+  (let [{:keys [opened]} window]
+    (cond-> (update window :count inc)
+            (>= started opened)
+            (-> (update :latency + (- now started))
+                (update :timed inc)))))
 
 (defn bound [window] (assoc window :bound? true))
 
@@ -20,7 +24,7 @@
 
 (defn close
   [window now]
-  (let [{:keys [opened latency bound?] n :count} window]
+  (let [{:keys [opened latency timed bound?] n :count} window]
     {:throughput (/ (double n) (max 1 (- now opened)))
-     :latency (/ (double latency) n)
+     :latency (when (pos? timed) (/ (double latency) timed))
      :bound? bound?}))

@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.server.jetty
   (:import
-    (org.eclipse.jetty.server Server ServerConnector)))
+    (org.eclipse.jetty.server Server ServerConnector)
+    (org.eclipse.jetty.util.component LifeCycle$Listener)))
 
 (defn http-local-url
   "Get the local HTTP URL from a Jetty Server instance.
@@ -26,3 +27,11 @@
           :when (and (instance? ServerConnector connector)
                      (zero? (.getPort ^ServerConnector connector)))]
     (.setReuseAddress ^ServerConnector connector false)))
+
+(defn on-stop!
+  "Call `f` once `server` has stopped."
+  [^Server server f]
+  (.addEventListener server
+                     (reify
+                      LifeCycle$Listener
+                        (lifeCycleStopped [_ _event] (f)))))

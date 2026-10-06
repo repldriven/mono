@@ -2,8 +2,12 @@
   (:require
     [com.repldriven.mono.server.jetty :as server-jetty]
     [com.repldriven.mono.server.shed :as shed]
+
+    [com.repldriven.mono.concurrency-limit.interface :as concurrency-limit]
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.system.interface :as system]
+
     [ring.adapter.jetty9 :as jetty])
   (:import
     (java.nio ByteBuffer)
@@ -74,37 +78,53 @@
 
 (def default-jetty-adapter-options {:join? false :port 0})
 
+(defn- limiter-or-throw
+  [max-in-flight]
+  (let [limiter (concurrency-limit/limiter max-in-flight)]
+    (when (error/anomaly? limiter)
+      ;; nosemgrep: no-raw-throw
+      (throw (ex-info "Invalid max-in-flight for the jetty adapter"
+                      {:max-in-flight max-in-flight :anomaly limiter})))
+    limiter))
+
 (def jetty-adapter
   {:system/start
    (fn [{:system/keys [config instance]}]
-     (or instance
-         (let [{:keys [handler interceptors ready-fn options cors max-in-flight
-                       telemetry]}
-               config
-               options (assoc options
-                              :configurator
-                              (fn [^Server server]
-                                (server-jetty/exclusive-ephemeral-ports! server)
-                                (.setErrorHandler server (json-error-handler))))
-               ready-thunk (cond (fn? ready-fn)
-                                 ready-fn
+     (or
+      instance
+      (let [{:keys [handler interceptors ready-fn options cors max-in-flight
+                    telemetry]}
+            config
+            limiter (some-> max-in-flight
+                            limiter-or-throw)
+            gauges (when limiter (shed/gauges limiter telemetry))
+            options (assoc options
+                           :configurator
+                           (fn [^Server server]
+                             (server-jetty/exclusive-ephemeral-ports! server)
+                             (server-jetty/on-stop!
+                              server
+                              (fn [] (shed/close-gauges gauges)))
+                             (.setErrorHandler server (json-error-handler))))
+            ready-thunk (cond (fn? ready-fn)
+                              ready-fn
 
-                                 (instance? clojure.lang.IDeref ready-fn)
-                                 (fn [] @ready-fn)
+                              (instance? clojure.lang.IDeref ready-fn)
+                              (fn [] @ready-fn)
 
-                                 :else
-                                 (constantly true))
-               ctx {:interceptors interceptors :ready-fn ready-thunk :cors cors}
-               _ (log/info "Starting jetty adapter")
-               server (jetty/run-jetty (cond-> (handler ctx)
-                                               max-in-flight
-                                               (shed/wrap-max-in-flight
-                                                max-in-flight
-                                                (shed/rejected-counter
-                                                 telemetry)))
-                                       options)]
-           (log/info "Jetty listening on" (server-jetty/http-local-url server))
-           server)))
+                              :else
+                              (constantly true))
+            ctx {:interceptors interceptors :ready-fn ready-thunk :cors cors}
+            _ (log/info "Starting jetty adapter")
+            server (jetty/run-jetty (cond-> (handler ctx)
+                                            limiter
+                                            (shed/wrap-limiter
+                                             limiter
+                                             (shed/rejected-counter
+                                              telemetry)))
+                                    options)]
+        (log/info "Jetty listening on" (server-jetty/http-local-url server))
+        server)))
    :system/stop (fn [{:system/keys [^Server instance]}]
                   (when (some? instance) (.stop instance)))
    :system/config {:handler system/required-component
@@ -113,7 +133,8 @@
                    :options default-jetty-adapter-options}
    :system/config-schema [:map
                           [:handler fn?]
-                          [:max-in-flight {:optional true} pos-int?]
+                          [:max-in-flight {:optional true}
+                           concurrency-limit/options-schema]
                           [:telemetry {:optional true} [:maybe map?]]]
    :system/instance-schema some?})
 

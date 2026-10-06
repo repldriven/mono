@@ -29,8 +29,8 @@
 (defn floor
   [history]
   (some->> history
+           (keep :latency)
            seq
-           (map :latency)
            (apply min)))
 
 (defn- hold-limit
@@ -80,17 +80,18 @@
         before (capacity (:history state))
         history (vec (take-last windows (conj (:history state) window)))
         state (assoc state :history history)
-        cap (capacity history)]
+        cap (capacity history)
+        flr (floor history)]
     (clamp (cond
-            (nil? cap)
+            (or (nil? cap) (nil? flr))
             (assoc state :mode :search)
 
             (= :search (:mode state))
             (let [state (search state window before)]
               (cond-> state
                       (= :hold (:mode state))
-                      (hold (* cap (floor history)) headroom)))
+                      (hold (* cap flr) headroom)))
 
             :else
-            (hold state (* cap (floor history)) headroom))
+            (hold state (* cap flr) headroom))
            opts)))

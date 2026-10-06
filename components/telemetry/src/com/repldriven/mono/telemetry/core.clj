@@ -190,6 +190,40 @@
     (try (instrument/add! counter {:value value :attributes attrs})
          (catch Exception _e nil))))
 
+(defn- measurements
+  [observed]
+  (cond
+   (number? observed)
+   {:value (double observed)}
+
+   (nil? observed)
+   nil
+
+   :else
+   (map (fn [m] (update m :value double)) observed)))
+
+(defn gauge
+  [opts]
+  (let [{:keys [otel observe]} opts
+        sdk (:sdk otel)]
+    (when (or sdk (not (contains? opts :otel)))
+      (try (instrument/instrument
+            (cond-> (-> opts
+                        (dissoc :otel :observe)
+                        (assoc :instrument-type :gauge
+                               :measurement-type :double))
+                    sdk
+                    (assoc :meter
+                           (instrument/get-meter {:open-telemetry sdk})))
+            (fn [] (measurements (observe))))
+           (catch Exception _e nil)))))
+
+(defn close-instrument
+  [instrument]
+  (when instrument
+    (try (.close ^java.lang.AutoCloseable instrument)
+         (catch Exception _e nil))))
+
 (defn- traceparent-from-span-context
   [^SpanContext span-context]
   (when (.isValid span-context)

@@ -15,20 +15,21 @@
     (long (Math/floor (double (:limit estimator))))))
 
 (defn- admit
-  [state]
-  (if (< (:in-flight state) (permits state))
-    (update state :in-flight inc)
-    (update state :window window/bound)))
+  [state now]
+  (let [state (update state :window (fn [w] (or w (window/open now))))]
+    (if (< (:in-flight state) (permits state))
+      (update state :in-flight inc)
+      (update state :window window/bound))))
 
 (defn- settle
-  [state latency now opts]
+  [state started now opts]
   (let [state (update state :in-flight dec)
-        w (cond-> (:window state)
-                  latency
-                  (window/sample latency))]
+        w (cond-> (or (:window state) (window/open now))
+                  started
+                  (window/sample started now))]
     (if (window/full? w now opts)
       (-> state
-          (assoc :window (window/open now))
+          (assoc :window (when (pos? (:in-flight state)) (window/open now)))
           (update :estimator knee/step (window/close w now) opts))
       (assoc state :window w))))
 
@@ -37,13 +38,11 @@
   (error/let-nom> [opts (options/normalise opts)]
     {:opts opts
      :monitor (Object.)
-     :state (atom {:in-flight 0
-                   :window (window/open (util/nanos))
-                   :estimator (knee/init opts)})}))
+     :state (atom {:in-flight 0 :window nil :estimator (knee/init opts)})}))
 
 (defn try-acquire
   [limiter]
-  (let [[before after] (swap-vals! (:state limiter) admit)]
+  (let [[before after] (swap-vals! (:state limiter) admit (util/nanos))]
     (when (> (:in-flight after) (:in-flight before))
       {:limiter limiter :started (util/nanos)})))
 
@@ -67,7 +66,7 @@
          {:keys [opts state]} limiter
          ^Object monitor (:monitor limiter)
          now (util/nanos)]
-     (swap! state settle (when (= :success outcome) (- now started)) now opts)
+     (swap! state settle (when (= :success outcome) started) now opts)
      (locking monitor (.notifyAll monitor))
      nil)))
 

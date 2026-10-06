@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.server.system-test
   (:require
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.http-client.interface :as http-client]
     [com.repldriven.mono.server.interface :as server]
     [com.repldriven.mono.system.interface :as system]
@@ -12,6 +13,7 @@
     [clojure.string :as str]
     [clojure.test :refer [deftest is testing]])
   (:import
+    (java.util.concurrent Semaphore)
     (org.eclipse.jetty.server Server ServerConnector)))
 
 (deftest server-test
@@ -192,3 +194,91 @@
                                                "server/overloaded"})))
          (deliver release true)
          (is (= 200 (:status (deref held 10000 nil)))))))))
+
+(deftest invalid-max-in-flight-test
+  (testing "options the limiter refuses come back as its rejection"
+    (let [result (server/wrap-max-in-flight (constantly {:status 200})
+                                            {:min 10 :initial 5})]
+      (is (= :concurrency-limit/invalid-options (error/kind result))))))
+
+(def ^:private store-concurrency 4)
+
+(def ^:private store-latency-ms 20)
+
+(defn- store-handler
+  [^Semaphore store]
+  (fn [req]
+    (if (str/starts-with? (:uri req) "/actuator/")
+      {:status 200 :body "UP"}
+      (do (.acquire store)
+          (try (Thread/sleep (long store-latency-ms))
+               (finally (.release store)))
+          {:status 200 :body "ok"}))))
+
+(defn- gauge
+  [otel gauge-name]
+  (test-telemetry/gauge-value otel gauge-name {}))
+
+(def ^:private overload-clients 64)
+
+(def ^:private poll-ms 50)
+
+(defn- median
+  [xs]
+  (let [sorted (vec (sort (remove nil? xs)))]
+    (when (seq sorted) (nth sorted (quot (count sorted) 2)))))
+
+(defn- await-capacity
+  [otel]
+  (loop [tries 200]
+    (let [capacity (gauge otel "mono.server.request.capacity")]
+      (if (or (zero? tries) (and capacity (>= capacity 100)))
+        capacity
+        (do (Thread/sleep (long poll-ms)) (recur (dec tries)))))))
+
+(defn- sample-limit
+  [otel n]
+  (vec (repeatedly n
+                   (fn []
+                     (Thread/sleep (long poll-ms))
+                     (gauge otel "mono.server.request.limit")))))
+
+(deftest dynamic-max-in-flight-test
+  (testing "a dynamic limit finds a saturated store's knee and publishes it"
+    (with-test-system
+     [sys
+      ["classpath:server/shed-test.yml"
+       #(-> %
+            (assoc-in [:system/defs :server :handler]
+                      (constantly (store-handler (Semaphore.
+                                                  (int store-concurrency)))))
+            (assoc-in [:system/defs :server :jetty-adapter :system/config
+                       :max-in-flight]
+                      {:initial 2 :window-size 10 :window-ms 100}))]]
+     (let [base (server/http-local-url (system/instance sys
+                                                        [:server
+                                                         :jetty-adapter]))
+           otel (system/instance sys [:telemetry :otel-sdk])
+           stop (promise)
+           clients (doall (repeatedly overload-clients
+                                      (fn []
+                                        (future (while (not (realized? stop))
+                                                  (http-client/request
+                                                   {:url (str base "/work")
+                                                    :method :get}))))))
+           capacity (await-capacity otel)
+           limits (sample-limit otel 60)
+           probe (http-client/request {:url (str base
+                                                 "/actuator/health/liveness")
+                                       :method :get})]
+       (deliver stop true)
+       (run! deref clients)
+       (testing "capacity reads near the store's 200 a second"
+         (is (some? capacity))
+         (is (<= 100 capacity 260)))
+       (testing "the limit rises past initial and holds near the knee of 4"
+         (is (every? some? limits))
+         (is (<= 4 (median limits) 8))
+         (is (every? (fn [limit] (<= 2 limit 12)) (remove nil? limits))))
+       (testing "a probe is answered under load"
+         (is (= 200 (:status probe))))))))

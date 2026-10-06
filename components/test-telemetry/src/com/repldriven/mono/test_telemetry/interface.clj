@@ -56,6 +56,17 @@
   [instance counter-name attributes]
   (core/counter-value instance counter-name attributes))
 
+(defn gauge-value
+  "The value an in-memory telemetry instance's own meter observes now on
+  the gauge named `gauge-name` under exactly `attributes`, a map of
+  attribute name strings to values. Only a gauge created with this
+  instance as its `:otel` records here.
+
+  Takes the `test-telemetry/otel-sdk` system instance. Returns nil when
+  nothing is observed, or for any other telemetry instance."
+  [instance gauge-name attributes]
+  (core/gauge-value instance gauge-name attributes))
+
 (defmacro with-span-tests
   "Run body with the hub held as the default SDK, then automatically
   assert:

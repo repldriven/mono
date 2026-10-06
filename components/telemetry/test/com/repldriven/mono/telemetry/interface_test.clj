@@ -93,6 +93,31 @@
   (testing "and :otel nil, as when the SDK is disabled, makes none"
     (is (nil? (SUT/counter {:name "test.disabled.counter" :otel nil})))))
 
+(deftest gauge-on-an-instance-test
+  (testing "a gauge made with :otel is observed on that instance's meter"
+    (with-test-system
+     [sys "classpath:telemetry/in-memory-test.yml"]
+     (let [otel (system/instance sys [:telemetry :otel-sdk])
+           value (atom 3)
+           g (SUT/gauge
+              {:name "test.instance.gauge" :otel otel :observe (fn [] @value)})]
+       (is (= 3.0 (test-telemetry/gauge-value otel "test.instance.gauge" {})))
+       (reset! value 5)
+       (is (= 5.0 (test-telemetry/gauge-value otel "test.instance.gauge" {})))
+       (SUT/close-instrument g)
+       (is (nil? (test-telemetry/gauge-value otel "test.instance.gauge" {}))))))
+  (testing "observing nil records nothing"
+    (with-test-system
+     [sys "classpath:telemetry/in-memory-test.yml"]
+     (let [otel (system/instance sys [:telemetry :otel-sdk])]
+       (SUT/gauge {:name "test.nil.gauge" :otel otel :observe (constantly nil)})
+       (is (nil? (test-telemetry/gauge-value otel "test.nil.gauge" {}))))))
+  (testing "and :otel nil makes none, which close-instrument takes"
+    (is (nil? (SUT/gauge {:name "test.disabled.gauge"
+                          :otel nil
+                          :observe (constantly 1)})))
+    (is (nil? (SUT/close-instrument nil)))))
+
 (deftest degrades-without-otel-test
   (testing "span data functions are harmless outside a span"
     ;; clj-otel hands back a no-op PropagatedSpan rather than nil here, so

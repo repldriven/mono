@@ -1,10 +1,10 @@
 (ns com.repldriven.mono.server.shed
   (:require
+    [com.repldriven.mono.concurrency-limit.interface :as concurrency-limit]
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.telemetry.interface :as telemetry]
 
-    [clojure.string :as str])
-  (:import
-    (java.util.concurrent Semaphore)))
+    [clojure.string :as str]))
 
 (def ^:private retry-after-s 1)
 
@@ -32,23 +32,30 @@
           name
           str/upper-case))
 
-(defn wrap-max-in-flight
-  ([handler n] (wrap-max-in-flight handler n nil))
-  ([handler n counter]
-   (let [permits (Semaphore. (int n))]
-     (fn [request]
-       (cond
-        (health? request)
-        (handler request)
-
-        (.tryAcquire permits)
-        (try (handler request) (finally (.release permits)))
-
-        :else
+(defn wrap-limiter
+  [handler limiter counter]
+  (fn [request]
+    (if (health? request)
+      (handler request)
+      (if-some [permit (concurrency-limit/try-acquire limiter)]
+        (let [returned (volatile! false)]
+          (try (let [response (handler request)]
+                 (vreset! returned true)
+                 response)
+               (finally (concurrency-limit/release permit
+                                                   (if @returned
+                                                     :success
+                                                     :ignored)))))
         (do (telemetry/inc-counter! counter
                                     {"http.request.method" (method request)
                                      "error.type" "server/overloaded"})
-            overloaded))))))
+            overloaded)))))
+
+(defn wrap-max-in-flight
+  ([handler max-in-flight] (wrap-max-in-flight handler max-in-flight nil))
+  ([handler max-in-flight counter]
+   (error/let-nom> [limiter (concurrency-limit/limiter max-in-flight)]
+     (wrap-limiter handler limiter counter))))
 
 (defn rejected-counter
   [otel]
@@ -57,3 +64,29 @@
                       "Requests turned away before any route handled them"
                       :unit "{request}"
                       :otel otel}))
+
+(def ^:private gauges-of
+  [["mono.server.request.limit"
+    "Requests the server admits at once"
+    "{request}"
+    concurrency-limit/limit]
+   ["mono.server.request.active"
+    "Requests the server is handling"
+    "{request}"
+    concurrency-limit/in-flight]
+   ["mono.server.request.capacity"
+    "Requests a second the server has measured it serves"
+    "{request}/s"
+    concurrency-limit/capacity]])
+
+(defn gauges
+  [limiter otel]
+  (mapv (fn [[gauge-name description unit observe]]
+          (telemetry/gauge {:name gauge-name
+                            :description description
+                            :unit unit
+                            :otel otel
+                            :observe (fn [] (observe limiter))}))
+        gauges-of))
+
+(defn close-gauges [gauges] (run! telemetry/close-instrument gauges))

@@ -91,6 +91,23 @@
   [counter value attrs]
   (core/add-counter! counter value attrs))
 
+(defn gauge
+  "Register an observable gauge. `opts` carries `:name` and `:observe`, a
+  0-arity function the SDK calls at each collection, and optionally
+  `:description`, `:unit` and `:otel` as `counter` takes them.
+  `:observe` returns a number, a sequence of `{:value :attributes}`, or
+  nil to record nothing. Returns the instrument, which
+  `close-instrument` closes, or nil with `:otel` nil, as when the SDK is
+  disabled."
+  [opts]
+  (core/gauge opts))
+
+(defn close-instrument
+  "Close an instrument `gauge` returned, so its `:observe` is no longer
+  called. Takes nil as a no-op."
+  [instrument]
+  (core/close-instrument instrument))
+
 ;; Interceptors
 (def trace-span
   "Vector of interceptors that add OpenTelemetry server span support to

@@ -3,7 +3,10 @@
   (:require
     [steffan-westcott.clj-otel.api.trace.span :as span])
   (:import
-    (io.opentelemetry.sdk.metrics.data LongPointData MetricData)
+    (io.opentelemetry.sdk.metrics.data DoublePointData
+                                       LongPointData
+                                       MetricData
+                                       PointData)
     (io.opentelemetry.sdk.testing.exporter InMemoryMetricReader
                                            InMemorySpanExporter)))
 
@@ -39,17 +42,34 @@
   (when (in-memory-exporter instance)
     (span/get-tracer {:open-telemetry (:sdk instance)})))
 
-(defn counter-value
-  [instance counter-name attributes]
+(defn- attributes-of
+  [^PointData point]
+  (into {}
+        (map (fn [[k v]] [(.getKey k) v]))
+        (.asMap (.getAttributes point))))
+
+(defn- points
+  [instance metric-name data-points]
   (let [reader (:metric-reader instance)]
     (when (instance? InMemoryMetricReader reader)
       (->> (.collectAllMetrics ^InMemoryMetricReader reader)
-           (filter (fn [^MetricData m] (= counter-name (.getName m))))
-           (mapcat (fn [^MetricData m] (.getPoints (.getLongSumData m))))
-           (filter (fn [^LongPointData p]
-                     (= attributes
-                        (into {}
-                              (map (fn [[k v]] [(.getKey k) v]))
-                              (.asMap (.getAttributes p))))))
+           (filter (fn [^MetricData m] (= metric-name (.getName m))))
+           (mapcat data-points)))))
+
+(defn counter-value
+  [instance counter-name attributes]
+  (some->> (points instance
+                   counter-name
+                   (fn [^MetricData m] (.getPoints (.getLongSumData m))))
+           (filter (fn [p] (= attributes (attributes-of p))))
            (map (fn [^LongPointData p] (.getValue p)))
-           (reduce + 0)))))
+           (reduce + 0)))
+
+(defn gauge-value
+  [instance gauge-name attributes]
+  (some->> (points instance
+                   gauge-name
+                   (fn [^MetricData m] (.getPoints (.getDoubleGaugeData m))))
+           (filter (fn [p] (= attributes (attributes-of p))))
+           (map (fn [^DoublePointData p] (.getValue p)))
+           last))
