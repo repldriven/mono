@@ -1,11 +1,12 @@
 # Concurrency limit
 
-> **Status: proposal.** Nothing of the `concurrency-limit` brick exists.
-> What the design changes — `server`'s `wrap-max-in-flight` and its
-> `max-in-flight` key, `message-bus`'s performers and each consumer's
-> `performers` key, `telemetry`'s counter — exists and is named as such
-> in Background. Everything under Proposed Solution is the build list,
-> and "The first slice" says what comes first.
+> **Status: proposal.** The first two slices are built: the
+> `concurrency-limit` brick, its estimator and its simulation tests;
+> the server's `max-in-flight` on a limiter, with its gauges; and
+> `telemetry/gauge`. What the last slice changes — `message-bus`'s
+> performers and each consumer's `performers` key — exists and is named
+> as such in Background. Everything else under Proposed Solution is the
+> build list, and "The first slice" says what comes next.
 
 ## Objective
 
@@ -37,16 +38,14 @@ scaling processes, which are Known Limitations rather than design goals.
 ## Background
 
 - **The server's limit.** `server/wrap-max-in-flight`, in `shed.clj`,
-  holds a `java.util.concurrent.Semaphore` of `n` permits. A request
-  that gets one runs the handler and releases it in a `finally`; one
-  that does not is answered at once with a 503, `Retry-After: 1` and a
-  `server/overloaded` problem body, and adds one to the
-  `mono.server.request.rejected` counter from `shed/rejected-counter`. A
-  request under `/actuator/` is never turned away.
-  `server/jetty-adapter`, in `system.clj`, wraps the whole handler when
-  its config sets `max-in-flight`, a `pos-int?` in its config schema.
-  The permit is released when the handler returns, so a body written
-  after it, such as an SSE stream, holds none.
+  answers a request beyond its limit at once with a 503,
+  `Retry-After: 1` and a `server/overloaded` problem body, and adds one
+  to the `mono.server.request.rejected` counter from
+  `shed/rejected-counter`. A request under `/actuator/` is never turned
+  away. `server/jetty-adapter`, in `system.clj`, wraps the whole handler
+  when its config sets `max-in-flight`. The permit is released when the
+  handler returns, so a body written after it, such as an SSE stream,
+  holds none.
 - **Jetty's threads.** `server/jetty-adapter` starts Jetty through
   `ring-jetty9-adapter`'s `run-jetty`, which builds a `QueuedThreadPool`
   of `max-threads` platform threads, 50 unless the adapter's `options`
@@ -116,19 +115,24 @@ Operations:
 A limiter is an atom holding `:limit` (a double, whose floor is the
 number of permits), `:in-flight`, the open window and the estimator's
 state, and a monitor that waiting performers wait on. `try-acquire`
-increments `:in-flight` under the limit in one `swap!`, records the
-highest `:in-flight` the window has seen, and marks the window bound
-where it refuses. A permit is the limiter and the `util/nanos` it was
-taken at. `acquire` tries and waits under the monitor, so no release
-between the two is missed, and marks the window bound where it waits.
+opens a window where none is open, increments `:in-flight` under the
+limit in one `swap!`, and marks the window bound where it refuses. A
+permit is the limiter and the `util/nanos` it was taken at. `acquire`
+tries and waits under the monitor, so no release between the two is
+missed, and marks the window bound where it waits.
 `release` decrements `:in-flight`, adds the sample to the window,
 closes the window and steps the estimator where the window is full, all
-in one `swap!`, then notifies the monitor.
+in one `swap!`, then notifies the monitor. A closed window is followed
+at once by the next while anything is in flight, so throughput is
+measured without gaps, and by none until the next admission when
+nothing is, so an idle spell is not counted. A thread interrupted while
+it waits in `acquire` gets an anomaly of category
+`:concurrency-limit/acquire`, with its interrupt status set again.
 
 The options map, every key optional, so `max-in-flight: {}` is a
 dynamic limit with defaults:
 
-- `initial` — the limit at start, default 8.
+- `initial` — the limit at start, default 8, or `max` where lower.
 - `min` — the lowest the limit falls, default 1.
 - `max` — the highest it rises, and so what bounds the search, default
   1000 on the server and `performers` on a consumer.
@@ -141,20 +145,26 @@ dynamic limit with defaults:
   `window-size` samples (default 10) and has been open `window-ms`
   (default 1000), which sets how fast the limit moves.
 
-The schema refuses `min` above `initial` or `initial` above `max`.
+The schema refuses `min` above `initial`, `initial` above `max`, and
+`headroom` below 1. A `window-ms` of 0 closes a window on its count
+alone.
 
 ### The estimator
 
-A window holds the count of samples, their summed latency, the
-`util/nanos` it opened at, the highest `:in-flight` while it was open,
-and whether it bound. Its throughput is its count over the time it was
-open. `knee/step` is `(step state window opts)`: it appends the window
-to the state's last `windows` windows and returns the state with a new
-`:limit`, clamped to `min` and `max`. From those windows:
+A window holds the `util/nanos` it opened at, the count of samples
+released while it was open, the summed latency of those admitted while
+it was open, and whether it bound. Its throughput is its count over the
+time it was open, and its latency is the mean of the samples it
+admitted: a sample admitted earlier waited behind the earlier limit, so
+a drain window measures only what it admitted after the queue it
+inherited had cleared. `knee/step` is `(step state window opts)`: it
+appends the window to the state's last `windows` windows and returns
+the state with a new `:limit`, clamped to `min` and `max`. From those
+windows:
 
 - `capacity` is the highest throughput among the windows that bound,
   or none where no window bound;
-- `floor` is the lowest mean latency among all of them;
+- `floor` is the lowest mean latency among those that timed a sample;
 - `knee` is `capacity × floor`, the work in flight that gives capacity
   with nothing waiting.
 
@@ -194,11 +204,13 @@ returns is a sample like any other response.
 `server/jetty-adapter`'s config schema names
 `concurrency-limit/options-schema` for `max-in-flight` in place of
 `pos-int?`, so `max-in-flight: 1` in `shed-test.yml` means what it means
-now. Where `max-in-flight` is set, the adapter's start registers three
+now, and options the limiter refuses stop the adapter from starting.
+Where `max-in-flight` is set, the adapter's start registers three
 gauges on its `telemetry` instance — `mono.server.request.limit` and
 `mono.server.request.active`, unit `{request}`, and
-`mono.server.request.capacity`, unit `{request}/s` — and its stop
-closes them before stopping Jetty.
+`mono.server.request.capacity`, unit `{request}/s` — and closes them
+when Jetty stops, through a listener `jetty.clj`'s `on-stop!` adds, so
+the adapter's instance stays the Jetty `Server`.
 
 Jetty's threads decide what the limit can reach. On platform threads, a
 limit above `max-threads` is never reached, and a request waiting in
@@ -282,8 +294,9 @@ latency, and with more than that in flight a request waits its turn.
 - **The store slows.** On the larger platform each request slows to
   100 ms, so the store serves 3000 a second. Capacity halves and the
   floor doubles, so the knee stays 300 and the limit 450, serving 3000 a
-  second at 150 ms. For up to a cycle, while one estimate has aged and
-  the other has not, the limit is 225 or 900.
+  second at 150 ms. For a few windows, while the old windows age out,
+  capacity is still the old one and the floor is the old held latency,
+  so the limit is 675 before it settles at 450 within a cycle.
 - **Quiet traffic.** At 1000 a second about 50 are in flight, the limit
   never binds, and it stays where it was. Once no window in `windows`
   has bound, the state searches again, so a burst past the limit
@@ -318,8 +331,10 @@ latency, and with more than that in flight a request waits its turn.
 callback calls `:observe` and records what it returns, a number or a
 sequence of `{:value :attributes}`. It returns the instrument, or nil
 where `:otel` is nil. `telemetry/close-instrument` closes it, and takes
-nil as a no-op. Both live in `telemetry`'s `core.clj`, behind
-`try-nom`.
+nil as a no-op. Both live in `telemetry`'s `core.clj` and, as `counter`
+does, return nil where the SDK refuses them. `test-telemetry/gauge-value`
+reads a gauge back off an in-memory instance, as `counter-value` reads
+a counter.
 
 ### Registration
 
@@ -332,11 +347,11 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 
 ### The first slice
 
-1. The brick: options, window, the estimator, the limiter and its
-   operations, and the simulation tests. Nothing calls it yet.
-2. The server: `wrap-max-in-flight` on a limiter, the schema change, and
-   `telemetry/gauge` with the three server gauges. An integer
-   `max-in-flight` behaves as it does now.
+1. Built: the brick — options, window, the estimator, the limiter and
+   its operations, and the simulation tests. Nothing calls it yet.
+2. Built: the server — `wrap-max-in-flight` on a limiter, the schema
+   change, and `telemetry/gauge` with the three server gauges. An
+   integer `max-in-flight` behaves as it did.
 3. The performers: `:max-in-flight` through `perform`, the three
    backends' config, and the subscription gauges.
 
@@ -418,6 +433,13 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 - **The search overshoots.** It finds throughput flat only after
   doubling past the knee, so for a window the store has up to twice the
   knee in flight.
+- **A limit above what is offered learns nothing.** A window in which
+  the limit did not bind moves no estimate, so where the search has
+  doubled past the knee and less is then offered than the limit, the
+  limit stays: nothing is turned away and work waits at the store.
+  Throughput is still capacity; latency is not the knee's. A closed loop
+  of fewer clients than the limit, such as a load test with few virtual
+  users, does this.
 - **The estimates age apart.** Capacity and floor come from the same
   windows but not the same window, so for up to a cycle after the store
   changes the limit is too low or too high.

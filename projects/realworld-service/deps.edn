@@ -8,6 +8,8 @@
         components/command {:local/root "../../components/command"}
         components/command-processor {:local/root
                                       "../../components/command-processor"}
+        components/concurrency-limit {:local/root
+                                      "../../components/concurrency-limit"}
         components/env {:local/root "../../components/env"}
         components/error {:local/root "../../components/error"}
         components/identity-provider {:local/root

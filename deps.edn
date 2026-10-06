@@ -8,6 +8,7 @@
     components/command {:local/root "components/command"}
     components/command-processor {:local/root "components/command-processor"}
     components/command-schema {:local/root "components/command-schema"}
+    components/concurrency-limit {:local/root "components/concurrency-limit"}
     components/encryption {:local/root "components/encryption"}
     components/env {:local/root "components/env"}
     components/error {:local/root "components/error"}
@@ -57,6 +58,7 @@
                        "components/cli/test"
                        "components/command/test"
                        "components/command/test-resources"
+                       "components/concurrency-limit/test"
                        "components/encryption/test"
                        "components/env/test"
                        "components/env/test-resources"
