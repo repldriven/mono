@@ -8,8 +8,30 @@
     [steffan-westcott.clj-otel.api.otel :as otel]
     [steffan-westcott.clj-otel.context :as context])
   (:import
-    (io.opentelemetry.api.trace Span)
+    (io.opentelemetry.api.trace Span SpanContext)
     (io.opentelemetry.context.propagation TextMapGetter)))
+
+(defn span-opts
+  [name-and-attrs source]
+  (cond (map? name-and-attrs)
+        (update name-and-attrs :source (fn [s] (merge source s)))
+
+        (vector? name-and-attrs)
+        (let [[span-name attrs] name-and-attrs]
+          {:name span-name :attributes attrs :source source})
+
+        :else
+        {:name name-and-attrs :source source}))
+
+(defn in-span
+  [opts f]
+  (let [ctx (span/new-span!' opts)]
+    (try (context/with-context! ctx (f))
+         (catch Throwable e
+           (span/add-exception! e {:context ctx})
+           ;; nosemgrep: no-raw-throw — the caller's exception, recorded
+           (throw e))
+         (finally (span/end-span! {:context ctx})))))
 
 ;; Degrading gracefully means the body runs exactly once whatever OpenTelemetry
 ;; does, and that the caller's own exceptions reach the caller unchanged. A
@@ -28,31 +50,34 @@
   still runs, exactly once. An exception from the body is the
   caller's and propagates."
   [name-and-attrs & body]
-  `(let [started?# (volatile! false)
-         finished?# (volatile! false)
-         result# (volatile! nil)]
-     (try (span/with-span! ~name-and-attrs
-                           (vreset! started?# true)
-                           (let [r# (do ~@body)]
-                             (vreset! finished?# true)
-                             (vreset! result# r#)
-                             r#))
-          (catch Exception e#
-            (cond
-             ;; span creation failed, so the body never ran: run it now
-             (not @started?#)
-             (do ~@body)
+  (let [{:keys [line column]} (meta &form)
+        source {:file *file* :line line :col column}]
+    `(let [started?# (volatile! false)
+           finished?# (volatile! false)
+           result# (volatile! nil)]
+       (try (in-span (span-opts ~name-and-attrs ~source)
+                     (fn []
+                       (vreset! started?# true)
+                       (let [r# (do ~@body)]
+                         (vreset! finished?# true)
+                         (vreset! result# r#)
+                         r#)))
+            (catch Exception e#
+              (cond
+               ;; span creation failed, so the body never ran: run it now
+               (not @started?#)
+               (do ~@body)
 
-             ;; the body finished and only closing the span failed:
-             ;; telemetry must not lose a result the caller already
-             ;; computed
-             @finished?#
-             @result#
+               ;; the body finished and only closing the span failed:
+               ;; telemetry must not lose a result the caller already
+               ;; computed
+               @finished?#
+               @result#
 
-             ;; the body itself threw: that is the caller's exception
-             :else
-             ;; nosemgrep: no-raw-throw — the caller's exception
-             (throw e#))))))
+               ;; the body itself threw: that is the caller's exception
+               :else
+               ;; nosemgrep: no-raw-throw — the caller's exception
+               (throw e#)))))))
 
 (defn with-span-parent
   "Create a span with an explicit parent context.
@@ -69,13 +94,16 @@
   (let [started? (volatile! false)
         finished? (volatile! false)
         result (volatile! nil)]
-    (try (span/with-span!
-          {:name name :parent parent-ctx :span-kind :consumer :attributes attrs}
-          (vreset! started? true)
-          (let [r (f)]
-            (vreset! finished? true)
-            (vreset! result r)
-            r))
+    (try (in-span {:name name
+                   :parent parent-ctx
+                   :span-kind :consumer
+                   :attributes attrs}
+                  (fn []
+                    (vreset! started? true)
+                    (let [r (f)]
+                      (vreset! finished? true)
+                      (vreset! result r)
+                      r)))
          (catch Exception e
            ;; See the note on with-span: f runs once, and its own failures
            ;; belong to the caller.
@@ -153,7 +181,7 @@
        (catch Exception _e nil)))
 
 (defn- traceparent-from-span-context
-  [span-context]
+  [^SpanContext span-context]
   (when (.isValid span-context)
     (format "00-%s-%s-%02x"
             (.getTraceId span-context)
