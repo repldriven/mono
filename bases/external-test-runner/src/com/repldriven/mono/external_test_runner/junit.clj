@@ -5,8 +5,11 @@
   - time attribute on <testsuite> elements (fixes NaN in CI reports)
   - strips a workspace prefix from suite/classname attributes"
   (:require
-    [clojure.stacktrace :as stack]
+    [com.repldriven.mono.utility.interface :as util]
+
     [eftest.report :refer [*context*]]
+
+    [clojure.stacktrace :as stack]
     [clojure.test :as test]))
 
 (set! *warn-on-reflection* true)
@@ -83,13 +86,12 @@
 (defmethod report :begin-test-ns
   [m]
   (let [ns-str (name (ns-name (:ns m)))
-        start-time (System/nanoTime)
+        start-time (util/nanos)
         f #(test/with-test-out
-            (start-element 'testsuite
-                           {:name (trim-ns ns-str)
-                            :time (format "%.03f"
-                                          (/ (- (System/nanoTime) start-time)
-                                             1e9))}))]
+            (start-element
+             'testsuite
+             {:name (trim-ns ns-str)
+              :time (format "%.03f" (/ (- (util/nanos) start-time) 1e9))}))]
     (swap! *context* assoc-in [::deferred-report ns-str] f)))
 
 (defmethod report :end-test-ns
@@ -102,7 +104,7 @@
 
 (defmethod report :begin-test-var
   [m]
-  (swap! *context* assoc-in [::test-start-times (:var m)] (System/nanoTime)))
+  (swap! *context* assoc-in [::test-start-times (:var m)] (util/nanos)))
 
 (defmethod report :end-test-var
   [m]
@@ -111,7 +113,7 @@
                    :ns
                    ns-name
                    name)
-        duration (- (System/nanoTime)
+        duration (- (util/nanos)
                     (get-in @*context* [::test-start-times (:var m)]))
         testing-vars test/*testing-vars*
         f #(test/with-test-out

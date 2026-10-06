@@ -4,7 +4,8 @@
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.message-bus.interface :as message-bus]
-    [com.repldriven.mono.telemetry.interface :as telemetry]))
+    [com.repldriven.mono.telemetry.interface :as telemetry]
+    [com.repldriven.mono.utility.interface :as util]))
 
 (defn- log-line
   "One-line dispatch trace, mirroring the server's request-log
@@ -19,7 +20,7 @@
   the underlying library's cause text — exactly what we need to
   diagnose things like unique-index violations or schema mismatches."
   [channel command result resp start-ns]
-  (let [ms (/ (- (System/nanoTime) start-ns) 1e6)
+  (let [ms (/ (- (util/nanos) start-ns) 1e6)
         {:keys [status]} resp]
     (log/info
      (if (error/anomaly? result)
@@ -69,7 +70,7 @@
           command-channel
           (fn [data]
             (let [parent-ctx (telemetry/extract-parent-context data)
-                  start-ns (System/nanoTime)]
+                  start-ns (util/nanos)]
               (telemetry/with-span-parent
                "process-command"
                parent-ctx

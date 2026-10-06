@@ -4,6 +4,8 @@
 
 (defn now ^long [] (System/currentTimeMillis))
 
+(defn nanos ^long [] (System/nanoTime))
+
 (defn now-rfc3339 ^String [] (str (Instant/now)))
 
 (defn today

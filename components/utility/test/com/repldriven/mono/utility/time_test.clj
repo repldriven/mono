@@ -9,3 +9,7 @@
     (is (= "1970-01-01" (SUT/epoch-day->iso-date 0))))
   (testing "round-trips with today"
     (is (string? (SUT/epoch-day->iso-date (SUT/today))))))
+
+(deftest nanos-test
+  (testing "a later reading is never earlier than a former one"
+    (let [a (SUT/nanos) b (SUT/nanos)] (is (<= a b)))))

@@ -157,6 +157,14 @@
 
 (def
   ^{:doc
+    "Current reading of the JVM's monotonic clock in nanoseconds (long).
+  Only the difference between two readings means anything: use to
+  measure a duration, never as a time of day."}
+  nanos
+  util.time/nanos)
+
+(def
+  ^{:doc
     "Current UTC calendar day as an epoch-day (long), derived from
   `now`. Use to compare against persisted epoch-day fields like a
   product version's effective window."}

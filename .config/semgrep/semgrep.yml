@@ -35,11 +35,12 @@ rules:
       brick, the one permitted caller of the JDK. Use `utility/uuidv7` or
       `utility/generate-id` for identifiers, `utility/now` for epoch
       millis, `utility/now-rfc3339` for an RFC-3339 string,
-      `utility/today` for an epoch-day. Calling the JDK directly puts a
-      second, untestable clock in the system. If a raw call is genuinely
-      required, mark it on the line above with
+      `utility/today` for an epoch-day, `utility/nanos` to measure a
+      duration. Calling the JDK directly puts a second, untestable clock in
+      the system. If a raw call is genuinely required, mark it on the line
+      above with
       `;; nosemgrep: no-raw-time-id — <reason>`.
-    pattern-regex: '\((?:random-uuid|(?:java\.util\.)?UUID/randomUUID|(?:java\.time\.)?Instant/now|System/currentTimeMillis)\)'
+    pattern-regex: '\((?:random-uuid|(?:java\.util\.)?UUID/randomUUID|(?:java\.time\.)?Instant/now|System/currentTimeMillis|System/nanoTime)\)'
     paths:
       include:
         - "*.clj"

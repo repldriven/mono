@@ -45,9 +45,10 @@ See [ADR-0006](../../../docs/adr/0006-kebab-case-keyword-keys.md).
 
 ## IDs and timestamps come from `utility`
 
-`util/uuidv7` for IDs, `util/now` for timestamps and `util/now-rfc3339`
-for RFC 3339 strings. Never `random-uuid`, `UUID/randomUUID`,
-`Instant/now`, or `System/currentTimeMillis` outside
+`util/uuidv7` for IDs, `util/now` for timestamps, `util/now-rfc3339`
+for RFC 3339 strings and `util/nanos` to measure a duration. Never
+`random-uuid`, `UUID/randomUUID`, `Instant/now`,
+`System/currentTimeMillis` or `System/nanoTime` outside
 `components/utility/` — that brick is the only place those primitives
 are called, and the `no-raw-time-id` semgrep rule blocks them anywhere
 else. For any non-`clojure.core` helper, check `utility` first, then a
