@@ -119,7 +119,22 @@
                     (concat (repeat 20 [larger 1000])
                             (overload larger 8000 2)))]
       (is (every? (fn [limit] (close-to? 200 limit)) (take 21 (limits runs))))
-      (is (close-to? 400 (last (limits runs)))))))
+      (is (close-to? 400 (last (limits runs))))))
+  (testing "a search after a quiet spell starts from initial where lower"
+    (let [runs (run {:initial 400}
+                    (concat (overload smaller 8000 40)
+                            (repeat 10 [smaller 1000])
+                            (overload smaller 8000 2)))
+          [held restarted doubled] (take-last 3 (limits runs))]
+      (is (< held 400))
+      (is (close-to? 400 restarted))
+      (is (close-to? 800 doubled))))
+  (testing "a search after a quiet spell starts from the limit where higher"
+    (let [runs (run {:initial 200}
+                    (concat (overload larger 8000 40)
+                            (repeat 10 [larger 1000])
+                            (overload larger 8000 1)))]
+      (is (< 200 (last (limits runs)))))))
 
 (deftest bounds-test
   (testing "the limit never leaves min and max"

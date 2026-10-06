@@ -83,7 +83,12 @@
         cap (capacity history)
         flr (floor history)]
     (clamp (cond
-            (or (nil? cap) (nil? flr))
+            (nil? cap)
+            (-> state
+                (assoc :mode :search)
+                (update :limit max (double (:initial opts))))
+
+            (nil? flr)
             (assoc state :mode :search)
 
             (= :search (:mode state))

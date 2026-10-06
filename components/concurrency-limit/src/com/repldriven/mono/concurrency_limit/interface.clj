@@ -22,7 +22,8 @@
   the option at fault.
 
   An integer `n` is a fixed limit of `n`. A map's options:
-  - initial: the limit at start, default 8, or `max` where lower.
+  - initial: the limit at start, and the least a search after a quiet
+    spell starts from, default 8, or `max` where lower.
   - min: the lowest the limit falls, default 1.
   - max: the highest it rises, which bounds the search, default 1000.
   - headroom: the limit as a multiple of the knee, at least 1,
