@@ -7,12 +7,14 @@
     [com.repldriven.mono.cache.core :as core]))
 
 (defn create
-  "Return an atom wrapping a TTL cache.
+  "Return an atom wrapping a TTL cache, holding at most `max-entries`
+  when given, the oldest going first.
 
   Args:
-  - ttl-ms: entry expiry in milliseconds."
-  [ttl-ms]
-  (core/create ttl-ms))
+  - ttl-ms: entry expiry in milliseconds.
+  - max-entries: optional bound on the number of entries."
+  ([ttl-ms] (core/create ttl-ms))
+  ([ttl-ms max-entries] (core/create ttl-ms max-entries)))
 
 (defn lookup
   "Return the cached value for `k`, or call `miss-fn`, cache its

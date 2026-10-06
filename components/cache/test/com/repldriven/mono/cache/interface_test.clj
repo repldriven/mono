@@ -32,3 +32,17 @@
       (SUT/evict c :k)
       (SUT/lookup c :k miss-fn)
       (is (= 2 @call-count)))))
+
+(deftest max-entries-test
+  (testing "holds at most max-entries, the oldest going first"
+    (let [c (SUT/create 60000 2)
+          call-count (atom 0)
+          miss-fn (fn [] (swap! call-count inc) "value")]
+      (SUT/lookup c :a miss-fn)
+      (SUT/lookup c :b miss-fn)
+      (SUT/lookup c :c miss-fn)
+      (SUT/lookup c :b miss-fn)
+      (SUT/lookup c :c miss-fn)
+      (is (= 3 @call-count) ":b and :c are still held")
+      (SUT/lookup c :a miss-fn)
+      (is (= 4 @call-count) ":a went when :c came"))))

@@ -24,6 +24,11 @@
     `:base-url` is an internal Service URL. Names the realm as Keycloak
     itself sees it: `<public-hostname>/realms/<realm>`. Defaults to
     `<base-url>/realms/<realm>`.
+  - `:verified-token-ttl-ms` — optional. How long a token whose
+    signature and issuer were verified is kept, never past its `exp`.
+    Defaults to a minute; zero verifies every token afresh.
+  - `:verified-token-max-entries` — optional. How many verified tokens
+    are kept at once. Defaults to ten thousand.
 
     It governs both directions. Inbound, it is the iss claim the token
     verifier expects. Outbound, it is the audience a `private_key_jwt`
@@ -49,7 +54,9 @@
      [:realm string?]
      [:admin-client-id string?]
      [:admin-client-secret {:optional true} [:maybe string?]]
-     [:admin-client-private-key-file {:optional true} [:maybe string?]]]
+     [:admin-client-private-key-file {:optional true} [:maybe string?]]
+     [:verified-token-ttl-ms {:optional true} [:maybe nat-int?]]
+     [:verified-token-max-entries {:optional true} [:maybe nat-int?]]]
     [:fn
      {:error/message
       (str "one of :admin-client-secret or :admin-client-private-key-file"
