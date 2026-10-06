@@ -66,6 +66,10 @@ so open those in full before non-trivial work on their topic.
   [ADR-0004](docs/adr/0004-avro-for-message-payloads.md),
   [ADR-0040](docs/adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md)
   and [message-bus.md](docs/tdd/message-bus.md).
+- **Concurrency limits** — `max-in-flight` on the server and on every
+  consumer, found by measuring capacity rather than configured.
+  See [ADR-0041](docs/adr/0041-a-dynamic-concurrency-limit-keeps-work-in-flight-at-measured-capacity.md)
+  and [concurrency-limit.md](docs/tdd/concurrency-limit.md).
 - **Code generation** — the prep-lib convention, for a workspace that
   needs it; no brick here generates code.
   See [ADR-0010](docs/adr/0010-code-generation-via-prep-lib.md).

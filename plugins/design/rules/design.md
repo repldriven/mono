@@ -40,6 +40,32 @@ acknowledged. The channels backend carries the send key to its
 subscribers.
 See [ADR-0040](../../../docs/adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md).
 
+## A concurrency limit keeps work in flight at measured capacity
+
+Bound the work a process takes on with `max-in-flight`, one key with
+one shape on the server's jetty adapter and on every consumer, through
+the `concurrency-limit` brick: an integer is a fixed limit, a map of
+`initial`, `min`, `max`, `headroom` and `windows`, each defaulted, is a
+dynamic one, and an absent key sets none. Never configure a throughput
+or a latency: estimate capacity as the highest throughput of the last
+`windows` windows in which the limit bound, and the floor as their
+lowest latency. Without an estimate, double the limit after each window
+in which it bound until doubling raises throughput by less than a
+quarter; with one, hold it at `headroom` times capacity times floor,
+probing a quarter above that knee for one window in eight and draining
+to three-quarters of it for another. Leave the estimate as it is after
+a window in which the limit did not bind, and search again once none of
+the last `windows` did. Keep the limit between `min` and `max`; on a
+consumer `max` defaults to, and never exceeds, `performers`, and
+`performers` stays fixed, so which performer a key goes to never
+changes. Count a handler that throws in neither throughput nor latency.
+Turn away a request beyond the server's limit rather than queue it, and
+have a performer wait for a permit, holding its delivery. Publish each
+limiter's limit, in-flight count and capacity as gauges, beside the
+server's count of requests turned away, and test the estimator as a
+pure function against a simulated workload.
+See [ADR-0041](../../../docs/adr/0041-a-dynamic-concurrency-limit-keeps-work-in-flight-at-measured-capacity.md).
+
 ## Messaging payloads are Avro
 
 Command and event payloads on the message bus are Avro, via Lancaster.
