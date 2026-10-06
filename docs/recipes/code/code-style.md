@@ -249,7 +249,9 @@ Use `util/now` from the `utility` brick — not
 APIs directly. `util/now` returns epoch milliseconds and is the single
 canonical clock seam, which keeps tests mockable and behaviour
 consistent across the codebase. For RFC 3339 strings, use
-`util/now-rfc3339`.
+`util/now-rfc3339`. To measure a duration, take the difference of two
+`util/nanos` readings, the monotonic clock, never of two `util/now`
+readings, which move when the wall clock is set.
 
 ```clojure
 (:require [com.repldriven.mono.utility.interface :as util])
@@ -257,10 +259,12 @@ consistent across the codebase. For RFC 3339 strings, use
 ;; OK
 (util/now)
 (util/now-rfc3339)
+(- (util/nanos) started)
 
 ;; Not OK
 (System/currentTimeMillis)
 (java.time.Instant/now)
+(- (System/nanoTime) started)
 ```
 
 The `no-raw-time-id` semgrep rule in the pre-commit hook blocks the raw
@@ -321,7 +325,7 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
   other namespaces from the same component.
 - Use `util/uuidv7` for new IDs.
 - Use `util/now` for current-time reads (and `util/now-rfc3339` for
-  RFC 3339 strings).
+  RFC 3339 strings), and `util/nanos` to measure a duration.
 - Anonymous functions use `(fn [x] ...)`.
 - Destructure one level at a time in `let`.
 - Keep a `let` binding's value on the same line as its name, and any
@@ -342,12 +346,12 @@ as `jdbc/with-transaction`, gets a hook under `.clj-kondo/hooks/`.
 - Use `random-uuid` or `UUID/randomUUID` for new IDs anywhere outside
   `components/utility/` — that brick is `util/uuidv7`'s one permitted
   caller of the raw primitive.
-- Use `(System/currentTimeMillis)`, `(Instant/now)`, or other platform
-  clock APIs directly anywhere outside `components/utility/` — that
-  brick is `util/now`'s one permitted caller of the raw primitive. Go
-  through `util/now` everywhere else. The `no-raw-time-id` semgrep
-  rule in the pre-commit hook blocks the raw ID and clock primitives
-  outside that brick.
+- Use `(System/currentTimeMillis)`, `(Instant/now)`, `(System/nanoTime)`
+  or other platform clock APIs directly anywhere outside
+  `components/utility/` — that brick is the one permitted caller of the
+  raw primitives. Go through `util/now` and `util/nanos` everywhere
+  else. The `no-raw-time-id` semgrep rule in the pre-commit hook blocks
+  the raw ID and clock primitives outside that brick.
 - Repeat the brick name in function names within that brick
   (`process-command` in `command`, `send-message` in `message-bus`,
   and so on).
@@ -393,10 +397,11 @@ stable and makes each level a single-line decision.
 The UUIDv7 rule is performance and ordering: time-ordered IDs give any
 sorted store better locality and chronological sort for free.
 
-The `util/now` rule is about having a single clock seam. Reaching for
-`System/currentTimeMillis` or `Instant/now` directly scatters the
-platform dependency through the codebase and makes time-based behaviour
-harder to mock in tests. One wrapper, one place to swap.
+The `util/now` and `util/nanos` rule is about having a single clock
+seam. Reaching for `System/currentTimeMillis`, `Instant/now` or
+`System/nanoTime` directly scatters the platform dependency through
+the codebase and makes time-based behaviour harder to mock in tests.
+One wrapper, one place to swap.
 
 ## References
 

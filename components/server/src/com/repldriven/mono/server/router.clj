@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.server.router
   (:require
     [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.utility.interface :as util]
 
     [malli.error :as me]
     [muuntaja.core :as m]
@@ -85,11 +86,11 @@
 
 (def ^:private request-log
   {:name ::request-log
-   :enter (fn [ctx] (assoc-in ctx [:request ::start-ns] (System/nanoTime)))
+   :enter (fn [ctx] (assoc-in ctx [:request ::start-ns] (util/nanos)))
    :leave (fn [ctx]
             (let [{:keys [request-method uri ::start-ns]} (:request ctx)
                   status (get-in ctx [:response :status])
-                  ms (when start-ns (/ (- (System/nanoTime) start-ns) 1e6))]
+                  ms (when start-ns (/ (- (util/nanos) start-ns) 1e6))]
               (log/info (str (.toUpperCase (name request-method))
                              " "
                              uri

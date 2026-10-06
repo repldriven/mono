@@ -8,6 +8,7 @@
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer [with-test-system]]
     [com.repldriven.mono.test-telemetry.interface :as test-telemetry]
+    [com.repldriven.mono.utility.interface :as util]
 
     [clojure.test :refer [deftest is testing]])
   (:import
@@ -114,9 +115,9 @@
   "How long `send` waited before it gave up on a reply that never came,
   in milliseconds, and the anomaly it gave up with."
   [send]
-  (let [started (System/nanoTime)
+  (let [started (util/nanos)
         result (send)]
-    [(quot (- (System/nanoTime) started) 1000000) result]))
+    [(quot (- (util/nanos) started) 1000000) result]))
 
 (deftest timeout-default-test
   (with-test-system
