@@ -71,7 +71,8 @@
     (is (= "abc" (SUT/header->token "Token abc" SUT/default-schemes)))
     (is (= "abc" (SUT/header->token "Bearer abc" SUT/default-schemes)))
     (is (= "abc" (SUT/header->token "token abc" SUT/default-schemes)))
-    (is (= "abc" (SUT/header->token "  Token   abc  " SUT/default-schemes))))
+    (is (= "abc" (SUT/header->token "  Token   abc  " SUT/default-schemes)))
+    (is (= "abc" (SUT/header->token "Bearer\tabc" SUT/default-schemes))))
   (testing "an unknown scheme, or no scheme at all, yields nothing"
     (is (nil? (SUT/header->token "Basic abc" SUT/default-schemes)))
     (is (nil? (SUT/header->token "abc" SUT/default-schemes)))

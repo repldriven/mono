@@ -19,13 +19,34 @@
   []
   (quot (util/now) 1000))
 
+(defn- whitespace?
+  [c]
+  (case c
+    (\space \tab \newline \return \formfeed \u000B) true
+    false))
+
+(defn- index-of-whitespace
+  [^String s]
+  (loop [i 0]
+    (cond (= i (.length s))
+          nil
+
+          (whitespace? (.charAt s i))
+          i
+
+          :else
+          (recur (inc i)))))
+
 (defn header->token
   [header schemes]
   (when (string? header)
-    (let [[scheme credential] (str/split (str/trim header) #"\s+" 2)]
-      (when (and credential (contains? schemes (str/lower-case scheme)))
-        (let [credential (str/trim credential)]
-          (when (seq credential) credential))))))
+    (let [header (str/trim header)
+          i (index-of-whitespace header)]
+      (when i
+        (let [credential (str/trim (subs header i))]
+          (when (and (seq credential)
+                     (contains? schemes (str/lower-case (subs header 0 i))))
+            credential))))))
 
 (defn sign
   [signer claims]
@@ -65,7 +86,13 @@
 (defn unverified-claims
   [jwt-string]
   (when (string? jwt-string)
-    (let [[_ payload] (str/split jwt-string #"\." 3)
+    (let [^String jwt-string jwt-string
+          start (.indexOf jwt-string ".")
+          end (when-not (neg? start) (.indexOf jwt-string "." (inc start)))
+          payload (when-not (neg? start)
+                    (subs jwt-string
+                          (inc start)
+                          (if (neg? end) (count jwt-string) end)))
           decoded (when payload
                     (try-nom :auth/unverified-claims
                              "Payload is not base64url"
