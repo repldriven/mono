@@ -60,10 +60,12 @@ so open those in full before non-trivial work on their topic.
   injection. See
   [system-configurations.md](docs/recipes/code/system-configurations.md).
 - **Messaging** — the message bus behind an abstraction, Avro
-  payloads, and how a subscription fans out and stops.
+  payloads, how a subscription fans out and stops, and the performers
+  it hands each message to by key.
   See [ADR-0003](docs/adr/0003-message-bus-abstraction.md),
-  [ADR-0004](docs/adr/0004-avro-for-message-payloads.md) and
-  [message-bus.md](docs/tdd/message-bus.md).
+  [ADR-0004](docs/adr/0004-avro-for-message-payloads.md),
+  [ADR-0040](docs/adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md)
+  and [message-bus.md](docs/tdd/message-bus.md).
 - **Code generation** — the prep-lib convention, for a workspace that
   needs it; no brick here generates code.
   See [ADR-0010](docs/adr/0010-code-generation-via-prep-lib.md).

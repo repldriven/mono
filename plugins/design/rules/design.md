@@ -19,6 +19,27 @@ bare-requires the backend bricks it may bind so their component kinds
 register.
 See [ADR-0003](../../../docs/adr/0003-message-bus-abstraction.md).
 
+## A subscription hands each message to a performer chosen by its key
+
+Hand every message a subscription receives to one of its consumer's
+performers, chosen by a hash of the message's key, in `message-bus`
+where every backend shares it: a performer handles its messages one at
+a time in the order they arrived, so messages sharing a key keep their
+order and different keys run concurrently. Take `performers` from the
+consumer's system configuration, defaulting to 1, never from the
+processor count. A message sent without a key goes to the next
+performer in turn. Narrow the performer key only where every message
+sharing the narrower key was sent under one key. Run each performer on
+a thread of its own, never in a `go` block, with a bounded queue whose
+fullness stops delivery. Acknowledge a message when its handler returns
+and ask for it again when it throws; reduce a backend's `subscribe` to
+delivering messages with their key and acknowledgement, and let each
+backend apply out-of-order acknowledgements its own way — Kafka commits,
+per partition, only the highest offset below which every message is
+acknowledged. The channels backend carries the send key to its
+subscribers.
+See [ADR-0040](../../../docs/adr/0040-a-consumer-hands-each-message-to-a-performer-chosen-by-its-key.md).
+
 ## Messaging payloads are Avro
 
 Command and event payloads on the message bus are Avro, via Lancaster.
