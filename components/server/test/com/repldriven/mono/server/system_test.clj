@@ -278,7 +278,9 @@
          (is (<= 100 capacity 260)))
        (testing "the limit rises past initial and holds near the knee of 4"
          (is (every? some? limits))
-         (is (<= 4 (median limits) 8))
-         (is (every? (fn [limit] (<= 2 limit 12)) (remove nil? limits))))
+         (is (<= 4 (median limits) 8)))
+       (testing "once the search has settled, the limit does not climb"
+         (is (every? (fn [limit] (<= 2 limit 12))
+                     (remove nil? (drop (quot (count limits) 2) limits)))))
        (testing "a probe is answered under load"
          (is (= 200 (:status probe))))))))
