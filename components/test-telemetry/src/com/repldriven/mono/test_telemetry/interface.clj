@@ -45,6 +45,17 @@
   [instance]
   (core/tracer instance))
 
+(defn counter-value
+  "The sum an in-memory telemetry instance's own meter has recorded on
+  the counter named `counter-name` under exactly `attributes`, a map of
+  attribute name strings to values. Only a counter created with this
+  instance as its `:otel` records here.
+
+  Takes the `test-telemetry/otel-sdk` system instance. Returns 0 when
+  nothing was recorded, or nil for any other telemetry instance."
+  [instance counter-name attributes]
+  (core/counter-value instance counter-name attributes))
+
 (defmacro with-span-tests
   "Run body with the hub held as the default SDK, then automatically
   assert:

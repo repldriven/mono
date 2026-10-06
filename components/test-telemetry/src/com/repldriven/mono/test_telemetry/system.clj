@@ -6,12 +6,14 @@
     [com.repldriven.mono.system.interface :as system]
     [steffan-westcott.clj-otel.sdk.otel-sdk :as sdk])
   (:import
-    (io.opentelemetry.sdk.testing.exporter InMemorySpanExporter)
+    (io.opentelemetry.sdk.testing.exporter InMemoryMetricReader
+                                           InMemorySpanExporter)
     (io.opentelemetry.sdk.trace.export SimpleSpanProcessor)))
 
 (defn- in-memory-sdk
   [{:keys [service-name]}]
-  (let [exporter (InMemorySpanExporter/create)]
+  (let [exporter (InMemorySpanExporter/create)
+        metric-reader (InMemoryMetricReader/create)]
     (log/info "Starting in-memory OpenTelemetry SDK" :service-name service-name)
     ;; SimpleSpanProcessor, not the batching form clj-otel's map syntax
     ;; builds: a span must be readable the moment it closes, with no flush
@@ -24,10 +26,13 @@
                                         :tracer-provider
                                         {:span-processors
                                          [(SimpleSpanProcessor/create
-                                           exporter)]}})]
+                                           exporter)]}
+                                        :meter-provider
+                                        {:readers [{:metric-reader
+                                                    metric-reader}]}})]
       (hub/install)
       (hub/subscribe exporter)
-      {:sdk otel-sdk :exporter exporter})))
+      {:sdk otel-sdk :exporter exporter :metric-reader metric-reader})))
 
 ;; Name this component-kind where a config names `telemetry/otel-sdk` and
 ;; spans collect in memory instead of shipping over OTLP. The instance shape
