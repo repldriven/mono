@@ -19,7 +19,7 @@
     (with-span [\"operation-name\" {:attr/key \"value\"}]
       (do-work))"
   [name-and-attrs & body]
-  `(core/with-span ~name-and-attrs ~@body))
+  (with-meta `(core/with-span ~name-and-attrs ~@body) (meta &form)))
 
 (defn with-span-parent
   "Create a span with an explicit parent context.

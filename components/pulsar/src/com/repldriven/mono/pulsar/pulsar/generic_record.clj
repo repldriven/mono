@@ -2,8 +2,8 @@
   (:require
     [clojure.string :as str])
   (:import
-    (org.apache.pulsar.client.api.schema GenericRecord)
-    (org.apache.pulsar.shade.org.apache.avro Schema$Type)
+    (org.apache.pulsar.client.api.schema Field GenericRecord)
+    (org.apache.pulsar.shade.org.apache.avro Schema Schema$Field Schema$Type)
     (org.apache.pulsar.shade.org.apache.avro.generic
      GenericData$EnumSymbol
      GenericData$Record)))
@@ -22,25 +22,25 @@
 (defn- enum-schema
   "Return the Avro enum schema for a field schema, or nil.
   Handles both direct ENUM and UNION containing an ENUM."
-  [field-schema]
+  [^Schema field-schema]
   (let [t (.getType field-schema)]
     (cond (= t Schema$Type/ENUM)
           field-schema
 
           (= t Schema$Type/UNION)
-          (some (fn [s] (when (= Schema$Type/ENUM (.getType s)) s))
+          (some (fn [^Schema s] (when (= Schema$Type/ENUM (.getType s)) s))
                 (.getTypes field-schema)))))
 
 (defn serialize
   "Convert a Clojure map to an Avro GenericRecord using the
   provided Avro schema."
-  [avro-schema data]
+  [^Schema avro-schema data]
   (when (and avro-schema (map? data))
-    (let [^GenericRecord record (GenericData$Record. avro-schema)]
+    (let [record (GenericData$Record. avro-schema)]
       (doseq [[k v] data]
-        (let [n (key->field-name k)
-              f (.getField avro-schema n)
-              es (when (and f (some? v)) (enum-schema (.schema f)))
+        (let [^String n (key->field-name k)
+              ^Schema$Field f (.getField avro-schema n)
+              ^Schema es (when (and f (some? v)) (enum-schema (.schema f)))
               v (if es (GenericData$EnumSymbol. es (str v)) v)]
           (.put record n v)))
       record)))
@@ -53,7 +53,7 @@
     (let [fields (.getFields record)]
       (into {}
             (map
-             (fn [field]
+             (fn [^Field field]
                (let [field-name (.getName field)
                      value (.getField record field-name)]
                  [(field-name->key field-name)
@@ -64,7 +64,8 @@
                         (str value)
 
                         (instance? java.nio.ByteBuffer value)
-                        (let [^java.nio.ByteBuffer buf (.duplicate value)
+                        (let [^java.nio.ByteBuffer buf
+                              (.duplicate ^java.nio.ByteBuffer value)
                               arr (byte-array (.remaining buf))]
                           (.get buf arr)
                           arr)

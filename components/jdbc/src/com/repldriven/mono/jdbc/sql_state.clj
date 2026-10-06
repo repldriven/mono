@@ -30,7 +30,7 @@
 (def integrity-constraint-violation-class "23")
 
 (defn- exception
-  [anomaly]
+  ^SQLException [anomaly]
   (when (error/anomaly? anomaly)
     (let [ex (:exception (error/payload anomaly))]
       (when (instance? SQLException ex) ex))))

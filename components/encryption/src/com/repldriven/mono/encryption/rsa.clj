@@ -13,7 +13,9 @@
 (defonce ^:private ^KeyFactory key-factory-rsa
   (when-not *compile-files* (KeyFactory/getInstance "RSA")))
 
-(defn- encode64 [bytes] (.encodeToString (Base64/getEncoder) bytes))
+(defn- encode64
+  ^String [^bytes bytes]
+  (.encodeToString (Base64/getEncoder) bytes))
 
 (def supported {:algorithm "RSA" :key-size 512})
 

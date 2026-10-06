@@ -60,7 +60,7 @@
    "Failed to create Kafka consumer"
    (let [props (config/->properties defaults conf)
          instance (KafkaConsumer. props)]
-     (.subscribe instance (vec topics))
+     (.subscribe instance ^java.util.Collection (vec topics))
      {:instance instance
       :topics (vec topics)
       :group-id (.getProperty props "group.id")
@@ -146,10 +146,11 @@
   (let [state (update state :offsets offsets/retain (assigned instance))]
     (doseq [tp (:seek state)]
       (when-let [offset (offsets/earliest-waiting (:offsets state) tp)]
-        (.seek instance (->partition tp) offset)))
+        (.seek instance (->partition tp) (long offset))))
     (let [positions (offsets/to-commit (:offsets state))
           committed? (or (empty? positions)
                          (try (.commitSync instance
+                                           ^java.util.Map
                                            (into {}
                                                  (map (fn [[tp p]]
                                                         [(->partition tp)
