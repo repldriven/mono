@@ -11,8 +11,10 @@
     [com.repldriven.mono.pulsar.pulsar.schemas :as schemas]
     [com.repldriven.mono.pulsar.pulsar.tenants :as tenants]
     [com.repldriven.mono.pulsar.pulsar.topics :as topics]
-    [com.repldriven.mono.system.interface :as system]
-    [com.repldriven.mono.log.interface :as log]))
+    [com.repldriven.mono.error.interface :as error]
+    [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.message-bus.interface :as bus]
+    [com.repldriven.mono.system.interface :as system]))
 
 ;; ---
 ;; container urls
@@ -290,19 +292,33 @@
                      :value consumer})))
   consumer)
 
+(defn- max-in-flight-or-throw
+  [channel-key performers max-in-flight]
+  (let [limiter (bus/subscription-limiter performers max-in-flight)]
+    (when (error/anomaly? limiter)
+      ;; nosemgrep: no-raw-throw
+      (throw (ex-info (str "Invalid max-in-flight for channel " channel-key)
+                      {:channel channel-key :anomaly limiter})))
+    max-in-flight))
+
 (def message-bus-consumers
   {:system/start (fn [{:system/keys [config instance]}]
                    (or instance
                        (into {}
-                             (map (fn [[k
-                                        {:keys [consumer timeout performers]}]]
-                                    [k
-                                     (message-bus/map->PulsarConsumer
-                                      {:consumer (consumer-or-throw k consumer)
-                                       :timeout (or timeout 10000)
-                                       :stop-ch (atom nil)
-                                       :performers (or performers 1)
-                                       :name (name k)})])
-                                  config))))
+                             (map
+                              (fn [[k
+                                    {:keys [consumer timeout performers
+                                            max-in-flight]}]]
+                                (let [n (or performers 1)]
+                                  [k
+                                   (message-bus/map->PulsarConsumer
+                                    {:consumer (consumer-or-throw k consumer)
+                                     :timeout (or timeout 10000)
+                                     :stop-ch (atom nil)
+                                     :performers n
+                                     :max-in-flight
+                                     (max-in-flight-or-throw k n max-in-flight)
+                                     :name (name k)})]))
+                              config))))
    :system/config system/required-component
    :system/instance-schema map?})

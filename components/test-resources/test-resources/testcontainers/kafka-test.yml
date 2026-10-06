@@ -204,11 +204,12 @@ message-bus-consumers: !system/component
     consumer: !system/local-ref consumers.pet-2
     timeout: 500
   # Four performers on topic-pet's one partition, so concurrency comes from
-  # the performers alone.
+  # the performers alone, of which at most two run at once.
   pet-performers:
     consumer: !system/local-ref consumers.pet-3
     timeout: 500
     performers: 4
+    max-in-flight: 2
   event:
     consumer: !system/local-ref consumers.event-2
     timeout: 500

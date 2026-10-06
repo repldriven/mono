@@ -90,7 +90,7 @@
              (log/error t "Consumer handler threw; asking for redelivery")
              (kafka/negative-acknowledge hs record))}))
 
-(defrecord KafkaConsumer [consumer timeout handles performers]
+(defrecord KafkaConsumer [consumer timeout handles performers max-in-flight]
   message-bus/Consumer
     (subscribe [this handler-fn] (.subscribe this handler-fn {}))
     (subscribe [_ handler-fn opts]
@@ -102,6 +102,7 @@
         (message-bus/perform source
                              handler-fn
                              {:performers performers
+                              :max-in-flight max-in-flight
                               :key-fn (:key-fn opts)
                               :name (:group-id consumer)})
         {:stop (:stop hs)}))

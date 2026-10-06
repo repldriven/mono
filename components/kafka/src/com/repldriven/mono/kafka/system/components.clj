@@ -7,6 +7,7 @@
 
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.log.interface :as log]
+    [com.repldriven.mono.message-bus.interface :as bus]
     [com.repldriven.mono.system.interface :as system]))
 
 ;; ---
@@ -140,19 +141,31 @@
                     {:channel channel-key :value consumer})))
   consumer)
 
+(defn- max-in-flight-or-throw
+  [channel-key performers max-in-flight]
+  (let [limiter (bus/subscription-limiter performers max-in-flight)]
+    (when (error/anomaly? limiter)
+      ;; nosemgrep: no-raw-throw
+      (throw (ex-info (str "Invalid max-in-flight for channel " channel-key)
+                      {:channel channel-key :anomaly limiter})))
+    max-in-flight))
+
 (def message-bus-consumers
-  {:system/start (fn [{:system/keys [config instance]}]
-                   (or instance
-                       (into {}
-                             (map (fn [[k
-                                        {:keys [consumer timeout performers]
-                                         :or {timeout 1000 performers 1}}]]
-                                    [k
-                                     (message-bus/->KafkaConsumer
-                                      (consumer-or-throw k consumer)
-                                      timeout
-                                      (atom nil)
-                                      performers)])
-                                  config))))
+  {:system/start
+   (fn [{:system/keys [config instance]}]
+     (or instance
+         (into {}
+               (map (fn [[k
+                          {:keys [consumer timeout performers
+                                  max-in-flight]
+                           :or {timeout 1000 performers 1}}]]
+                      [k
+                       (message-bus/->KafkaConsumer
+                        (consumer-or-throw k consumer)
+                        timeout
+                        (atom nil)
+                        performers
+                        (max-in-flight-or-throw k performers max-in-flight))])
+                    config))))
    :system/config system/required-component
    :system/instance-schema map?})

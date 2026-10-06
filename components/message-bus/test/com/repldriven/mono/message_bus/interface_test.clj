@@ -1,10 +1,12 @@
 (ns com.repldriven.mono.message-bus.interface-test
   (:require
     [com.repldriven.mono.message-bus.interface :as SUT]
+    [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system nom-test>]]
     [com.repldriven.mono.utility.interface :as util]
+    [clojure.core.async :as async]
     [clojure.test :refer [deftest is testing]]))
 
 (def ^:private test-message
@@ -188,3 +190,60 @@
          (await-count seen (count sends))
          (is (= 1 @peak))
          (SUT/unsubscribe bus :command))))))
+
+(deftest max-in-flight-local-test
+  (with-test-system
+   [sys "classpath:message-bus/application-local-test.yml"]
+   (let [bus (system/instance sys [:message-bus :bus])
+         ks ["a" "b" "c" "d"]
+         sends (for [i (range 10) k ks] {"k" k "seq" i})]
+     (testing "a fixed limit of 2 runs no more than 2 of 4 performers at once"
+       (let [{:keys [seen peak handler]} (tracking-handler 20)]
+         (SUT/subscribe bus :limited handler)
+         (doseq [m sends] (SUT/send bus :limited m {:key (get m "k")}))
+         (await-count seen (count sends))
+         (is (= (zipmap ks (repeat (vec (range 10)))) @seen)
+             "each key's messages arrive in the order they were sent")
+         (is (= 2 @peak))
+         (SUT/unsubscribe bus :limited)))
+     (testing "a handler that throws gives its permit back"
+       (let [{:keys [seen peak handler]} (tracking-handler 5)
+             thrown (atom 0)]
+         (SUT/subscribe bus
+                        :limited
+                        (fn [data]
+                          (if (= "boom" (get data "k"))
+                            (do (swap! thrown inc)
+                                ;; nosemgrep: no-raw-throw
+                                (throw (ex-info "boom" {})))
+                            (handler data))))
+         (doseq [i (range 10)] (SUT/send bus :limited {"k" "boom" "seq" i}))
+         (doseq [m sends] (SUT/send bus :limited m {:key (get m "k")}))
+         (await-count seen (count sends))
+         (is (= 10 @thrown))
+         (is (= (count sends) (reduce + (map count (vals @seen)))))
+         (is (<= @peak 2))
+         (SUT/unsubscribe bus :limited)))
+     (testing "a dynamic limit keeps each key's order within its performers"
+       (let [{:keys [seen peak handler]} (tracking-handler 10)]
+         (SUT/subscribe bus :dynamic handler)
+         (doseq [m sends] (SUT/send bus :dynamic m {:key (get m "k")}))
+         (await-count seen (count sends))
+         (is (= (zipmap ks (repeat (vec (range 10)))) @seen))
+         (is (<= @peak 4))
+         (SUT/unsubscribe bus :dynamic))))))
+
+(deftest subscription-limiter-test
+  (testing "no max-in-flight is no limiter"
+    (is (nil? (SUT/subscription-limiter 4 nil))))
+  (testing "an integer is a fixed limit"
+    (is (some? (SUT/subscription-limiter 4 2))))
+  (testing "a map's max may not exceed the performers"
+    (let [result (SUT/subscription-limiter 4 {:max 8})]
+      (is (error/rejection? result))
+      (is (= :message-bus/invalid-max-in-flight (error/kind result)))))
+  (testing "perform refuses invalid options before it starts"
+    (is (error/anomaly? (SUT/perform (async/chan)
+                                     identity
+                                     {:performers 4
+                                      :max-in-flight {:max 8}})))))

@@ -38,7 +38,7 @@
   (async/untap mult tap)
   (async/close! stop))
 
-(defrecord LocalConsumer [mult subscriptions performers name]
+(defrecord LocalConsumer [mult subscriptions performers max-in-flight name]
   proto/Consumer
     (subscribe [this handler-fn] (proto/subscribe this handler-fn {}))
     (subscribe [_ handler-fn opts]
@@ -46,10 +46,12 @@
                                                  :stop (async/chan)}]
         (async/tap mult tap)
         (swap! subscriptions conj subscription)
-        (performers/perform
-         (deliveries tap stop)
-         handler-fn
-         {:performers performers :key-fn (:key-fn opts) :name name})
+        (performers/perform (deliveries tap stop)
+                            handler-fn
+                            {:performers performers
+                             :max-in-flight max-in-flight
+                             :key-fn (:key-fn opts)
+                             :name name})
         subscription))
     (unsubscribe [_]
       (doseq [subscription (first (reset-vals! subscriptions []))]
