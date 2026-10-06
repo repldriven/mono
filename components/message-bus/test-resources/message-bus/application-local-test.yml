@@ -2,6 +2,11 @@ system:
   message-bus:
     bus: !system/component
       system/component-kind: message-bus/local-bus
-      channels: [command, reply, keyed]
+      channels: [command, reply, keyed, limited, dynamic]
       performers:
         keyed: 4
+        limited: 4
+        dynamic: 4
+      max-in-flight:
+        limited: 2
+        dynamic: {}

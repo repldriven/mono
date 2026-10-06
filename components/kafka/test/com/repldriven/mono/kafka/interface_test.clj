@@ -141,7 +141,7 @@
          sends (for [i (range 10)
                      id ids]
                  {:pet-id id :name "Perf" :species "cat" :age-months i})]
-     (testing "four performers on one partition keep each key in order"
+     (testing "four performers, two at once, on one partition keep key order"
        (message-bus/subscribe
         bus
         :pet-performers
@@ -158,7 +158,8 @@
            (Thread/sleep 100)))
        (is (= (zipmap ids (repeat (vec (range 10)))) @seen)
            "each pet's messages are handled in the order they were sent")
-       (is (< 1 @peak) "different pets are handled at the same time"))
+       (is (< 1 @peak) "different pets are handled at the same time")
+       (is (<= @peak 2) "no more than max-in-flight run at once"))
      (testing "the committed offset reaches the end once every message is done"
        (let [deadline (+ (util/now) 15000)]
          (while (and (not= (count sends)

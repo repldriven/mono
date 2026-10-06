@@ -36,7 +36,8 @@
              (log/error t "Consumer handler threw; negative-acknowledging")
              (pulsar/negative-acknowledge consumer msg))}))
 
-(defrecord PulsarConsumer [consumer timeout stop-ch performers name]
+(defrecord PulsarConsumer [consumer timeout stop-ch performers max-in-flight
+                           name]
   message-bus/Consumer
     (subscribe [this handler-fn] (.subscribe this handler-fn {}))
     (subscribe [_ handler-fn opts]
@@ -44,10 +45,12 @@
             source (async/chan 1 (map (partial delivery consumer)))]
         (reset! stop-ch stop)
         (async/pipe c source)
-        (message-bus/perform
-         source
-         handler-fn
-         {:performers performers :key-fn (:key-fn opts) :name name})
+        (message-bus/perform source
+                             handler-fn
+                             {:performers performers
+                              :max-in-flight max-in-flight
+                              :key-fn (:key-fn opts)
+                              :name name})
         {:stop stop}))
     (unsubscribe [_] (stop-loop stop-ch))
     ;; One broker consumer, so one subscription: stopping it by name and

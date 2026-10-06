@@ -136,7 +136,10 @@ the source channel stops the performers once their queues drain.
 under `kafka/message-bus-consumers` or `pulsar/message-bus-consumers`,
 or a map from channel to count under `message-bus/local-bus`. It
 defaults to 1, which handles one message at a time as before, now on a
-thread of its own rather than a `go` block.
+thread of its own rather than a `go` block. `max-in-flight` beside it
+limits how many performers run a handler at once without changing which
+performer a key goes to, as [concurrency-limit](concurrency-limit.md)
+describes.
 
 Each backend applies acknowledgements that arrive out of order in its
 own way. Pulsar acknowledges per message. The local backend has nothing

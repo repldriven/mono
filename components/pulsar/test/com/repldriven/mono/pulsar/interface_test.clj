@@ -6,6 +6,7 @@
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.event.interface :as event]
     [com.repldriven.mono.http-client.interface :as http]
+    [com.repldriven.mono.message-bus.interface :as message-bus]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
      [with-test-system]]
@@ -179,3 +180,48 @@
                       "and it is the same event, not a fresh one")))
               (is (> @attempts 1) "the first attempt did not acknowledge")
               (finally (when stop (stop)))))))))
+
+(deftest performers-over-pulsar-test
+  (with-test-system
+   [sys "classpath:pulsar/application-test.yml"]
+   (let [bus (system/instance sys [:pulsar :bus])
+         run (util/random-suffix 8)
+         ids (mapv (fn [k] (str "entity-" k "-" run)) ["a" "b" "c" "d"])
+         sent (vec (for [n (range 10)
+                         id ids]
+                     (event/envelope (str "event-" n) id (str (util/uuidv7)))))
+         seen (atom {})
+         running (atom 0)
+         peak (atom 0)]
+     (testing "four performers, two at once, keep each entity's events in order"
+       (message-bus/subscribe bus
+                              :event-performers
+                              (fn [data]
+                                (when (contains? (set ids) (:causation-id data))
+                                  (swap! peak max (swap! running inc))
+                                  (Thread/sleep 30)
+                                  (swap! seen update
+                                    (:causation-id data)
+                                    (fnil conj [])
+                                    (:event data))
+                                  (swap! running dec))))
+       (is (not-any? error/anomaly?
+                     (mapv (fn [e]
+                             (event/publish bus e {:key (:causation-id e)}))
+                           sent)))
+       (let [deadline (+ (util/now) 30000)]
+         (while (and (< (reduce + (map count (vals @seen))) (count sent))
+                     (< (util/now) deadline))
+           (Thread/sleep 100)))
+       (is (= (into {}
+                    (map (fn [id] [id
+                                   (mapv :event
+                                         (filter (fn [e]
+                                                   (= id (:causation-id e)))
+                                                 sent))]))
+                    ids)
+              @seen)
+           "each entity's events are handled in the order they were sent")
+       (is (< 1 @peak) "different entities are handled at the same time")
+       (is (<= @peak 2) "no more than max-in-flight run at once"))
+     (message-bus/unsubscribe bus :event-performers))))

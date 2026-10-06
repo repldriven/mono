@@ -1,12 +1,8 @@
 # Concurrency limit
 
-> **Status: proposal.** The first two slices are built: the
-> `concurrency-limit` brick, its estimator and its simulation tests;
-> the server's `max-in-flight` on a limiter, with its gauges; and
-> `telemetry/gauge`. What the last slice changes — `message-bus`'s
-> performers and each consumer's `performers` key — exists and is named
-> as such in Background. Everything else under Proposed Solution is the
-> build list, and "The first slice" says what comes next.
+> **Status: implemented.** The `concurrency-limit` brick, the server's
+> `max-in-flight` and each consumer's `max-in-flight` are built as this
+> document describes.
 
 ## Objective
 
@@ -77,7 +73,7 @@ scaling processes, which are Known Limitations rather than design goals.
   thread folds its acknowledgements through, tested on their own in
   `offsets_test.clj`.
 
-## Proposed Solution
+## Solution
 
 ### The brick
 
@@ -237,12 +233,20 @@ files: `performers.clj`, `local.clj` and `system/components.clj` in
 and in `pulsar`. `mqtt` ignores `max-in-flight` as it ignores
 `performers`.
 
+`message-bus/subscription-limiter` builds that limiter from a
+consumer's `performers` and `max-in-flight`, returning nil where there
+is none and a rejection of category `:message-bus/invalid-max-in-flight`
+where a map's `max` exceeds `performers`. Each backend's consumers
+component calls it at start and refuses to start on a rejection, as it
+refuses an unresolved consumer, so `perform` returning the anomaly is
+left for a caller that builds its own.
+
 `perform` registers `mono.message_bus.subscription.limit`,
 `mono.message_bus.subscription.active` and
 `mono.message_bus.subscription.capacity`, units `{message}` and
 `{message}/s`, on the default meter, with the subscription's name — the
 one its performer threads carry — as `messaging.consumer.group.name`,
-and closes them when its performers stop.
+and its dispatcher closes them once the source has closed.
 
 ### Configuring a limit
 
@@ -347,13 +351,15 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
 
 ### The first slice
 
-1. Built: the brick — options, window, the estimator, the limiter and
-   its operations, and the simulation tests. Nothing calls it yet.
-2. Built: the server — `wrap-max-in-flight` on a limiter, the schema
-   change, and `telemetry/gauge` with the three server gauges. An
-   integer `max-in-flight` behaves as it did.
+The design landed in three slices, in this order:
+
+1. The brick: options, window, the estimator, the limiter and its
+   operations, and the simulation tests.
+2. The server: `wrap-max-in-flight` on a limiter, the schema change,
+   and `telemetry/gauge` with the three server gauges. An integer
+   `max-in-flight` behaves as it did.
 3. The performers: `:max-in-flight` through `perform`, the three
-   backends' config, and the subscription gauges.
+   backends' config and start-time check, and the subscription gauges.
 
 ### Tests
 
@@ -379,14 +385,21 @@ in `workspace.edn`, since `server` and `message-bus` depend on it.
   a set latency, offers it more, and asserts that the limit rises past
   `initial` and holds near `headroom` times the knee, that the gauges
   read the limit and capacity, and that a probe is never turned away.
-- **`message-bus`.** The local backend's performers test binds a channel
-  with four performers and `max-in-flight: 2`, and asserts that no more
-  than two handlers run at once, that each key's order holds, and that
-  a handler that throws moves no estimate.
-- **`kafka` and `pulsar`.** Each backend's performers test adds
-  `max-in-flight` to its consumer and asserts each key's order and that
-  the committed or acknowledged position reaches the end, as without a
-  limit.
+- **`message-bus`.** The local backend binds a channel with four
+  performers and `max-in-flight: 2`, and asserts that exactly two
+  handlers run at once at most, that each key's order holds, and that a
+  handler that throws gives its permit back; and one with
+  `max-in-flight: {}`, whose keys keep their order. `subscription-limiter`
+  refuses a `max` above the performers, and `perform` refuses it before
+  it starts.
+- **`kafka`.** The performers test's consumer has four performers and
+  `max-in-flight: 2` on a one-partition topic, and the test asserts each
+  key's order, overlap between keys, no more than two at once, and a
+  committed offset that reaches the end of the partition.
+- **`pulsar`.** A performers test subscribes four performers with
+  `max-in-flight: 2` to the three-partition event topic, sends keyed
+  events for four entities named for the run, and asserts each entity's
+  order, overlap between entities, and no more than two at once.
 - **`telemetry`.** A gauge registered on in-memory telemetry is read
   back with the value `:observe` returns, and reads nothing once
   closed.

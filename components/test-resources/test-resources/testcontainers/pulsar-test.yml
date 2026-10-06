@@ -267,6 +267,17 @@ consumers: !system/component
       subscriptionType: !pulsar/subscription-type Shared
       topicNames: ["persistent://tenant-1/namespace-1/topic-event"]
     schemas: !system/local-ref schemas
+  event-performers:
+    _: !system/local-ref topics
+    client: !system/local-ref client
+    conf:
+      cryptoFailureAction: !pulsar/crypto-failure-action CONSUME
+      cryptoKeyReader: !system/local-ref crypto-key-readers.r1
+      schema: !pulsar/schema AUTO_CONSUME
+      subscriptionName: tenant-1-event-performers-subscriber
+      subscriptionType: !pulsar/subscription-type Shared
+      topicNames: ["persistent://tenant-1/namespace-1/topic-event"]
+    schemas: !system/local-ref schemas
   event-retry:
     _: !system/local-ref topics
     client: !system/local-ref client
@@ -294,6 +305,12 @@ message-bus-consumers: !system/component
   event-retry:
     consumer: !system/local-ref consumers.event-retry
     timeout: 500
+  # Four performers, of which at most two run a handler at once.
+  event-performers:
+    consumer: !system/local-ref consumers.event-performers
+    timeout: 500
+    performers: 4
+    max-in-flight: 2
 
 bus: !system/component
   system/component-kind: message-bus/bus
