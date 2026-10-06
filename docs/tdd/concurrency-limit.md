@@ -218,6 +218,77 @@ default meter, with the subscription's name — the one its performer
 threads carry — as `messaging.consumer.group.name`, and closes them
 when its performers stop.
 
+### Configuring a limit
+
+`max-in-flight` takes the same shapes on the server and on a consumer:
+
+```yaml
+# fixed: initial, min and max are all 50
+max-in-flight: 50
+
+# adaptive
+max-in-flight: {initial: 20, min: 4, max: 400}
+```
+
+Set `initial` to the throughput the store sustains times its unloaded
+latency, `max` from what is behind the handlers, and `tolerance` to how
+much queueing to accept. The limit settles where
+`limit × (1 − gradient) = √limit`, a little past `tolerance` times the
+floor, and the further past it the smaller the limit, since √limit is a
+larger share of it.
+
+The examples below share one store, 40 ms unloaded behind a pool of 20
+connections, so it serves at most 500 requests a second, and with more
+than 20 in flight a request takes 2 ms for each one in flight. The other
+options are their defaults, so a window closes about once a second
+under this load.
+
+- **Overload.** Offered 1000 requests a second, with
+  `{initial: 20, min: 4, max: 400}`. At 20 in flight latency stays at
+  the 40 ms floor, the gradient is 1, and the limit grows by about 0.9
+  a window. At 30 latency is 60 ms, 1.5 times the floor, and it still
+  grows. It settles at about 36, where `limit − √limit = 30`: 20
+  requests on connections and 16 waiting for one, at 72 ms, 1.8 times
+  the floor, within about twenty windows. The server serves 500 a
+  second at 72 ms and turns the other 500 away at once with a 503.
+  Without a limit on virtual threads all 1000 are admitted, the backlog
+  grows by 500 a second, and latency by a second every second.
+- **The store slows.** Its unloaded latency doubles to 80 ms, so it
+  serves 250 a second. At 36 in flight a request takes 144 ms; against
+  the 40 ms floor the gradient is held at 0.5, and the limit falls about
+  7% a window. It levels at about 16, below the pool, at 80 ms, serving
+  200 a second of the 250 the store could. Once the 40 ms windows age
+  out of the floor, after `floor-windows`, the floor is 80 ms and the
+  limit climbs back to about 36, at 144 ms.
+- **Quiet traffic.** At 50 requests a second about two are in flight,
+  under half of 20, so the limit stays at 20. A burst is admitted 20 at
+  once, and the limit grows from there.
+- **Tolerance.** In the overload example, `tolerance: 1.2` settles at
+  about 29 in flight and 59 ms, and `tolerance: 2.0` at about 47 and
+  94 ms.
+- **Jetty's threads.** On 50 platform threads, the overload example's
+  36 fits, and so does 47 at `tolerance: 2.0`; a limit above 50 is never
+  reached, and requests waiting in Jetty's queue are not measured. On
+  virtual threads nothing else bounds the server, so `max` stays a few
+  times the pool: 400 here is never reached, but bounds what a stale
+  floor could admit.
+- **A consumer.** Sixteen performers whose handlers take 20 ms unloaded,
+  against a store that serves 4 writes at once:
+
+  ```yaml
+  command:
+    consumer: !system/local-ref consumers.command
+    performers: 16
+    max-in-flight: {initial: 4}
+  ```
+
+  `max` defaults to 16. The limit grows from 4 and settles at about 9,
+  where `limit − √limit = 6`: four handlers writing and five waiting on
+  the store, at 45 ms, 2.25 times the floor, since a small limit settles
+  further past `tolerance`. The other seven performers hold their next
+  delivery, their queues fill, and the backend's loop waits. Every key
+  stays with its performer.
+
 ### Gauges
 
 `telemetry/gauge` — `(gauge opts)`, where `opts` carries `:name`,
