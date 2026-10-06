@@ -24,7 +24,7 @@
 ;; carry a token.
 (defn- span-attributes
   [{:keys [method url]}]
-  (let [uri (try (URI. (str url)) (catch Exception _ nil))]
+  (let [^URI uri (try (URI. (str url)) (catch Exception _ nil))]
     (cond-> {:http.request.method (.toUpperCase (name (or method :get)))}
             uri
             (assoc :server.address (.getHost uri)

@@ -9,7 +9,7 @@
 (defn tenant-key-reader
   [vault-client tenant-id mount]
   (let
-    [decoder (java.util.Base64/getDecoder)
+    [^java.util.Base64$Decoder decoder (java.util.Base64/getDecoder)
      read-key
      (fn [key-name field]
        (log/debugf "pulsar-vault-crypto: reading %s key [tenant=%s, key=%s]"
@@ -32,7 +32,7 @@
                nil)
            (try
              (doto (EncryptionKeyInfo.)
-               (.setKey (.decode decoder (get secret field))))
+               (.setKey (.decode decoder ^String (get secret field))))
              (catch Exception e
                (log/warnf
                 "pulsar-vault-crypto: key decode failed [tenant=%s, key=%s]: %s"

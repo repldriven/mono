@@ -181,7 +181,7 @@
              :body (cond-> (str "grant_type=client_credentials"
                                 "&client_id=" client-id
                                 "&client_assertion_type="
-                                (URLEncoder/encode client-assertion-type
+                                (URLEncoder/encode ^String client-assertion-type
                                                    "UTF-8")
                                 "&client_assertion=" assertion)
                            scope

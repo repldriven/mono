@@ -19,6 +19,7 @@
     [buddy.sign.jwt :as jwt])
   (:import
     (java.security KeyPair KeyPairGenerator)
+    (java.security.interfaces RSAPublicKey)
     (java.util Base64)))
 
 (defn- generate-rsa-keypair
@@ -33,7 +34,7 @@
 
 (defn- public-jwk
   [^KeyPair kp kid]
-  (let [pub (.getPublic kp)
+  (let [^RSAPublicKey pub (.getPublic kp)
         modulus (.getModulus pub)
         exponent (.getPublicExponent pub)]
     {:kty "RSA"

@@ -4,7 +4,7 @@
     [com.repldriven.mono.log.interface :as log]
     [clojurewerkz.machine-head.client :as mh]))
 
-(defn- strip-prefix [s] (if (.startsWith s "mqtt://") (subs s 7) s))
+(defn- strip-prefix [^String s] (if (.startsWith s "mqtt://") (subs s 7) s))
 
 (defn publish
   "Publish a message to an MQTT topic. Returns nil on success or an anomaly on failure."

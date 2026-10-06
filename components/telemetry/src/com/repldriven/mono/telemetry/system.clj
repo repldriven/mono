@@ -87,7 +87,7 @@
                     (some-> (:runtime-metrics instance)
                             runtime-telemetry/close!)
                     (sdk/close-otel-sdk! (:sdk instance))
-                    (.close (:exporter instance))))
+                    (.close ^OtlpHttpSpanExporter (:exporter instance))))
    :system/config {:service-name system/required-component}
    :system/config-schema [:map [:service-name string?]
                           [:endpoint {:optional true} string?]

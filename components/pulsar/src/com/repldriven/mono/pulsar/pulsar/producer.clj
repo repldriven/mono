@@ -33,7 +33,8 @@
       [info (.. pulsar-schema getSchemaInfo toString)
        parsed (json/read-str info)
        schema-json (json/write-str (get parsed "schema"))]
-      (org.apache.pulsar.shade.org.apache.avro.Schema/parse schema-json))))
+      (org.apache.pulsar.shade.org.apache.avro.Schema/parse ^String
+                                                            schema-json))))
 
 (defn- serialize
   "Serialize data to Avro GenericRecord if schema is present, otherwise return as-is."
