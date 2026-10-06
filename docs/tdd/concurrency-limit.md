@@ -128,7 +128,8 @@ it waits in `acquire` gets an anomaly of category
 The options map, every key optional, so `max-in-flight: {}` is a
 dynamic limit with defaults:
 
-- `initial` — the limit at start, default 8, or `max` where lower.
+- `initial` — the limit at start, and the least a search after a
+  quiet spell starts from, default 8, or `max` where lower.
 - `min` — the lowest the limit falls, default 1.
 - `max` — the highest it rises, and so what bounds the search, default
   1000 on the server and `performers` on a consumer.
@@ -179,11 +180,13 @@ The state is searching or holding:
      that has grown, since a window that delivers more raises
      `capacity`.
 
-A window that did not bind changes no estimate, so quiet traffic never
-lowers capacity; once the last window that bound ages out of `windows`,
-the state searches again from the limit it holds. A limit that starts
-above the knee measures a floor with work waiting; each drain window
-lowers the floor towards the unloaded latency, and the limit with it.
+A window that did not bind changes no estimate, so quiet traffic never lowers
+capacity; once the last window that bound ages out of `windows`, the state
+searches again from the larger of `initial` and the limit it holds, so a limit
+an overload drained below `initial` does not turn away the next burst while the
+search doubles it back. A limit that starts above the knee measures a floor with
+work waiting; each drain window lowers the floor towards the unloaded latency,
+and the limit with it.
 
 ### The server
 
@@ -263,10 +266,10 @@ max-in-flight: {}
 max-in-flight: {initial: 200}
 ```
 
-No key names a throughput or a latency. `initial` is where the search
-starts, so a fixed limit that works is a good one; `max` bounds the
-search; `headroom` trades waiting for burst room and leaves throughput
-as it is.
+No key names a throughput or a latency. `initial` is where the search starts,
+and the least a search after a quiet spell starts from, so a fixed limit that
+works is a good one; `max` bounds the search; `headroom` trades waiting for
+burst room and leaves throughput as it is.
 
 The examples below run on virtual threads with the defaults, offered
 more than the store can serve unless they say otherwise. A store's
@@ -303,8 +306,8 @@ latency, and with more than that in flight a request waits its turn.
   so the limit is 675 before it settles at 450 within a cycle.
 - **Quiet traffic.** At 1000 a second about 50 are in flight, the limit
   never binds, and it stays where it was. Once no window in `windows`
-  has bound, the state searches again, so a burst past the limit
-  doubles it within a window.
+  has bound, the state searches again from the larger of `initial`
+  and the limit, so a burst past it doubles it within a window.
 - **Headroom.** On the larger platform, `headroom: 1` holds at 300 and
   50 ms, and `headroom: 2` at 600 and 100 ms; both serve 6000 a second.
   At 1 nothing waits, so a burst above the knee is turned away rather
@@ -363,22 +366,21 @@ The design landed in three slices, in this order:
 
 ### Tests
 
-- **`concurrency-limit`.** The estimator and the window as pure
-  functions, folded over a simulated workload: a store serving `c`
-  units at once at an unloaded latency, waiting the rest in turn,
-  offered a load the test shapes. Over each run's sequence of limits
-  the tests assert that the limit always stays between `min` and `max`;
-  that under overload it holds at `headroom` times the store's knee and
-  throughput stays within a few percent of capacity; that a ramp is
-  turned away below capacity only in the windows in which it crossed
-  the limit; that when every request slows the limit stays; that
-  capacity raised mid-run is found by the probe windows; that a limit
-  starting above the knee settles at it within a few cycles; that quiet
-  traffic moves nothing; and that an integer never moves. The limiter's
-  interface test asserts that `try-acquire` refuses at the limit and
-  marks the window bound, that `release` frees a permit, that
-  `:ignored` leaves the window unchanged, and that a waiting `acquire`
-  returns once another permit is released.
+- **`concurrency-limit`.** The estimator and the window as pure functions,
+  folded over a simulated workload: a store serving `c` units at once at an
+  unloaded latency, waiting the rest in turn, offered a load the test shapes.
+  Over each run's sequence of limits the tests assert that the limit always
+  stays between `min` and `max`; that under overload it holds at `headroom`
+  times the store's knee and throughput stays within a few percent of capacity;
+  that a ramp is turned away below capacity only in the windows in which it
+  crossed the limit; that when every request slows the limit stays; that
+  capacity raised mid-run is found by the probe windows; that a limit starting
+  above the knee settles at it within a few cycles; that quiet traffic moves
+  nothing; that a search after a quiet spell starts from the larger of `initial`
+  and the limit; and that an integer never moves. The limiter's interface test
+  asserts that `try-acquire` refuses at the limit and marks the window bound,
+  that `release` frees a permit, that `:ignored` leaves the window unchanged,
+  and that a waiting `acquire` returns once another permit is released.
 - **`server`.** The existing `max-in-flight-test` holds with
   `max-in-flight: 1`. A new test starts the adapter with
   `max-in-flight: {}` and a handler that serves a set number at once at
