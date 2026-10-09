@@ -98,6 +98,7 @@ functions returning values or anomalies.
   serialisation
     avro                 --c   lancaster, abracad          Apache Avro schema-based serialisation
     json                 -a-   data.json                   JSON read/write, the library underneath swappable
+    transit              --c   transit-clj                 transit+json read/write, for EDN stored or sent as JSON
   scheduling
     scheduler            --c   cronut                      In-memory cron scheduling of named jobs
   observability
@@ -130,7 +131,7 @@ Generate a Polylith workspace already wired to mono as a library:
 clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
 clojure -Tnew create \
-  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.60' \
+  :template 'io.github.repldriven/mono%template%com.repldriven.mono/template#v0.0.61' \
   :name com.acme/my-thing
 ```
 
@@ -154,7 +155,7 @@ involved; everything resolves from a tag and its sha.
 ```clojure
 {:deps {com.repldriven/mono
         {:git/url "https://github.com/repldriven/mono.git"
-         :git/tag "v0.0.60"
+         :git/tag "v0.0.61"
          :git/sha "<full-sha>"
          :deps/root "projects/mono-lib"}}
 
@@ -162,7 +163,7 @@ involved; everything resolves from a tag and its sha.
  {:test {:extra-deps
          {com.repldriven/mono
           {:git/url "https://github.com/repldriven/mono.git"
-           :git/tag "v0.0.60"
+           :git/tag "v0.0.61"
            :git/sha "<full-sha>"
            :deps/root "projects/mono-test-lib"}}}}}
 ```
@@ -277,6 +278,7 @@ the workspace is built with.
 - [nom](https://github.com/otto-de/nom) — error
 - [reitit](https://github.com/metosin/reitit) — server
 - [ring-jetty9-adapter](https://github.com/sunng87/ring-jetty9-adapter) — server
+- [transit-clj](https://github.com/cognitect/transit-clj) — transit
 - [tools.cli](https://github.com/clojure/tools.cli) — cli
 - [tools.logging](https://github.com/clojure/tools.logging) — log
 - [vault-clj](https://github.com/amperity/vault-clj) — vault

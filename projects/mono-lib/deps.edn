@@ -77,6 +77,8 @@
   com.repldriven.mono.components/system {:local/root "../../components/system"}
   com.repldriven.mono.components/telemetry
   {:local/root "../../components/telemetry"}
+  com.repldriven.mono.components/transit
+  {:local/root "../../components/transit"}
   com.repldriven.mono.components/utility
   {:local/root "../../components/utility"}
   com.repldriven.mono.components/vault {:local/root "../../components/vault"}
