@@ -105,6 +105,8 @@
   {:local/root "../../components/system"}
   com.repldriven.mono.components/telemetry
   {:local/root "../../components/telemetry"}
+  com.repldriven.mono.components/transit
+  {:local/root "../../components/transit"}
   com.repldriven.mono.components/test-system
   {:local/root "../../components/test-system"}
   com.repldriven.mono.components/test-telemetry
