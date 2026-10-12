@@ -1,5 +1,5 @@
 {:aliases {:test {:extra-deps {org.postgresql/postgresql {:mvn/version
-                                                          "42.7.13"}}
+                                                          "42.7.14"}}
                   :extra-paths ["test" "test-resources"]}}
  :deps {}
  :paths ["src" "resources"]}

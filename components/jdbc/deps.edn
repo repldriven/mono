@@ -4,4 +4,4 @@
  ;; need one, so postgres is an alias dep rather than a dep.
  :aliases {:test {:extra-paths ["test" "test-resources"]
                   :extra-deps {org.postgresql/postgresql {:mvn/version
-                                                          "42.7.13"}}}}}
+                                                          "42.7.14"}}}}}
