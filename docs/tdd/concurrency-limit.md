@@ -394,9 +394,9 @@ The design landed in three slices, in this order:
   `max-in-flight: 1`. A new test starts the adapter with
   `max-in-flight: {initial: 2, max: 16}` and a handler that serves a set
   number at once at a set latency, offers it more, and asserts that the
-  limit rises past `initial` and holds near `headroom` times the knee,
-  that the gauges read the limit and capacity, and that a probe is never
-  turned away.
+  limit stays between `initial` and `max`, that the gauges read the limit
+  and capacity, and that a probe is never turned away; where the limit
+  settles is the simulation's to assert.
 - **`message-bus`.** The local backend binds a channel with four
   performers and `max-in-flight: 2`, and asserts that exactly two
   handlers run at once at most, that each key's order holds, and that a
