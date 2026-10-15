@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.server.system-test
   (:require
+    [com.repldriven.mono.env.interface :as env]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.http-client.interface :as http-client]
     [com.repldriven.mono.server.interface :as server]
@@ -13,7 +14,14 @@
     [clojure.string :as str]
     [clojure.test :refer [deftest is testing]])
   (:import
+    (java.io ByteArrayInputStream)
+    (java.net URI)
+    (java.net.http HttpClient
+                   HttpRequest
+                   HttpRequest$BodyPublishers
+                   HttpResponse$BodyHandlers)
     (java.util.concurrent Semaphore)
+    (java.util.function Supplier)
     (org.eclipse.jetty.server Server ServerConnector)))
 
 (deftest server-test
@@ -200,6 +208,113 @@
     (let [result (server/wrap-max-in-flight (constantly {:status 200})
                                             {:min 10 :initial 5})]
       (is (= :concurrency-limit/invalid-options (error/kind result))))))
+
+(def ^:private max-request-bytes 64)
+
+(defn- json-of-bytes
+  [n]
+  (str "{\"name\":\"" (apply str (repeat (- n 11) "a")) "\"}"))
+
+(defn- echo-app
+  [handled]
+  (fn [_ctx]
+    (http/ring-handler (http/router ["/api/echo"
+                                     {:post {:handler
+                                             (fn [req]
+                                               (swap! handled inc)
+                                               {:status 200
+                                                :body (:body-params req)})}}]
+                                    server/standard-router-data)
+                       (ring/create-default-handler)
+                       server/standard-executor)))
+
+(defn- post-json
+  [base body]
+  (http-client/request {:method :post
+                        :url (str base "/api/echo")
+                        :headers {"Content-Type" "application/json"}
+                        :body body}))
+
+(defn- post-chunked
+  [base body]
+  (let [bytes (.getBytes ^String body "UTF-8")
+        request (-> (HttpRequest/newBuilder (URI. (str base "/api/echo")))
+                    (.header "Content-Type" "application/json")
+                    (.POST (HttpRequest$BodyPublishers/ofInputStream
+                            (reify
+                             Supplier
+                               (get [_] (ByteArrayInputStream. bytes)))))
+                    (.build))
+        response (.send (HttpClient/newHttpClient)
+                        request
+                        (HttpResponse$BodyHandlers/ofString))]
+    {:status (.statusCode response) :body (json/read-str (.body response))}))
+
+(defn- with-max-request-bytes
+  [n]
+  (fn [defs]
+    (assoc-in defs
+     [:system/defs :server :jetty-adapter :system/config :max-request-bytes]
+     n)))
+
+(deftest max-request-bytes-test
+  (testing "a body over max-request-bytes is a 413, a body at it is not"
+    (let [handled (atom 0)]
+      (with-test-system
+       [sys
+        ["classpath:server/application-test.yml"
+         #(-> %
+              (assoc-in [:system/defs :server :handler] (echo-app handled))
+              ((with-max-request-bytes max-request-bytes)))]]
+       (let [base (server/http-local-url (system/instance sys
+                                                          [:server
+                                                           :jetty-adapter]))]
+         (testing "a Content-Length over the cap is refused before the handler"
+           (let [res (post-json base (json-of-bytes (inc max-request-bytes)))
+                 body (http-client/res->body res)]
+             (is (= 413 (:status res)))
+             (is (= "server/request-too-large" (get body "type")))
+             (is (= 413 (get body "status")))
+             (is (= max-request-bytes (get body "max-request-bytes")))
+             (is (string? (get body "detail")))
+             (is (zero? @handled))))
+         (testing "a chunked body that grows past the cap is refused"
+           (let [{:keys [status body]} (post-chunked base (json-of-bytes 1000))]
+             (is (= 413 status))
+             (is (= "server/request-too-large" (get body "type")))
+             (is (= max-request-bytes (get body "max-request-bytes")))
+             (is (zero? @handled))))
+         (testing "a body of exactly the cap is accepted"
+           (let [res (post-json base (json-of-bytes max-request-bytes))]
+             (is (= 200 (:status res)))
+             (is (= 1 @handled))))))))
+  (testing "with no max-request-bytes, a large body is accepted"
+    (let [handled (atom 0)]
+      (with-test-system
+       [sys
+        ["classpath:server/application-test.yml"
+         #(assoc-in % [:system/defs :server :handler] (echo-app handled))]]
+       (let [base (server/http-local-url (system/instance sys
+                                                          [:server
+                                                           :jetty-adapter]))]
+         (is (= 200 (:status (post-json base (json-of-bytes 100000)))))
+         (is (= 200 (:status (post-chunked base (json-of-bytes 100000))))))))))
+
+(deftest invalid-max-request-bytes-test
+  (doseq [n [0 -1 1.5 "64"]]
+    (testing (str "refuses max-request-bytes " (pr-str n) " at start")
+      (system/with-system [sys
+                           (error/nom->
+                            (env/config "classpath:server/application-test.yml"
+                                        :test)
+                            system/defs
+                            ((fn [defs]
+                               (assoc-in defs
+                                [:system/defs :server :handler]
+                                (constantly (constantly {:status 200})))))
+                            ((with-max-request-bytes n))
+                            system/start)]
+        (is (error/anomaly? sys))))))
 
 (def ^:private store-concurrency 4)
 

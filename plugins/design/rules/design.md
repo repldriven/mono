@@ -106,7 +106,9 @@ tag on a tagged scalar. A required component (typically the HTTP
 `handler`) is a slot, `system/required-component` in the definition
 and `!system/required-component` in the file, that the bootstrap
 caller fills with `assoc-in` before starting. A start fn returns
-`(or instance ...)`, so a prior instance survives a hot-reload. Don't
+`(or instance ...)`, so a prior instance survives a hot-reload. Set a
+server's `max-in-flight` and `max-request-bytes` in its system
+configuration, never in code; each is unset by default. Don't
 bake an environment name into a shared resource component or its
 config — discriminate environments through env vars and deployment
 values, `*-test-resources` naming the runtime mode rather than an

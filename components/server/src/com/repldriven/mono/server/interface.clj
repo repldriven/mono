@@ -1,4 +1,14 @@
 (ns com.repldriven.mono.server.interface
+  "An HTTP server on Jetty, routed by reitit. The `server/jetty-adapter`
+  kind bounds what a caller can make it take on with two optional keys of
+  its system configuration, each unset by default: `max-in-flight`, how
+  many requests it handles at once, as `wrap-max-in-flight` describes;
+  and `max-request-bytes`, a positive integer, the most bytes a request
+  body may hold. A body whose `Content-Length` exceeds it is refused
+  before any handler runs, and one sent without a length that grows past
+  it while it is read is refused where the read fails; both are a 413
+  with a problem body of type `server/request-too-large` carrying the
+  limit as `max-request-bytes`. Responses are not limited."
   (:require
     [com.repldriven.mono.server.system]
 

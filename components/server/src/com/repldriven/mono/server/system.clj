@@ -1,5 +1,6 @@
 (ns com.repldriven.mono.server.system
   (:require
+    [com.repldriven.mono.server.body-limit :as body-limit]
     [com.repldriven.mono.server.jetty :as server-jetty]
     [com.repldriven.mono.server.shed :as shed]
 
@@ -12,7 +13,7 @@
   (:import
     (java.nio ByteBuffer)
     (java.nio.charset StandardCharsets)
-    (org.eclipse.jetty.http HttpFields$Mutable HttpHeader)
+    (org.eclipse.jetty.http HttpFields$Mutable HttpHeader HttpStatus)
     (org.eclipse.jetty.server Request Response Server)
     (org.eclipse.jetty.server.handler ErrorHandler)
     (org.eclipse.jetty.util Callback)))
@@ -52,14 +53,16 @@
   (.getBytes s StandardCharsets/UTF_8))
 
 (defn- json-error-handler
-  []
+  [max-request-bytes]
   (proxy [ErrorHandler] []
     (handle [^Request request ^Response response ^Callback callback]
       (let [status (.getStatus response)
             message (or (.getAttribute request
                                        ErrorHandler/ERROR_MESSAGE)
                         "Unknown error")
-            body (json-error-body status message "server/error")]
+            body (if (= HttpStatus/PAYLOAD_TOO_LARGE_413 status)
+                   (body-limit/problem-json max-request-bytes)
+                   (json-error-body status message "server/error"))]
         (.put ^HttpFields$Mutable (.getHeaders response)
               HttpHeader/CONTENT_TYPE
               "application/json")
@@ -93,19 +96,22 @@
      (or
       instance
       (let [{:keys [handler interceptors ready-fn options cors max-in-flight
-                    telemetry]}
+                    max-request-bytes telemetry]}
             config
             limiter (some-> max-in-flight
                             limiter-or-throw)
             gauges (when limiter (shed/gauges limiter telemetry))
-            options (assoc options
-                           :configurator
-                           (fn [^Server server]
-                             (server-jetty/exclusive-ephemeral-ports! server)
-                             (server-jetty/on-stop!
-                              server
-                              (fn [] (shed/close-gauges gauges)))
-                             (.setErrorHandler server (json-error-handler))))
+            options
+            (assoc options
+                   :configurator
+                   (fn [^Server server]
+                     (server-jetty/exclusive-ephemeral-ports! server)
+                     (server-jetty/on-stop! server
+                                            (fn [] (shed/close-gauges gauges)))
+                     (when max-request-bytes
+                       (body-limit/configure server max-request-bytes))
+                     (.setErrorHandler server
+                                       (json-error-handler max-request-bytes))))
             ready-thunk (cond (fn? ready-fn)
                               ready-fn
 
@@ -121,7 +127,11 @@
                                             (shed/wrap-limiter
                                              limiter
                                              (shed/rejected-counter
-                                              telemetry)))
+                                              telemetry))
+
+                                            max-request-bytes
+                                            (body-limit/wrap-max-request-bytes
+                                             max-request-bytes))
                                     options)]
         (log/info "Jetty listening on" (server-jetty/http-local-url server))
         server)))
@@ -135,6 +145,7 @@
                           [:handler fn?]
                           [:max-in-flight {:optional true}
                            concurrency-limit/options-schema]
+                          [:max-request-bytes {:optional true} pos-int?]
                           [:telemetry {:optional true} [:maybe map?]]]
    :system/instance-schema some?})
 
