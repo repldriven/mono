@@ -2,17 +2,14 @@
   (:require
     [com.repldriven.mono.error.interface :as error]))
 
-(def ^:private default-initial 8)
-
-(def defaults
-  {:min 1 :max 1000 :headroom 1.5 :windows 10 :window-size 10 :window-ms 1000})
+(def defaults {:headroom 1.5 :windows 10 :window-size 10 :window-ms 1000})
 
 (def schema
   [:or
    pos-int?
    [:map
     {:closed true}
-    [:initial {:optional true} pos-int?]
+    [:initial pos-int?]
     [:min {:optional true} pos-int?]
     [:max {:optional true} pos-int?]
     [:headroom {:optional true} [:and number? [:>= 1]]]
@@ -46,15 +43,15 @@
              (invalid k v (str "max-in-flight " k " must be " expected)))))
         opts))
 
-(defn- with-initial
+(defn- check-initial
   [opts]
-  (let [{lo :min hi :max} opts]
-    (cond-> opts
-            (nil? (:initial opts))
-            (assoc :initial
-                   (-> default-initial
-                       (max lo)
-                       (min hi))))))
+  (when-not (contains? opts :initial)
+    (invalid :initial nil "max-in-flight must name :initial")))
+
+(defn- with-range
+  [opts]
+  (let [{:keys [initial]} opts]
+    (merge defaults {:min initial :max initial} opts)))
 
 (defn- check-order
   [opts]
@@ -73,10 +70,10 @@
   [opts]
   (cond
    (pos-int? opts)
-   (assoc defaults :initial opts :min opts :max opts)
+   (normalise {:initial opts})
 
    (map? opts)
-   (or (check-keys opts) (check-order (with-initial (merge defaults opts))))
+   (or (check-keys opts) (check-initial opts) (check-order (with-range opts)))
 
    :else
    (invalid nil opts "max-in-flight must be a positive integer or a map")))

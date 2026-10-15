@@ -254,7 +254,7 @@
                                                   (int store-concurrency)))))
             (assoc-in [:system/defs :server :jetty-adapter :system/config
                        :max-in-flight]
-                      {:initial 2 :window-size 10 :window-ms 100}))]]
+                      {:initial 2 :max 16 :window-size 10 :window-ms 100}))]]
      (let [base (server/http-local-url (system/instance sys
                                                         [:server
                                                          :jetty-adapter]))

@@ -197,11 +197,12 @@
   the server is. A turned-away request reaches no route, so it has done
   nothing and is safe to send again.
 
-  `max-in-flight` is an integer, a fixed limit, or a map of options for
-  a limit found by measuring, as `concurrency-limit/limiter` takes it:
-  the limit doubles while it binds and throughput keeps rising, then
-  holds at the store's capacity times its unloaded latency, with
-  headroom. A handler that throws releases its permit without a sample.
+  `max-in-flight` is an integer, a fixed limit, or a map of options, as
+  `concurrency-limit/limiter` takes it. Where the map gives a `min` or a
+  `max`, the limit is found by measuring within that range: it doubles
+  while it binds and throughput keeps rising, then holds at the store's
+  capacity times its unloaded latency, with headroom. A handler that
+  throws releases its permit without a sample.
 
   The `server/jetty-adapter` kind applies it to the whole handler when its
   configuration sets `max-in-flight`, which it leaves unset to admit every

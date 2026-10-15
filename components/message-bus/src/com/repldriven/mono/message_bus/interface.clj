@@ -99,13 +99,13 @@
 
 (defn subscription-limiter
   "The concurrency limiter for a consumer of `performers` performers
-  configured with `max-in-flight`: nil where it is nil, a fixed limit
-  where it is an integer, and a dynamic one where it is a map, whose
-  `:max` defaults to `performers`. A backend calls it at start to refuse
+  configured with `max-in-flight`, as `concurrency-limit/limiter` takes
+  it, or nil where it is nil. A backend calls it at start to refuse
   options before a subscription is made.
 
   Returns the limiter, nil, or a rejection — of category
-  `:message-bus/invalid-max-in-flight` where the map's `:max` exceeds
+  `:message-bus/invalid-max-in-flight` where the highest the limit can
+  reach, an integer or a map's `:max`, else its `:initial`, exceeds
   `performers`, or the `concurrency-limit/limiter` one."
   [performers max-in-flight]
   (performers/subscription-limiter performers max-in-flight))

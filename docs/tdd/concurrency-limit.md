@@ -93,8 +93,8 @@ Operations:
 - `limiter` — `(limiter opts)`, where `opts` is a `max-in-flight` value,
   returns a limiter, or an `error/reject` of category
   `:concurrency-limit/invalid-options` whose `:message` names the key
-  at fault. An integer `n` is a fixed limit, the options
-  `{:initial n :min n :max n}`, which the clamp holds still.
+  at fault. An integer `n` is the options `{:initial n}`, whose `min`
+  and `max` are `n`, so the clamp holds it still.
 - `try-acquire` — `(try-acquire limiter)` returns a permit, or nil when
   the limit is reached. It never waits.
 - `acquire` — `(acquire limiter)` returns a permit, waiting until one is
@@ -125,14 +125,14 @@ nothing is, so an idle spell is not counted. A thread interrupted while
 it waits in `acquire` gets an anomaly of category
 `:concurrency-limit/acquire`, with its interrupt status set again.
 
-The options map, every key optional, so `max-in-flight: {}` is a
-dynamic limit with defaults:
+The options map, which must name `initial`; a map naming neither `min`
+nor `max` is a fixed limit:
 
-- `initial` — the limit at start, and the least a search after a
-  quiet spell starts from, default 8, or `max` where lower.
-- `min` — the lowest the limit falls, default 1.
+- `initial` — required; the limit at start, and the least a search
+  after a quiet spell starts from.
+- `min` — the lowest the limit falls, default `initial`.
 - `max` — the highest it rises, and so what bounds the search, default
-  1000 on the server and `performers` on a consumer.
+  `initial`. On a consumer it may not exceed `performers`.
 - `headroom` — the limit as a multiple of the knee, default 1.5, which
   absorbs a burst at the cost of what waits: at 1 the store holds its
   knee and nothing waits, at 2 as much again waits.
@@ -142,9 +142,9 @@ dynamic limit with defaults:
   `window-size` samples (default 10) and has been open `window-ms`
   (default 1000), which sets how fast the limit moves.
 
-The schema refuses `min` above `initial`, `initial` above `max`, and
-`headroom` below 1. A `window-ms` of 0 closes a window on its count
-alone.
+The schema refuses a map without `initial`, `min` above `initial`,
+`initial` above `max`, and `headroom` below 1. A `window-ms` of 0 closes
+a window on its count alone.
 
 ### The estimator
 
@@ -256,20 +256,25 @@ and its dispatcher closes them once the source has closed.
 `max-in-flight` takes the same shapes on the server and on a consumer:
 
 ```yaml
-# fixed: initial, min and max are all 200
+# fixed at 200
 max-in-flight: 200
-
-# dynamic, every key defaulted
-max-in-flight: {}
-
-# dynamic, starting where a fixed limit stood
 max-in-flight: {initial: 200}
+
+# between 100 and 200, starting at 200
+max-in-flight: {min: 100, initial: 200}
+
+# between 200 and 1000, starting at 200
+max-in-flight: {initial: 200, max: 1000}
+
+# between 100 and 1000, starting where a fixed limit stood
+max-in-flight: {min: 100, initial: 200, max: 1000}
 ```
 
 No key names a throughput or a latency. `initial` is where the search starts,
 and the least a search after a quiet spell starts from, so a fixed limit that
-works is a good one; `max` bounds the search; `headroom` trades waiting for
-burst room and leaves throughput as it is.
+works is a good one; `min` and `max` are the range the limit never leaves, and
+without either it stays at `initial`; `headroom` trades waiting for burst room
+and leaves throughput as it is.
 
 The examples below run on virtual threads with the defaults, offered
 more than the store can serve unless they say otherwise. A store's
@@ -279,11 +284,12 @@ latency, and with more than that in flight a request waits its turn.
 - **Replacing a fixed 200, on a larger platform.** The store serves 300
   requests at once at 50 ms, so 6000 a second, and its knee is 300.
   A fixed 200 serves 4000 a second at 50 ms and turns the rest away.
-  With `{initial: 200}`, the first window binds at 4000 a second, so
-  the limit doubles to 400; that window gives 6000, more than 1.25 times
-  4000, so it doubles to 800; that one gives 6000 again, so the state
-  holds. It drains at 225, then holds at 450, serving 6000 a second at
-  75 ms: half as much again as the fixed 200, for 25 ms more.
+  With `{min: 100, initial: 200, max: 1000}`, the first window binds
+  at 4000 a second, so the limit doubles to 400; that window gives 6000,
+  more than 1.25 times 4000, so it doubles to 800; that one gives 6000
+  again, so the state holds. It drains at 225, then holds at 450,
+  serving 6000 a second at 75 ms: half as much again as the fixed 200,
+  for 25 ms more.
 - **The same configuration, on a smaller platform.** The store serves
   120 at once at 50 ms, so 2400 a second, and its knee is 120. The first
   window binds at 2400 a second with 200 in flight, at 83 ms; doubling
@@ -319,7 +325,7 @@ latency, and with more than that in flight a request waits its turn.
   command:
     consumer: !system/local-ref consumers.command
     performers: 16
-    max-in-flight: {}
+    max-in-flight: {min: 1, initial: 8, max: 16}
   ```
 
   The limit starts at 8 and binds at 200 a second, at 40 ms; doubling
@@ -377,23 +383,28 @@ The design landed in three slices, in this order:
   capacity raised mid-run is found by the probe windows; that a limit starting
   above the knee settles at it within a few cycles; that quiet traffic moves
   nothing; that a search after a quiet spell starts from the larger of `initial`
-  and the limit; and that an integer never moves. The limiter's interface test
-  asserts that `try-acquire` refuses at the limit and marks the window bound,
-  that `release` frees a permit, that `:ignored` leaves the window unchanged,
-  and that a waiting `acquire` returns once another permit is released.
+  and the limit; that an integer, or `initial` alone, never moves; and that
+  `min` alone ranges between `min` and `initial`, and `max` alone between
+  `initial` and `max`. The limiter's interface test asserts that `try-acquire`
+  refuses at the limit and marks the window bound, that `release` frees a
+  permit, that `:ignored` leaves the window unchanged, that a waiting `acquire`
+  returns once another permit is released, and that a map without `initial` is
+  refused.
 - **`server`.** The existing `max-in-flight-test` holds with
   `max-in-flight: 1`. A new test starts the adapter with
-  `max-in-flight: {}` and a handler that serves a set number at once at
-  a set latency, offers it more, and asserts that the limit rises past
-  `initial` and holds near `headroom` times the knee, that the gauges
-  read the limit and capacity, and that a probe is never turned away.
+  `max-in-flight: {initial: 2, max: 16}` and a handler that serves a set
+  number at once at a set latency, offers it more, and asserts that the
+  limit rises past `initial` and holds near `headroom` times the knee,
+  that the gauges read the limit and capacity, and that a probe is never
+  turned away.
 - **`message-bus`.** The local backend binds a channel with four
   performers and `max-in-flight: 2`, and asserts that exactly two
   handlers run at once at most, that each key's order holds, and that a
   handler that throws gives its permit back; and one with
-  `max-in-flight: {}`, whose keys keep their order. `subscription-limiter`
-  refuses a `max` above the performers, and `perform` refuses it before
-  it starts.
+  `max-in-flight: {initial: 2, max: 4}`, whose keys keep their order.
+  `subscription-limiter` refuses an integer, a `max`, or an `initial`
+  without one, above the performers, and `perform` refuses it before it
+  starts.
 - **`kafka`.** The performers test's consumer has four performers and
   `max-in-flight: 2` on a one-partition topic, and the test asserts each
   key's order, overlap between keys, no more than two at once, and a
