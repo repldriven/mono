@@ -19,14 +19,19 @@
       (is (= 5 (count (acquire-all limiter))))
       (is (= 5 (SUT/in-flight limiter)))
       (is (nil? (SUT/capacity limiter)))))
-  (testing "a map with no options starts at 8"
-    (is (= 8 (SUT/limit (SUT/limiter {})))))
-  (testing "initial defaults to max where max is lower"
-    (is (= 4 (SUT/limit (SUT/limiter {:max 4}))))))
+  (testing "a map with initial alone is a fixed limit"
+    (let [limiter (SUT/limiter (merge {:initial 1} one-sample-windows))
+          permit (SUT/try-acquire limiter)]
+      (is (nil? (SUT/try-acquire limiter)))
+      (SUT/release permit)
+      (is (= 1 (SUT/limit limiter)))
+      (is (pos? (SUT/capacity limiter))))))
 
 (deftest invalid-options-test
-  (doseq [[opts k] [[{:headroom 0.5} :headroom]
-                    [{:frequency 2} :frequency]
+  (doseq [[opts k] [[{} :initial]
+                    [{:min 2 :max 32} :initial]
+                    [{:initial 8 :headroom 0.5} :headroom]
+                    [{:initial 8 :frequency 2} :frequency]
                     [{:min 10 :initial 5} :min]
                     [{:initial 50 :max 10} :initial]
                     ["twenty" nil]]]

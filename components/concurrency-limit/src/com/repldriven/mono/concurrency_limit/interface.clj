@@ -3,17 +3,18 @@
   limiter doubles its limit while it binds and throughput keeps rising,
   then holds it at the knee — the most throughput measured while the
   limit bound, times the lowest latency measured — with headroom,
-  probing above the knee and draining below it one window in eight.
-  An integer is a fixed limit that never moves."
+  probing above the knee and draining below it one window in eight,
+  and never leaving the range between `min` and `max`. With neither
+  given, the limit is `initial` and never moves."
   (:require
     [com.repldriven.mono.concurrency-limit.core :as core]
     [com.repldriven.mono.concurrency-limit.options :as options]))
 
 (def options-schema
   "The Malli schema of a `max-in-flight` value: a positive integer, a
-  fixed limit, or a map of `:initial`, `:min`, `:max`, `:headroom`,
-  `:windows`, `:window-size` and `:window-ms`, each optional, a dynamic
-  one. A config schema names it for its `max-in-flight` key."
+  fixed limit, or a map of `:initial`, which it requires, and
+  `:min`, `:max`, `:headroom`, `:windows`, `:window-size` and
+  `:window-ms`. A config schema names it for its `max-in-flight` key."
   options/schema)
 
 (defn limiter
@@ -21,11 +22,12 @@
   category `:concurrency-limit/invalid-options` whose `:message` names
   the option at fault.
 
-  An integer `n` is a fixed limit of `n`. A map's options:
-  - initial: the limit at start, and the least a search after a quiet
-    spell starts from, default 8, or `max` where lower.
-  - min: the lowest the limit falls, default 1.
-  - max: the highest it rises, which bounds the search, default 1000.
+  An integer `n` is `{:initial n}`. A map's options:
+  - initial: required; the limit at start, and the least a search
+    after a quiet spell starts from.
+  - min: the lowest the limit falls, default `initial`.
+  - max: the highest it rises, default `initial`. With neither `min`
+    nor `max` the limit is fixed at `initial`.
   - headroom: the limit as a multiple of the knee, at least 1,
     default 1.5.
   - windows: how many windows the estimates are taken over, default 10.

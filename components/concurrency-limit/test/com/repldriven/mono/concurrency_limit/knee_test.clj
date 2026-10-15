@@ -64,39 +64,42 @@
 
 (deftest search-test
   (testing "the limit doubles while throughput rises, then drains and holds"
-    (let [runs (run {:initial 200} (overload larger 8000 5))]
+    (let [runs (run {:initial 200 :max 1000} (overload larger 8000 5))]
       (is (every? true? (map close-to? [200 400 800 225 450] (limits runs))))))
   (testing "a store saturated below the start drains to its knee"
-    (let [runs (run {:initial 200} (overload smaller 8000 40))]
+    (let [runs (run {:min 50 :initial 200 :max 1000}
+                    (overload smaller 8000 40))]
       (is (settled-in? [90 180 225] runs 16)))))
 
 (deftest hold-test
   (testing "the limit holds at headroom times the knee, with drain and probe"
-    (let [runs (run {:initial 200} (overload larger 8000 40))]
+    (let [runs (run {:initial 200 :max 1000} (overload larger 8000 40))]
       (is (settled-in? [225 450 562.5] runs 16))))
   (testing "throughput stays within a few percent of capacity"
-    (let [runs (run {:initial 200} (overload larger 8000 40))
+    (let [runs (run {:initial 200 :max 1000} (overload larger 8000 40))
           throughputs (map (fn [r] (get-in r [:window :throughput]))
                            (take-last 32 (rest runs)))]
       (is (<= (* 0.95 6000) (/ (reduce + throughputs) (count throughputs))))))
   (testing "headroom moves the limit and leaves throughput as it is"
     (is (settled-in? [225 300 375]
-                     (run {:initial 200 :headroom 1} (overload larger 8000 40))
+                     (run {:initial 200 :max 1000 :headroom 1}
+                          (overload larger 8000 40))
                      16))
     (is (settled-in? [225 600 750]
-                     (run {:initial 200 :headroom 2} (overload larger 8000 40))
+                     (run {:initial 200 :max 1000 :headroom 2}
+                          (overload larger 8000 40))
                      16))))
 
 (deftest store-changes-test
   (testing "when every request slows, the knee and the limit stay"
     (let [slower (assoc larger :latency-ms 100)
-          runs (run {:initial 200}
+          runs (run {:initial 200 :max 1000}
                     (concat (overload larger 8000 40)
                             (overload slower 8000 40)))]
       (is (settled-in? [225 450 562.5] runs 16))))
   (testing "capacity raised mid-run is found and held"
     (let [wider (assoc larger :concurrent 400)
-          runs (run {:initial 200}
+          runs (run {:initial 200 :max 1000}
                     (concat (overload larger 8000 40)
                             (overload wider 10000 40)))]
       (is (settled-in? [300 600 750] runs 16)))))
@@ -105,7 +108,7 @@
   (testing "a ramp is turned away below capacity only as it crosses the limit"
     (let [steps (concat (map (fn [i] [larger (* 8000.0 (/ i 60))]) (range 60))
                         (overload larger 8000 20))
-          runs (run {:initial 200} steps)
+          runs (run {:initial 200 :max 1000} steps)
           shed-below-capacity (filter (fn [[[_ load] r]]
                                         (and (< load 6000)
                                              (get-in r [:window :bound?])))
@@ -115,13 +118,13 @@
 
 (deftest quiet-test
   (testing "quiet traffic moves nothing, and a burst searches again"
-    (let [runs (run {:initial 200}
+    (let [runs (run {:initial 200 :max 1000}
                     (concat (repeat 20 [larger 1000])
                             (overload larger 8000 2)))]
       (is (every? (fn [limit] (close-to? 200 limit)) (take 21 (limits runs))))
       (is (close-to? 400 (last (limits runs))))))
   (testing "a search after a quiet spell starts from initial where lower"
-    (let [runs (run {:initial 400}
+    (let [runs (run {:min 50 :initial 400 :max 1000}
                     (concat (overload smaller 8000 40)
                             (repeat 10 [smaller 1000])
                             (overload smaller 8000 2)))
@@ -130,7 +133,7 @@
       (is (close-to? 400 restarted))
       (is (close-to? 800 doubled))))
   (testing "a search after a quiet spell starts from the limit where higher"
-    (let [runs (run {:initial 200}
+    (let [runs (run {:initial 200 :max 1000}
                     (concat (overload larger 8000 40)
                             (repeat 10 [larger 1000])
                             (overload larger 8000 1)))]
@@ -152,10 +155,21 @@
                          (overload {:concurrent 1 :latency-ms 20} 1000 40))))))
   (testing "an integer never moves"
     (is (every? (fn [limit] (close-to? 200 limit))
-                (limits (run 200 (overload larger 8000 40)))))))
+                (limits (run 200 (overload larger 8000 40))))))
+  (testing "initial alone never moves"
+    (is (every? (fn [limit] (close-to? 200 limit))
+                (limits (run {:initial 200} (overload larger 8000 40))))))
+  (testing "min alone ranges between min and initial"
+    (let [runs (run {:min 100 :initial 200} (overload smaller 8000 40))]
+      (is (every? (fn [limit] (<= 100 limit 200)) (limits runs)))
+      (is (settled-in? [100 180 200] runs 16))))
+  (testing "max alone ranges between initial and max"
+    (let [runs (run {:initial 200 :max 1000} (overload larger 8000 40))]
+      (is (every? (fn [limit] (<= 200 limit 1000)) (limits runs)))
+      (is (settled-in? [225 450 562.5] runs 16)))))
 
 (deftest consumer-test
   (testing "sixteen performers settle at the knee of a four-writer store"
-    (let [runs (run {:max 16}
+    (let [runs (run {:min 1 :initial 8 :max 16}
                     (overload {:concurrent 4 :latency-ms 20} 1000 40))]
       (is (settled-in? [3 6 7.5] runs 16)))))

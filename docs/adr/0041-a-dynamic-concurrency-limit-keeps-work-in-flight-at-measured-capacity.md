@@ -22,9 +22,10 @@ by Little's law it is the store's capacity times its unloaded latency.
 A number below the knee turns away work the store had room for; a
 number above it admits work that only waits, and times out after being
 done when the store slows. The property wanted is a limit that finds the
-knee by measuring, without a number configured for each platform,
-follows it as the store changes, and admits a ramp in load as fast as
-the store can take it, without touching what keeps messages in order.
+knee by measuring, within a range configured rather than a number for
+each platform and never outside it, follows it as the store changes,
+and admits a ramp in load as fast as the store can take it, without
+touching what keeps messages in order.
 
 The shortlist:
 
@@ -79,9 +80,9 @@ so the order ADR-0040 keeps is untouched.
 The decision has these parts:
 
 - Configure a limit as `max-in-flight`, one key with one shape on the
-  server and on every consumer: an integer is a fixed limit, a map of
-  `initial`, `min`, `max`, `headroom` and `windows`, each with a
-  default, is a dynamic one, and an absent key sets no limit.
+  server and on every consumer: an integer `n` is `{initial: n}`, a map
+  names `initial` and may name `min`, `max`, `headroom` and `windows`,
+  and an absent key sets no limit.
 - Never configure a throughput or a latency: estimate capacity as the
   highest throughput of the last `windows` windows in which the limit
   bound, and the floor as the lowest latency of those windows.
@@ -100,8 +101,9 @@ The decision has these parts:
 - Leave the estimate as it is after a window in which the limit did not
   bind, so quiet traffic never lowers it, and search again once no
   window in the last `windows` bound.
-- Keep the limit between `min` and `max`; on a consumer `max` defaults
-  to, and never exceeds, `performers`.
+- Keep the limit between `min` and `max`, each `initial` where unset,
+  so a map naming neither is a fixed limit; on a consumer the highest
+  the limit can reach never exceeds `performers`.
 - Count a handler that throws in neither throughput nor latency, so a
   quick failure moves no estimate.
 - Turn away a request beyond the server's limit, as `max-in-flight` does
@@ -123,28 +125,29 @@ performers run as many handlers at once as its store can serve:
 jetty-adapter: !system/component
   system/component-kind: server/jetty-adapter
   handler: !system/local-ref handler
-  max-in-flight: {initial: 200}
+  max-in-flight: {min: 100, initial: 200, max: 1000}
 
 message-bus-consumers: !system/component
   system/component-kind: kafka/message-bus-consumers
   command:
     consumer: !system/local-ref consumers.command
     performers: 16
-    max-in-flight: {}
+    max-in-flight: {min: 1, initial: 8, max: 16}
 ```
 
 On a platform whose store saturates past 200, the limit doubles while
 throughput rises and holds above 200; on one that saturates below it,
 the drain windows find the floor and the limit settles below 200. The
-configuration is the same on both.
+configuration is the same on both, and on neither does the limit leave
+100 to 1000.
 
 ## Consequences
 
 Easier:
 
-- A process runs at the most throughput the store gives, found without
-  a number configured for each platform, and follows it as the store
-  changes.
+- A process runs at the most throughput the store gives, found within a
+  range rather than tuned as a number for each platform, and follows it
+  as the store changes.
 - A ramp in load is admitted as fast as the limit doubles, so work the
   store has room for is not turned away.
 - A store whose every request slows loses capacity as its floor rises,
@@ -160,6 +163,8 @@ Easier:
 
 Harder:
 
+- A knee outside the configured range is never reached: the limit sits
+  at `min` or `max`, which the limit gauge shows beside capacity.
 - A limit that moves is harder to read than a number: the limit and
   capacity gauges are read beside `mono.server.request.rejected` and
   request latency.

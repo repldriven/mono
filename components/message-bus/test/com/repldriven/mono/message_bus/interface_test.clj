@@ -1,6 +1,7 @@
 (ns com.repldriven.mono.message-bus.interface-test
   (:require
     [com.repldriven.mono.message-bus.interface :as SUT]
+    [com.repldriven.mono.concurrency-limit.interface :as concurrency-limit]
     [com.repldriven.mono.error.interface :as error]
     [com.repldriven.mono.system.interface :as system]
     [com.repldriven.mono.test-system.interface :refer
@@ -238,12 +239,18 @@
     (is (nil? (SUT/subscription-limiter 4 nil))))
   (testing "an integer is a fixed limit"
     (is (some? (SUT/subscription-limiter 4 2))))
-  (testing "a map's max may not exceed the performers"
-    (let [result (SUT/subscription-limiter 4 {:max 8})]
-      (is (error/rejection? result))
-      (is (= :message-bus/invalid-max-in-flight (error/kind result)))))
+  (testing "a map's max is not raised to the performers"
+    (is (= 2
+           (concurrency-limit/limit (SUT/subscription-limiter 4 {:initial 2}))))
+    (is (some? (SUT/subscription-limiter 4 {:initial 2 :max 4}))))
+  (doseq [max-in-flight [8 {:initial 8} {:initial 2 :max 8}]]
+    (testing (str "refuses " (pr-str max-in-flight) " above 4 performers")
+      (let [result (SUT/subscription-limiter 4 max-in-flight)]
+        (is (error/rejection? result))
+        (is (= :message-bus/invalid-max-in-flight (error/kind result)))
+        (is (= 8 (:max (error/payload result)))))))
   (testing "perform refuses invalid options before it starts"
     (is (error/anomaly? (SUT/perform (async/chan)
                                      identity
                                      {:performers 4
-                                      :max-in-flight {:max 8}})))))
+                                      :max-in-flight {:initial 2 :max 8}})))))

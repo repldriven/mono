@@ -59,23 +59,23 @@
 (defn subscription-limiter
   [performers max-in-flight]
   (let [n (max 1 (or performers 1))
-        {hi :max} (when (map? max-in-flight) max-in-flight)]
+        hi (if (map? max-in-flight)
+             (let [{:keys [initial max]} max-in-flight]
+               (or max initial))
+             max-in-flight)]
     (cond
      (nil? max-in-flight)
      nil
 
-     (and hi (> hi n))
+     (and (pos-int? hi) (> hi n))
      (error/reject :message-bus/invalid-max-in-flight
-                   {:message (str "max-in-flight :max "
+                   {:message (str "max-in-flight reaches "
                                   hi
-                                  " exceeds the consumer's "
+                                  ", more than the consumer's "
                                   n
                                   " performers")
                     :max hi
                     :performers n})
-
-     (map? max-in-flight)
-     (concurrency-limit/limiter (merge {:max n} max-in-flight))
 
      :else
      (concurrency-limit/limiter max-in-flight))))

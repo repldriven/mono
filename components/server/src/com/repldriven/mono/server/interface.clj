@@ -1,4 +1,14 @@
 (ns com.repldriven.mono.server.interface
+  "An HTTP server on Jetty, routed by reitit. The `server/jetty-adapter`
+  kind bounds what a caller can make it take on with two optional keys of
+  its system configuration, each unset by default: `max-in-flight`, how
+  many requests it handles at once, as `wrap-max-in-flight` describes;
+  and `max-request-bytes`, a positive integer, the most bytes a request
+  body may hold. A body whose `Content-Length` exceeds it is refused
+  before any handler runs, and one sent without a length that grows past
+  it while it is read is refused where the read fails; both are a 413
+  with a problem body of type `server/request-too-large` carrying the
+  limit as `max-request-bytes`. Responses are not limited."
   (:require
     [com.repldriven.mono.server.system]
 
@@ -197,11 +207,12 @@
   the server is. A turned-away request reaches no route, so it has done
   nothing and is safe to send again.
 
-  `max-in-flight` is an integer, a fixed limit, or a map of options for
-  a limit found by measuring, as `concurrency-limit/limiter` takes it:
-  the limit doubles while it binds and throughput keeps rising, then
-  holds at the store's capacity times its unloaded latency, with
-  headroom. A handler that throws releases its permit without a sample.
+  `max-in-flight` is an integer, a fixed limit, or a map of options, as
+  `concurrency-limit/limiter` takes it. Where the map gives a `min` or a
+  `max`, the limit is found by measuring within that range: it doubles
+  while it binds and throughput keeps rising, then holds at the store's
+  capacity times its unloaded latency, with headroom. A handler that
+  throws releases its permit without a sample.
 
   The `server/jetty-adapter` kind applies it to the whole handler when its
   configuration sets `max-in-flight`, which it leaves unset to admit every

@@ -1,5 +1,7 @@
 (ns com.repldriven.mono.server.router
   (:require
+    [com.repldriven.mono.server.body-limit :as body-limit]
+
     [com.repldriven.mono.log.interface :as log]
     [com.repldriven.mono.utility.interface :as util]
 
@@ -42,47 +44,57 @@
                           :schema (pr-str (:schema e))})
                        errors)))))
 
+(defn- internal-error
+  [^Throwable e request]
+  (let [{:keys [request-method uri]} request]
+    (log/error e
+               (str (some-> request-method
+                            name
+                            .toUpperCase)
+                    " " uri
+                    " -> " (.getName (class e))
+                    ": " (ex-message e)))
+    {:status 500
+     :body {:title "FAILED"
+            :type "server/internal-error"
+            :status 500
+            :detail (or (ex-message e) (.getSimpleName (class e)))}}))
+
 (def default-exception-handlers
   "Default exception handlers for Reitit router. Every handler returns an
   RFC 9457-shaped body. Only the catch-all `::exception/default` logs — the
-  known client-triggered cases (bad JSON, failed coercion) are expected and
-  would flood the logs if each one produced a stack trace."
-  (merge
-   exception/default-handlers
-   {::exception/default (fn [^Throwable e {:keys [request-method uri]}]
-                          (log/error e
-                                     (str (some-> request-method
-                                                  name
-                                                  .toUpperCase)
-                                          " " uri
-                                          " -> " (.getName (class e))
-                                          ": " (ex-message e)))
-                          {:status 500
-                           :body {:title "FAILED"
-                                  :type "server/internal-error"
-                                  :status 500
-                                  :detail (or (ex-message e)
-                                              (.getSimpleName (class e)))}})
-    :muuntaja/decode (fn [_e _req]
-                       {:status 400
-                        :body {:title "REJECTED"
-                               :type "server/malformed-body"
-                               :status 400
-                               :detail "Malformed JSON request body"}})
-    :reitit.coercion/request-coercion (fn [ex _req]
-                                        {:status 400
-                                         :body {:title "REJECTED"
-                                                :type "server/bad-request"
-                                                :status 400
-                                                :detail (explain->detail
-                                                         (ex-data ex))}})
-    :reitit.coercion/response-coercion (fn [ex _req]
-                                         {:status 500
-                                          :body {:title "FAILED"
-                                                 :type "server/bad-response"
-                                                 :status 500
-                                                 :detail (explain->detail
-                                                          (ex-data ex))}})}))
+  known client-triggered cases (bad JSON, failed coercion, a body larger
+  than the adapter's `max-request-bytes`) are expected and would flood the
+  logs if each one produced a stack trace. A body found too large while it
+  is read is a 413 of type `server/request-too-large`, wherever the read
+  fails."
+  (merge exception/default-handlers
+         {::exception/default (fn [^Throwable e request]
+                                (if (body-limit/too-large? e)
+                                  (body-limit/response request)
+                                  (internal-error e request)))
+          :muuntaja/decode (fn [e request]
+                             (if (body-limit/too-large? e)
+                               (body-limit/response request)
+                               {:status 400
+                                :body {:title "REJECTED"
+                                       :type "server/malformed-body"
+                                       :status 400
+                                       :detail "Malformed JSON request body"}}))
+          :reitit.coercion/request-coercion (fn [ex _req]
+                                              {:status 400
+                                               :body {:title "REJECTED"
+                                                      :type "server/bad-request"
+                                                      :status 400
+                                                      :detail (explain->detail
+                                                               (ex-data ex))}})
+          :reitit.coercion/response-coercion
+          (fn [ex _req]
+            {:status 500
+             :body {:title "FAILED"
+                    :type "server/bad-response"
+                    :status 500
+                    :detail (explain->detail (ex-data ex))}})}))
 
 (def ^:private request-log
   {:name ::request-log

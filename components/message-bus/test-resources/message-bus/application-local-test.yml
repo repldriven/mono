@@ -9,4 +9,4 @@ system:
         dynamic: 4
       max-in-flight:
         limited: 2
-        dynamic: {}
+        dynamic: {initial: 2, max: 4}

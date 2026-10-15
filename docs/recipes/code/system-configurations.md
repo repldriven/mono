@@ -70,9 +70,15 @@ system:
       system/component-kind: server/jetty-adapter
       handler: !system/local-ref handler
       interceptors: !system/local-ref interceptors
+      max-in-flight: {min: 16, initial: 64, max: 256}
+      max-request-bytes: 1048576
       options:
         port: !long [!or [!env REALWORLD_PORT, 8091]]
 ```
+
+`max-in-flight` bounds how many requests the adapter handles at once, and
+`max-request-bytes` how large a request body it reads; a body over it is a 413.
+Each is unset by default, which admits every request and every body.
 
 ### Tag literals
 
@@ -212,6 +218,8 @@ At the REPL, the same calls reach the same code through the base's
 - Split large configurations into per-group sub-files via `!include`.
 - Profile-gate testcontainers infrastructure groups so tests and prod
   can share the same top-level configuration.
+- Set a server's `max-in-flight` and `max-request-bytes` in its system
+  configuration, never in code; each is unset by default.
 - Keep a system configuration beside the brick or base it belongs to —
   `resources/<base>/application.yml` at runtime,
   `test-resources/<name>/application-test.yml` for tests — loaded by
