@@ -29,7 +29,7 @@
         components/realworld-store {:local/root
                                     "../../components/realworld-store"}
         bases/realworld-api {:local/root "../../bases/realworld-api"}
-        org.postgresql/postgresql {:mvn/version "42.7.13"}
+        org.postgresql/postgresql {:mvn/version "42.7.14"}
         org.clojure/clojure {:mvn/version "1.12.6"}}
  :aliases
  {:test
