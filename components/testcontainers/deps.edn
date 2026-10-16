@@ -8,5 +8,5 @@
                                    :exclusions [org.apache.pulsar/pulsar-client
                                                 org.apache.pulsar/pulsar-admin]}
         org.testcontainers/postgresql {:mvn/version "1.21.4"}
-        com.github.dasniko/testcontainers-keycloak {:mvn/version "4.3.1"}}
+        com.github.dasniko/testcontainers-keycloak {:mvn/version "4.4.0"}}
  :paths ["src"]}
