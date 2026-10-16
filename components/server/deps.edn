@@ -9,7 +9,7 @@
         ;; that is depending on reitit's bundling rather than on sieppari.
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}
         ring-logger-timbre/ring-logger-timbre {:mvn/version "0.7.6"}
-        info.sunng/ring-jetty9-adapter {:mvn/version "0.40.4"}
+        info.sunng/ring-jetty9-adapter {:mvn/version "0.40.5"}
         ring/ring-json {:mvn/version "0.5.1" :exclusions [cheshire/cheshire]}
         ;; Pin cheshire to 6.1.0: ring-json 0.5.1 ships 5.10.0 which brings
         ;; jackson-dataformat-cbor 2.10.2 (CVE-2020-28491, fixed in
