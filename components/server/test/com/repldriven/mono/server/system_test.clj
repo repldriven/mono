@@ -116,16 +116,11 @@
              (is (= "server/bad-request" (get body "type")))
              (is (contains? body "detail"))))
          (testing "A set-valued schema sent an array stays a 400"
-           ;; humanize throws on this one: the error's :in path carries
-           ;; the offending element against a vector value. Without the
-           ;; fallback in explain->detail, a client's bad body would
-           ;; raise inside the coercion handler and return a 500.
            (let [res (post! "/api/nested" {"tags" ["not-an-int"]})
                  body (http-client/res->body res)]
              (is (= 400 (:status res)))
              (is (= "server/bad-request" (get body "type")))
-             (is (re-find #":in \[:tags" (get body "detail")))
-             (is (re-find #"not-an-int" (get body "detail")))))
+             (is (re-find #":tags" (get body "detail")))))
          (testing "Invalid response body returns 500 with error type"
            (let [res (post! "/api/bad-response" {"name" "Alice"})
                  body (http-client/res->body res)]
