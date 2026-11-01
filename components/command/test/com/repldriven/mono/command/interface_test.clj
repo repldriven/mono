@@ -196,16 +196,21 @@
           "outcome-failed" (error/fail :outcome/broken {:message "broken"})
           {:status "ACCEPTED" :payload nil}))
       {:command-channel :command :command-response-channel :command-response})
-     (doseq [[command expected]
-             [["outcome-accepted"
-               {:status "ACCEPTED" :reason nil :error? false}]
-              ["outcome-rejected"
-               {:status "REJECTED" :reason ":outcome/declined" :error? false}]
-              ["outcome-failed"
-               {:status "FAILED" :reason ":outcome/broken" :error? true}]]]
-       (testing (str command " is recorded on both spans")
-         (SUT/send d {:command command :id command :correlation-id command})
-         (doseq [span-name ["process-command" "command-send"]]
-           (let [span (awaited-span otel span-name command)]
-             (is (some? span) (str span-name " closed"))
-             (is (= expected (outcome span)) span-name))))))))
+     ;; with-span-tests holds the hub as the default tracer, so a telemetry
+     ;; test running alongside cannot take these spans: without it they go
+     ;; to that test's SDK and never reach otel.
+     (test-telemetry/with-span-tests
+      [_ ["command-send"]]
+      (doseq [[command expected]
+              [["outcome-accepted"
+                {:status "ACCEPTED" :reason nil :error? false}]
+               ["outcome-rejected"
+                {:status "REJECTED" :reason ":outcome/declined" :error? false}]
+               ["outcome-failed"
+                {:status "FAILED" :reason ":outcome/broken" :error? true}]]]
+        (testing (str command " is recorded on both spans")
+          (SUT/send d {:command command :id command :correlation-id command})
+          (doseq [span-name ["process-command" "command-send"]]
+            (let [span (awaited-span otel span-name command)]
+              (is (some? span) (str span-name " closed"))
+              (is (= expected (outcome span)) span-name)))))))))
