@@ -2,7 +2,7 @@
   "name": "systems_as_data",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@12.4.2",
+  "packageManager": "pnpm@12.16.1",
   "scripts": {
     "build": "slidev build",
     "dev": "slidev --open",
