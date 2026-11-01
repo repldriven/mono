@@ -6,8 +6,11 @@
     [com.repldriven.mono.log.interface :as log])
   (:import
     (org.apache.pulsar.client.admin PulsarAdmin Schemas Topics)
-    (org.apache.pulsar.common.naming TopicName)
     (org.apache.pulsar.common.protocol.schema PostSchemaPayload)))
+
+(defn- topic-namespace
+  [topic]
+  (second (re-matches #"[a-z-]+://([^/]+/[^/]+)/.+" topic)))
 
 (defn- create-topic-schema
   [^PulsarAdmin admin ^String fully-qualified-topic-name
@@ -18,8 +21,8 @@
 (defn- create
   [^PulsarAdmin admin fully-qualified-topic-name &
    {:keys [partitions schema] :or {partitions 1}}]
-  (let [^TopicName topic-name (TopicName/get fully-qualified-topic-name)
-        fully-qualified-namespace-name (.getNamespace topic-name)
+  (let [fully-qualified-namespace-name (topic-namespace
+                                        fully-qualified-topic-name)
         ^Topics topics (.topics admin)
         ;; We always create partitioned topics, so the existence
         ;; check must query the partitioned-topic list — `.getList`
@@ -65,16 +68,13 @@
   `createProducer` with `TopicDoesNotExistException`. Refuse to
   declare migration successful if the topology isn't fully usable."
   [^PulsarAdmin admin topics]
-  (let [namespaces (set (map #(.getNamespace
-                               (TopicName/get ^String (:topic %)))
-                             topics))
+  (let [namespaces (set (map (comp topic-namespace :topic) topics))
         ;; `getList` returns the physical topics, including each
         ;; partition under its `<topic>-partition-N` name. Union
         ;; across every namespace touched by the manifest (in
         ;; practice always one, but no reason to assume).
-        present (into #{}
-                      (mapcat #(.getList ^Topics (.topics admin) %))
-                      namespaces)
+        present
+        (into #{} (mapcat #(.getList ^Topics (.topics admin) %)) namespaces)
         expected (into #{} (mapcat expected-partition-names) topics)
         missing (vec (sort (set/difference expected present)))]
     (if (seq missing)
@@ -83,8 +83,7 @@
                    "Pulsar topology missing partition(s) after creation"
                    :missing missing
                    :expected-count (count expected)
-                   :present-count (count (set/intersection expected
-                                                           present))})
+                   :present-count (count (set/intersection expected present))})
       (do (log/info "Pulsar topology audit OK; partitions present:"
                     (count expected))
           :ok))))
@@ -92,14 +91,13 @@
 (defn create-topics
   [{:keys [^PulsarAdmin admin schemas topics]}]
   (log/info "Creating Pulsar topics:" (map :topic topics))
-  (try-nom
-   :pulsar/topics-create
-   "Failed to create Pulsar topics"
-   (doall (mapv (fn [{:keys [topic] :as opts}]
-                  (let [resolved-opts (update opts
-                                              :schema
-                                              #(schemas/resolve-payload schemas
-                                                                        %))]
-                    (create admin topic (dissoc resolved-opts :topic))))
-                topics))
-   (audit-partitions admin topics)))
+  (try-nom :pulsar/topics-create
+           "Failed to create Pulsar topics"
+           (doall (mapv (fn [{:keys [topic] :as opts}]
+                          (let [resolved-opts
+                                (update opts
+                                        :schema
+                                        #(schemas/resolve-payload schemas %))]
+                            (create admin topic (dissoc resolved-opts :topic))))
+                        topics))
+           (audit-partitions admin topics)))
