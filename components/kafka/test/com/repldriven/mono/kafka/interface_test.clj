@@ -398,59 +398,65 @@
                          (fn [_envelope] {:status "ACCEPTED" :payload nil})
                          {:command-channel :command
                           :command-response-channel :command-response})]
-     (try
-       (let [reply (command/send dispatcher
-                                 {:id command-id
-                                  :command "create-pet"
-                                  :correlation-id (str (util/uuidv7))
-                                  :causation-id nil
-                                  :traceparent nil
-                                  :tracestate nil
-                                  :payload nil
-                                  :reply-to nil}
-                                 {:timeout-ms 30000 :key command-id})
-             processed (awaited-span
-                        otel
-                        (fn [span]
-                          (and (= "process-command" (.getName span))
-                               (= command-id (string-attribute span "id")))))
-             sent
-             (awaited-span
-              otel
-              (fn [span]
-                (and (= "bus-send" (.getName span))
-                     (= "topic-command"
-                        (string-attribute span "messaging.destination.name"))
-                     (= command-id
-                        (string-attribute span
-                                          "messaging.kafka.message.key")))))]
-         (is (= "ACCEPTED" (:status reply)))
-         (testing "the consumer span says where the record was read from"
-           (is (some? processed))
-           (is (= {"messaging.system" "kafka"
-                   "messaging.operation.type" "process"
-                   "messaging.destination.name" "topic-command"
-                   "messaging.destination.partition.id" (str (partition-for
-                                                              command-id))
-                   "messaging.consumer.group.name" "command-subscriber"
-                   "messaging.kafka.consumer.group" "command-subscriber"
-                   "messaging.kafka.message.key" command-id}
-                  (into {}
-                        (map (fn [k] [k (string-attribute processed k)]))
-                        ["messaging.system" "messaging.operation.type"
-                         "messaging.destination.name"
-                         "messaging.destination.partition.id"
-                         "messaging.consumer.group.name"
-                         "messaging.kafka.consumer.group"
-                         "messaging.kafka.message.key"]))))
-         (testing "the producer span names the record the consumer read"
-           (is (some? sent))
-           (is (= "kafka" (string-attribute sent "messaging.system")))
-           (is (= "send" (string-attribute sent "messaging.operation.type")))
-           (is (= (string-attribute processed
-                                    "messaging.destination.partition.id")
-                  (string-attribute sent "messaging.destination.partition.id")))
-           (is (= (long-attribute processed "messaging.kafka.offset")
-                  (long-attribute sent "messaging.kafka.offset")
-                  (long-attribute sent "messaging.kafka.message.offset")))))
-       (finally (stop))))))
+     ;; with-span-tests holds the hub as the default tracer, so a telemetry
+     ;; test running alongside cannot take these spans: without it they go
+     ;; to that test's SDK and never reach otel.
+     (test-telemetry/with-span-tests
+      [_ ["command-send"]]
+      (try
+        (let [reply (command/send dispatcher
+                                  {:id command-id
+                                   :command "create-pet"
+                                   :correlation-id (str (util/uuidv7))
+                                   :causation-id nil
+                                   :traceparent nil
+                                   :tracestate nil
+                                   :payload nil
+                                   :reply-to nil}
+                                  {:timeout-ms 30000 :key command-id})
+              processed (awaited-span
+                         otel
+                         (fn [span]
+                           (and (= "process-command" (.getName span))
+                                (= command-id (string-attribute span "id")))))
+              sent
+              (awaited-span
+               otel
+               (fn [span]
+                 (and (= "bus-send" (.getName span))
+                      (= "topic-command"
+                         (string-attribute span "messaging.destination.name"))
+                      (= command-id
+                         (string-attribute span
+                                           "messaging.kafka.message.key")))))]
+          (is (= "ACCEPTED" (:status reply)))
+          (testing "the consumer span says where the record was read from"
+            (is (some? processed))
+            (is (= {"messaging.system" "kafka"
+                    "messaging.operation.type" "process"
+                    "messaging.destination.name" "topic-command"
+                    "messaging.destination.partition.id" (str (partition-for
+                                                               command-id))
+                    "messaging.consumer.group.name" "command-subscriber"
+                    "messaging.kafka.consumer.group" "command-subscriber"
+                    "messaging.kafka.message.key" command-id}
+                   (into {}
+                         (map (fn [k] [k (string-attribute processed k)]))
+                         ["messaging.system" "messaging.operation.type"
+                          "messaging.destination.name"
+                          "messaging.destination.partition.id"
+                          "messaging.consumer.group.name"
+                          "messaging.kafka.consumer.group"
+                          "messaging.kafka.message.key"]))))
+          (testing "the producer span names the record the consumer read"
+            (is (some? sent))
+            (is (= "kafka" (string-attribute sent "messaging.system")))
+            (is (= "send" (string-attribute sent "messaging.operation.type")))
+            (is (= (string-attribute processed
+                                     "messaging.destination.partition.id")
+                   (string-attribute sent
+                                     "messaging.destination.partition.id")))
+            (is (= (long-attribute processed "messaging.kafka.offset")
+                   (long-attribute sent "messaging.kafka.offset")
+                   (long-attribute sent "messaging.kafka.message.offset")))))
+        (finally (stop)))))))
