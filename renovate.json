@@ -31,8 +31,8 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "io.github.seancorfield/polylith-external-test-runner",
-        "/^polylith//"
+        "seancorfield/polylith-external-test-runner",
+        "/^polylith:/"
       ]
     },
     {
@@ -83,7 +83,7 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "/^metosin//"
+        "/^metosin:/"
       ]
     },
     {
@@ -92,13 +92,13 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "metosin/reitit",
-        "info.sunng/ring-jetty9-adapter",
-        "/^http-kit//",
-        "/^http-kit\\.fake//",
-        "/^ring//",
-        "/^ring-logger-timbre//",
-        "/^compojure//"
+        "metosin:reitit",
+        "info.sunng:ring-jetty9-adapter",
+        "/^http-kit:/",
+        "/^http-kit\\.fake:/",
+        "/^ring:/",
+        "/^ring-logger-timbre:/",
+        "/^compojure:/"
       ]
     },
     {
@@ -107,8 +107,8 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "com.github.seancorfield/next.jdbc",
-        "com.github.seancorfield/honeysql",
+        "com.github.seancorfield:next.jdbc",
+        "com.github.seancorfield:honeysql",
         "/^org\\.postgresql:/",
         "/^org\\.liquibase:/"
       ]
@@ -128,9 +128,9 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "com.gfredericks/test.chuck",
-        "org.clojure/test.check",
-        "/^eftest//"
+        "com.gfredericks:test.chuck",
+        "org.clojure:test.check",
+        "/^eftest:/"
       ]
     },
     {
@@ -139,8 +139,8 @@
         "deps-edn"
       ],
       "matchPackageNames": [
-        "io.github.clojure/tools.build",
-        "io.github.seancorfield/build-clj"
+        "io.github.clojure:tools.build",
+        "io.github.seancorfield:build-clj"
       ]
     },
     {
