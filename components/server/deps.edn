@@ -3,7 +3,7 @@
         ;; router.clj requires malli.error directly. reitit happens to
         ;; bring malli too, but depending on that is depending on reitit's
         ;; bundling rather than on malli.
-        metosin/malli {:mvn/version "0.20.1"}
+        metosin/malli {:mvn/version "0.20.3"}
         ;; interceptors.clj requires sieppari.context directly, for
         ;; `sc/terminate`. reitit brings sieppari too, but depending on
         ;; that is depending on reitit's bundling rather than on sieppari.
