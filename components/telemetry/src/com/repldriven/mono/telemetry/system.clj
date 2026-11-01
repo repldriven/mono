@@ -5,7 +5,7 @@
     [clojure.string :as string]
     [steffan-westcott.clj-otel.api.metrics.instrument :as instrument]
     [steffan-westcott.clj-otel.api.trace.span :as span]
-    [steffan-westcott.clj-otel.instrumentation.runtime-telemetry-java17 :as
+    [steffan-westcott.clj-otel.instrumentation.runtime-telemetry :as
      runtime-telemetry]
     [steffan-westcott.clj-otel.sdk.meter-provider :as meter]
     [steffan-westcott.clj-otel.sdk.otel-sdk :as sdk])
@@ -81,9 +81,9 @@
                (cond-> {:sdk otel-sdk :exporter exporter}
                        metrics
                        (assoc :metric-exporter metrics
-                              :runtime-metrics (runtime-telemetry/register!
-                                                otel-sdk
-                                                {:jfr false})))))))))
+                              :runtime-metrics (runtime-telemetry/create!
+                                                {:open-telemetry
+                                                 otel-sdk})))))))))
    :system/stop (fn [{:system/keys [instance]}]
                   (when instance
                     (log/info "Stopping OpenTelemetry SDK")
