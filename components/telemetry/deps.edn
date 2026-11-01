@@ -1,7 +1,7 @@
 {:paths ["src"]
  :aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
  :deps {com.github.steffan-westcott/clj-otel-api {:mvn/version "0.2.10"}
-        com.github.steffan-westcott/clj-otel-sdk {:mvn/version "0.2.10"}
+        com.github.steffan-westcott/clj-otel-sdk {:mvn/version "0.2.11"}
         ;; The OTLP exporter's default HTTP sender is OkHttp, which is written
         ;; in Kotlin and drags in kotlin-stdlib; swap it for the JDK
         ;; HttpClient sender, which the exporter picks up over the same SPI
