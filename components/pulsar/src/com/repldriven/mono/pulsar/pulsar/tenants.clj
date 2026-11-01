@@ -4,7 +4,7 @@
     [com.repldriven.mono.log.interface :as log])
   (:import
     (org.apache.pulsar.client.admin PulsarAdmin Tenants)
-    (org.apache.pulsar.common.policies.data TenantInfo TenantInfoImpl)))
+    (org.apache.pulsar.common.policies.data TenantInfo)))
 
 (defn- create
   [^PulsarAdmin admin tenant-name &
@@ -12,8 +12,10 @@
   (let [^Tenants tenants (.tenants admin)
         tenant-names (.getTenants tenants)]
     (when-not (contains? (set tenant-names) tenant-name)
-      (let [^TenantInfo tenant-info (TenantInfoImpl. (set roles)
-                                                     (set clusters))]
+      (let [^TenantInfo tenant-info (-> (TenantInfo/builder)
+                                        (.adminRoles (set roles))
+                                        (.allowedClusters (set clusters))
+                                        (.build))]
         (log/info "Creating Pulsar tenant:" tenant-name)
         (.createTenant tenants tenant-name tenant-info)))))
 
