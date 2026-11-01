@@ -1,21 +1,21 @@
 {:paths ["src"]
  :aliases {:test {:extra-deps {} :extra-paths ["test" "test-resources"]}}
- :deps {com.github.steffan-westcott/clj-otel-api {:mvn/version "0.2.10"}
-        com.github.steffan-westcott/clj-otel-sdk {:mvn/version "0.2.10"}
+ :deps {com.github.steffan-westcott/clj-otel-api {:mvn/version "0.2.11"}
+        com.github.steffan-westcott/clj-otel-sdk {:mvn/version "0.2.11"}
         ;; The OTLP exporter's default HTTP sender is OkHttp, which is written
         ;; in Kotlin and drags in kotlin-stdlib; swap it for the JDK
         ;; HttpClient sender, which the exporter picks up over the same SPI
         io.opentelemetry/opentelemetry-exporter-otlp
-        {:mvn/version "1.54.1"
+        {:mvn/version "1.67.0"
          :exclusions [io.opentelemetry/opentelemetry-exporter-sender-okhttp]}
         ;; Every OpenTelemetry artifact here stays on the version clj-otel
-        ;; builds against: sdk-trace 1.54.1 calls into sdk-internal classes a
-        ;; newer sdk-common no longer has, so a lone bump of any one of them
-        ;; fails every tracer provider at class init. Renovate is disabled for
+        ;; builds against: the exporter calls into sdk-internal classes that
+        ;; another sdk-common version may not have, so a lone bump of either
+        ;; side fails every exporter at class init. Renovate is disabled for
         ;; them, and they move together when clj-otel itself moves
-        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.54.1"}
+        io.opentelemetry/opentelemetry-exporter-sender-jdk {:mvn/version "1.67.0"}
         ;; The JVM's own metrics -- garbage collection, memory pools, threads,
-        ;; CPU -- built on the same OpenTelemetry version as clj-otel 0.2.10
-        com.github.steffan-westcott/clj-otel-instrumentation-runtime-telemetry-java17
-        {:mvn/version "0.2.10"}
+        ;; CPU -- released with clj-otel, on the OpenTelemetry version it uses
+        com.github.steffan-westcott/clj-otel-instrumentation-runtime-telemetry
+        {:mvn/version "0.2.11"}
         metosin/sieppari {:mvn/version "0.0.0-alpha13"}}}
