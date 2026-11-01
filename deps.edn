@@ -48,7 +48,7 @@
     bases/service {:local/root "bases/service"}
     org.clojure/clojure {:mvn/version "1.12.6"}
     org.clojure/core.async {:mvn/version "1.9.865"}
-    djblue/portal {:mvn/version "0.67.1"}}
+    djblue/portal {:mvn/version "0.68.1"}}
    :main-opts ["-e" "(require '[portal.nrepl :as portal])"]
    :extra-paths ["development/resources"]
    :jvm-opts
@@ -128,7 +128,7 @@
   :nvd {:extra-deps #:nvd-clojure{nvd-clojure {:mvn/version "5.3.0"}}
         :main-opts ["-m" "nvd.task.check"]}
   :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.8.0"}
-                       cider/cider-nrepl {:mvn/version "0.62.2"}}
+                       cider/cider-nrepl {:mvn/version "0.64.0"}}
           :main-opts ["-m"
                       "nrepl.cmdline"
                       "--middleware"

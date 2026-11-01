@@ -6,7 +6,7 @@
  ;; Caffeine is declared optional by pulsar-client-all, so it is not resolved
  ;; transitively, but MessageCryptoBc needs it for its encryption key caches
  :deps {org.clojure/core.async {:mvn/version "1.9.865"}
-        com.github.ben-manes.caffeine/caffeine {:mvn/version "3.2.4"}
+        com.github.ben-manes.caffeine/caffeine {:mvn/version "3.3.1"}
         org.apache.pulsar/pulsar-client-all
         {:mvn/version "4.2.4" :exclusions [org.bouncycastle/bcprov-ext-jdk18on]}
         org.clojure/java.data {:mvn/version "1.4.120"}}
