@@ -128,7 +128,7 @@
   :nvd {:extra-deps #:nvd-clojure{nvd-clojure {:mvn/version "5.3.0"}}
         :main-opts ["-m" "nvd.task.check"]}
   :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}
-                       cider/cider-nrepl {:mvn/version "0.62.2"}}
+                       cider/cider-nrepl {:mvn/version "0.64.0"}}
           :main-opts ["-m"
                       "nrepl.cmdline"
                       "--middleware"
